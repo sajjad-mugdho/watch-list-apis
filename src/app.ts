@@ -91,7 +91,7 @@ app.use(
           ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-request-id", "x-refresh-session"],
   })
 );
 

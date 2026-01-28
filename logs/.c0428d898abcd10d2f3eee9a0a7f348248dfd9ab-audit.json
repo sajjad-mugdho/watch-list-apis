@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/runner/work/watch-list-apis/watch-list-apis/logs/.c0428d898abcd10d2f3eee9a0a7f348248dfd9ab-audit.json",
+    "files": [
+        {
+            "date": 1769624646868,
+            "name": "/home/runner/work/watch-list-apis/watch-list-apis/logs/webhooks-2026-01-28.log",
+            "hash": "017e85925d46ddddf76e3f4a3bae83350d4ec662dd15b38bda3e9751279bbdfb"
+        }
+    ],
+    "hashType": "sha256"
+}

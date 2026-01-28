@@ -1,0 +1,15 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/runner/work/watch-list-apis/watch-list-apis/logs/.137d9aabf275e55196caccc8ff28211732bb4454-audit.json",
+    "files": [
+        {
+            "date": 1769624646864,
+            "name": "/home/runner/work/watch-list-apis/watch-list-apis/logs/error-2026-01-28.log",
+            "hash": "7f5d029eb9d6cec2fcf7322f45ab4948b4a415d90612f00f0604324297f76d86"
+        }
+    ],
+    "hashType": "sha256"
+}

@@ -89,26 +89,34 @@ export const rateLimit = (
 ): void => {
   const clientId = req.ip || req.socket.remoteAddress || "unknown";
   const now = Date.now();
-  const windowStart = now - RATE_LIMIT_WINDOW;
 
+  // Clean up expired entries (entries whose window has passed)
   for (const [key, value] of requestCounts.entries()) {
-    if (value.resetTime < windowStart) {
+    if (value.resetTime < now) {
       requestCounts.delete(key);
     }
   }
 
-  const clientData = requestCounts.get(clientId) || {
-    count: 0,
-    resetTime: now,
-  };
+  const clientData = requestCounts.get(clientId);
 
-  if (clientData.resetTime < windowStart) {
-    clientData.count = 1;
-    clientData.resetTime = now;
-  } else {
-    clientData.count++;
+  // If no existing entry or window has expired, start a new window
+  if (!clientData || clientData.resetTime < now) {
+    const newData = {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW, // Window ends at now + 15 minutes
+    };
+    requestCounts.set(clientId, newData);
+
+    res.setHeader("X-RateLimit-Limit", RATE_LIMIT_MAX);
+    res.setHeader("X-RateLimit-Remaining", RATE_LIMIT_MAX - 1);
+    res.setHeader("X-RateLimit-Reset", Math.ceil(newData.resetTime / 1000));
+
+    next();
+    return;
   }
 
+  // Increment count within existing window
+  clientData.count++;
   requestCounts.set(clientId, clientData);
 
   res.setHeader("X-RateLimit-Limit", RATE_LIMIT_MAX);
@@ -116,10 +124,7 @@ export const rateLimit = (
     "X-RateLimit-Remaining",
     Math.max(0, RATE_LIMIT_MAX - clientData.count)
   );
-  res.setHeader(
-    "X-RateLimit-Reset",
-    Math.ceil((clientData.resetTime + RATE_LIMIT_WINDOW) / 1000)
-  );
+  res.setHeader("X-RateLimit-Reset", Math.ceil(clientData.resetTime / 1000));
 
   if (clientData.count > RATE_LIMIT_MAX) {
     const requestId = req.headers["x-request-id"] as string;
