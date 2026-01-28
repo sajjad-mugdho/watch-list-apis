@@ -21,6 +21,7 @@ import { buildListingFilter, buildListingSort } from "../utils/listingFilters";
 import { Subscription } from "../models/Subscription";
 import { feedService } from "../services/FeedService";
 import { isoMatchingService } from "../services/ISOMatchingService";
+import { listingEvents } from "../events/listingEvents";
 import logger from "../utils/logger";
 
 // ----------------------------------------------------------
@@ -352,10 +353,9 @@ export const networks_listing_publish = async (
       logger.warn("Failed to add network listing to activity feed", { feedError });
     }
 
-    // Trigger ISO matching
+    // Trigger ISO matching (Async via Event)
     try {
-      // Cast to any to satisfy the ListingData interface
-      await isoMatchingService.matchNewListing(listing as any);
+      listingEvents.emitPublished(listing);
     } catch (isoError) {
       logger.warn("Failed to trigger ISO matching for network listing", { isoError });
     }

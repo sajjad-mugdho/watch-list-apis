@@ -22,6 +22,7 @@ import { buildListingFilter, buildListingSort } from "../utils/listingFilters";
 import { Subscription } from "../models/Subscription";
 import { feedService } from "../services/FeedService";
 import { isoMatchingService } from "../services/ISOMatchingService";
+import { listingEvents } from "../events/listingEvents";
 import logger from "../utils/logger";
 
 // ----------------------------------------------------------
@@ -428,11 +429,11 @@ export const marketplace_listing_publish = async (
       logger.warn("Failed to add listing to activity feed", { feedError });
     }
 
-    // ✅ Match against active ISOs and notify owners
+    // ✅ Match against active ISOs and notify owners (Async via Event)
     try {
-      await isoMatchingService.matchNewListing(listing);
+      listingEvents.emitPublished(listing);
     } catch (isoError) {
-      logger.warn("Failed to match listing against ISOs", { isoError });
+      logger.warn("Failed to emit listing published event", { isoError });
     }
 
     const response: ApiResponse<IMarketplaceListing> = {

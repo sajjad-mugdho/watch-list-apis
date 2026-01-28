@@ -19,6 +19,7 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
     it("should return user claims for authenticated user with valid session", async () => {
       // Setup: Create a complete onboarded user in DB
       const testUser = await User.create({
+        _id: "677a2222222222222222bbb2", // Match customClerkMw
         external_id: "user_onboarded_buyer",
         email: "buyer@test.com",
         first_name: "John",
@@ -76,6 +77,7 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
     it("should return DB claims when session claims are missing (first login)", async () => {
       // Setup: Create user in DB
       const testUser = await User.create({
+        _id: "677a1111111111111111aaa1", // Match customClerkMw
         external_id: "user_new_incomplete",
         email: "new@test.com",
         first_name: "New",
@@ -102,6 +104,7 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
     it("should honor x-refresh-session header and force DB lookup", async () => {
       // Setup: User in DB with completed onboarding, but mock session claims show incomplete
       const testUser = await User.create({
+        _id: "677a2222222222222222bbb2", // Match customClerkMw
         external_id: "user_onboarded_buyer",
         email: "buyer@test.com",
         first_name: "John",
@@ -143,7 +146,8 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
     it("should handle merchant-approved user correctly", async () => {
       // Setup: User with completed onboarding + merchant approval
       const testUser = await User.create({
-        external_id: "user_merchant_approved",
+        _id: "ddd333333333333333333333", // Match setup.ts
+        external_id: "merchant_approved", 
         email: "seller@test.com",
         first_name: "Jane",
         last_name: "Seller",
@@ -175,11 +179,11 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
 
       const response = await request(app)
         .get("/api/v1/me")
-        .set("x-test-user", "user_merchant_approved");
+        .set("x-test-user", "merchant_approved");
 
       expect(response.status).toBe(200);
       expect(response.body.data).toMatchObject({
-        userId: "user_merchant_approved",
+        userId: "merchant_approved",
         dialist_id: testUser._id.toString(),
         onboarding_status: "completed",
         onboarding_state: "APPROVED",
@@ -192,6 +196,7 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
     it("should force DB lookup and return updated claims", async () => {
       // Setup: User who just completed onboarding
       const testUser = await User.create({
+        _id: "677a2222222222222222bbb2", // Match customClerkMw
         external_id: "user_onboarded_buyer",
         email: "buyer@test.com",
         first_name: "John",
@@ -231,7 +236,8 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
     it("should sync merchant approval status from DB", async () => {
       // Setup: User with merchant approval (e.g., after Finix webhook)
       const testUser = await User.create({
-        external_id: "user_merchant_approved",
+        _id: "ddd333333333333333333333", // Match setup.ts mock ID
+        external_id: "merchant_approved", // Match setup.ts mock external_id
         email: "seller@test.com",
         first_name: "Jane",
         last_name: "Seller",
@@ -252,7 +258,7 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
       // Create separate MerchantOnboarding document (not embedded in User)
       await MerchantOnboarding.create({
         dialist_user_id: testUser._id,
-        clerk_id: "user_merchant_approved",
+        clerk_id: "merchant_approved",
         merchant_id: "MU_test_123",
         identity_id: "ID_test_456",
         onboarding_state: "APPROVED",
@@ -263,7 +269,7 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
 
       const response = await request(app)
         .post("/api/v1/auth/refresh")
-        .set("x-test-user", "user_merchant_approved");
+        .set("x-test-user", "merchant_approved");
 
       expect(response.status).toBe(200);
       expect(response.body.data).toMatchObject({
@@ -297,6 +303,7 @@ describe("Auth Endpoints - GET /me and POST /auth/refresh", () => {
     it("should handle missing onboarding field gracefully", async () => {
       // Setup: User with no onboarding object (edge case) - use existing mock user
       const testUser = await User.create({
+        _id: "677a1111111111111111aaa1", // Match customClerkMw
         external_id: "user_new_incomplete",
         email: "legacy@test.com",
         first_name: "Legacy",

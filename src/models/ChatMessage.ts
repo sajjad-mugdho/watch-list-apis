@@ -119,7 +119,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     },
     type: {
       type: String,
-      enum: ["regular", "system", "offer", "counter_offer", "offer_accepted", "offer_rejected", "order_created", "order_paid", "order_shipped", "order_delivered", "inquiry", "order"],
+      enum: ["regular", "system", "offer", "counter_offer", "offer_accepted", "offer_rejected", "order_created", "order_paid", "order_shipped", "order_delivered", "inquiry", "order", "listing_reserved", "offer_expired"],
       default: "regular",
       index: true,
     },

@@ -886,7 +886,7 @@ describe("Step 4: Refunds", () => {
     );
 
     // Verify calling it twice (handler calls Finix, Finix handles dedupe logic, but here we just check our handler processes the request)
-    // Note: The handler logic for idempotency mainly relies on Finix returning same response for same idempotency key.
-    expect(finixUtils.createTransferReversal as jest.Mock).toHaveBeenCalledTimes(2);
+    // Note: The handler logic for idempotency checks local DB first, so it won't call Finix the second time.
+    expect(finixUtils.createTransferReversal as jest.Mock).toHaveBeenCalledTimes(1);
   });
 });

@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import {AppError, ConflictError, DatabaseError, ValidationError} from "../utils/errors";
+import {AppError, ConflictError, DatabaseError} from "../utils/errors";
 import {finalizeOnboarding, getOnboardingProgress} from "../utils/user";
 import {loadCurrentUser} from "../utils/frequentQueries";
 import {

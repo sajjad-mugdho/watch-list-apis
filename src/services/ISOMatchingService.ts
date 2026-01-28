@@ -25,7 +25,38 @@ interface ListingData {
   thumbnail?: string;
 }
 
+import { listingEvents, LISTING_EVENTS, ListingPublishedPayload } from "../events/listingEvents";
+
 class ISOMatchingService {
+  
+  constructor() {
+    this.initialize();
+  }
+
+  /**
+   * Initialize event listeners
+   */
+  private initialize(): void {
+    listingEvents.on(LISTING_EVENTS.PUBLISHED, this.handleListingPublished.bind(this));
+    logger.info("ISOMatchingService initialized and listening for events");
+  }
+
+  /**
+   * Handle 'listing:published' event
+   */
+  private async handleListingPublished(listing: ListingPublishedPayload): Promise<void> {
+    try {
+      // Cast to match internal ListingData interface if needed
+      // The event payload (Mongoose doc) usually satisfies or exceeds ListingData
+      await this.matchNewListing(listing as unknown as ListingData);
+    } catch (error) {
+      logger.error("Error handling listing published event in ISOMatchingService", { 
+        error, 
+        listingId: listing._id 
+      });
+    }
+  }
+
   /**
    * Match a newly published listing against all active ISOs
    * Notifies ISO owners whose criteria match the listing
@@ -55,7 +86,10 @@ class ISOMatchingService {
         const isMatch = this.checkMatch(iso, listing);
 
         if (isMatch) {
-          await this.notifyISOOwner(iso, listing);
+          // Fire and forget notification to avoid blocking the match loop
+          this.notifyISOOwner(iso, listing).catch(err => 
+            logger.error("Async notification failed during matching", { err, isoId: iso._id })
+          );
         }
       }
     } catch (error) {
@@ -217,7 +251,9 @@ class ISOMatchingService {
         if (listing.thumbnail) listingData.thumbnail = listing.thumbnail;
         
         if (this.checkMatch(iso, listingData)) {
-          await this.notifyISOOwner(iso, listingData);
+          this.notifyISOOwner(iso, listingData).catch(err =>
+             logger.error("Async notification failed for manual check", { err, isoId })
+          );
         }
       }
 

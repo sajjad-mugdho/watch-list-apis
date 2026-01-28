@@ -9,8 +9,8 @@ describe("Friendship Endpoints Integration", () => {
   let userB: any;
   let userC: any;
 
-  beforeAll(async () => {
-    // Clean up
+  beforeEach(async () => {
+    // Clean up first (though setup.ts does this, being explicit helps)
     await User.deleteMany({});
     await Friendship.deleteMany({});
 
@@ -36,9 +36,9 @@ describe("Friendship Endpoints Integration", () => {
       onboarding: { status: "completed", steps: {} },
     });
 
-    // Create User C (New User CA) - ID from customClerkMw
+    // Create User C (New User CA) - ID from customClerkMw ALIGNED
     userC = await User.create({
-      _id: "aaa444444444444444444444",
+      _id: "aaa222222222222222222222", // Aligned with customClerkMw
       external_id: "new_user_ca",
       email: "userc@test.com",
       first_name: "User",
@@ -46,10 +46,6 @@ describe("Friendship Endpoints Integration", () => {
       display_name: "User C",
       onboarding: { status: "completed", steps: {} },
     });
-  });
-
-  beforeEach(async () => {
-    await Friendship.deleteMany({});
   });
 
   describe("POST /api/v1/user/friends/requests", () => {
@@ -72,7 +68,7 @@ describe("Friendship Endpoints Integration", () => {
         .send({ user_id: userA._id.toString() });
 
       expect(response.status).toBe(400);
-      expect(response.body.error.message).toContain("cannot friend yourself");
+      expect(response.body.error.message).toContain("Cannot send friend request to yourself");
     });
   });
 

@@ -84,7 +84,7 @@ describe('Platform Separation Tests', () => {
       // Add marketplace favorite
       await favoriteService.addFavorite({
         userId: userA._id.toString(),
-        itemType: 'listing',
+        itemType: 'for_sale',
         itemId: marketplaceListing._id.toString(),
         platform: 'marketplace'
       });
@@ -92,7 +92,7 @@ describe('Platform Separation Tests', () => {
       // Add networks favorite
       await favoriteService.addFavorite({
         userId: userA._id.toString(),
-        itemType: 'listing',
+        itemType: 'for_sale',
         itemId: networkListing._id.toString(),
         platform: 'networks'
       });
@@ -119,7 +119,7 @@ describe('Platform Separation Tests', () => {
     it('should NOT show marketplace favorites in networks query', async () => {
       await favoriteService.addFavorite({
         userId: userA._id.toString(),
-        itemType: 'listing',
+        itemType: 'for_sale',
         itemId: marketplaceListing._id.toString(),
         platform: 'marketplace'
       });
@@ -298,22 +298,33 @@ describe('Current User Endpoints', () => {
     });
 
     it('should only return favorites for current user', async () => {
-      const listingId1 = new Types.ObjectId().toString();
-      const listingId2 = new Types.ObjectId().toString();
+      const { createTestMarketplaceListing } = require('../helpers/fixtures');
+      
+      const listing1 = await createTestMarketplaceListing({
+        dialist_id: user._id,
+        external_id: user.external_id,
+        status: 'active'
+      });
+
+      const listing2 = await createTestMarketplaceListing({
+        dialist_id: otherUser._id,
+        external_id: otherUser.external_id,
+        status: 'active'
+      });
 
       // Add favorite for user
       await favoriteService.addFavorite({
         userId: user._id.toString(),
-        itemType: 'listing',
-        itemId: listingId1,
+        itemType: 'for_sale',
+        itemId: listing1._id.toString(),
         platform: 'marketplace'
       });
 
       // Add favorite for other user
       await favoriteService.addFavorite({
         userId: otherUser._id.toString(),
-        itemType: 'listing',
-        itemId: listingId2,
+        itemType: 'for_sale',
+        itemId: listing2._id.toString(),
         platform: 'marketplace'
       });
 
@@ -325,8 +336,8 @@ describe('Current User Endpoints', () => {
 
       // Should only have user's favorites, not other user's
       expect(favorites.length).toBe(1);
-      expect(favorites[0].item_id.toString()).toBe(listingId1);
-      expect(favorites.some(f => f.item_id.toString() === listingId2)).toBe(false);
+      expect(favorites[0].item_id.toString()).toBe(listing1._id.toString());
+      expect(favorites.some(f => f.item_id.toString() === listing2._id.toString())).toBe(false);
     });
   });
 
@@ -403,6 +414,7 @@ describe('Edge Cases', () => {
     let user: any;
 
     beforeEach(async () => {
+      const { createTestMarketplaceListing } = require('../helpers/fixtures');
       user = await User.create({
         external_id: `page_${Date.now()}`,
         email: `page_${Date.now()}@test.com`,
@@ -411,12 +423,20 @@ describe('Edge Cases', () => {
         display_name: 'PageUser'
       });
 
-      // Create multiple favorites
-      for (let i = 0; i < 25; i++) {
+      // Create multiple favorites with REAL listings
+      const listings = await Promise.all(
+        Array(25).fill(0).map(() => createTestMarketplaceListing({
+           dialist_id: user._id, 
+           external_id: user.external_id,
+           status: 'active' 
+        }))
+      );
+
+      for (const list of listings) {
         await favoriteService.addFavorite({
           userId: user._id.toString(),
-          itemType: 'listing',
-          itemId: new Types.ObjectId().toString(),
+          itemType: 'for_sale',
+          itemId: list._id.toString(),
           platform: 'marketplace'
         });
       }
