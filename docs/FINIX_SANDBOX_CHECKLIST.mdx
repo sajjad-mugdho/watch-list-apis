@@ -1,0 +1,119 @@
+---
+title: Finix Sandbox Certification Checklist (Backend)
+---
+
+# ✅ Finix Sandbox Certification Checklist (Backend)
+
+This file is a short checklist to help you validate the backend portions of Finix Sandbox certification. Each item includes quick verification steps, recommended files to look at in the codebase, and test instructions.
+
+> Note: This checklist focuses on backend-only tasks — see the main Finix docs for frontend tokenization & hosted forms setup.
+
+---
+
+## 1) Onboarding form usage (Hosted Onboarding Forms)
+
+- [ ] Confirm you are using Finix Hosted Onboarding Forms (preferred option)
+  - Backend validations: ensure identity_id is processed and merchant is created on completion.
+  - Files to inspect: `src/handlers/onboardingHandlers.ts`, `src/routes/merchant/marketplaceMerchant.ts`, `src/utils/finix.ts`
+  - Test: Create a form via API, complete it in sandbox, confirm `identity_id` is propagated to your `Merchant` creation flow.
+
+## 2) Example Transactions (Success & Failure)
+
+- [ ] Successful transaction path (i.e., token -> create PI -> transfer)
+  - Files: `src/handlers/orderHandlers.ts`, `src/utils/finix.ts`, `src/routes/orderRoutes.ts`
+  - Test: Use sandbox cards (see Finix test cards) and assert the `Transfer` reaches `SUCCEEDED`.
+- [ ] Failed transaction path (AVS/CVV or processor decline)
+  - Test: Use test card numbers (e.g., `4000000000000002`) and confirm the system returns `FAILED` and the order status reflects it.
+
+## 3) Example Refund / Reversal
+
+- [ ] Provide a backend refund (reversal) flow that creates a Finix transfer reversal.
+  - Files: `src/handlers/orderHandlers.ts`, `src/utils/finix.ts`, `src/workers/webhookProcessor.ts` for webhook updates
+  - Test: Issue a reversal; confirm `transfer.type === REVERSAL` and webhook updates `order.refunded` / `refunded_amount`.
+
+## 4) Address Verification (AVS) included on tokenized PIs
+
+- [ ] Ensure `postal_code` (zip) is included with Payment Instrument creation so Finix performs AVS.
+  - Files: `src/handlers/orderHandlers.ts` (token claim and PI creation), `src/utils/finix.ts`
+  - Test: In sandbox, create token with postal code, make an Auth or Transfer; check the `PaymentInstrument` record and `address_verification` field.
+
+## 5) Idempotency handling
+
+- [ ] All write operations for Finix resources support idempotency.
+  - Required calls: Transfers, Authorizations, Transfers/{id}/reversals, Onboarding forms & provisioning
+  - Files: `src/utils/finix.ts`, `src/handlers/*`, `src/routes/*`
+  - Implementation: include `idempotency_id` in the request body and/or `Finix-Idempotency-Key` header.
+  - Test: Re-send a request using the same idempotency ID and confirm you receive the same response (or an error if payload differs).
+
+## 6) Fraud Session ID (fraud_session_id)
+
+- [ ] Accept and pass `fraud_session_id` on `Authorization` or `Transfer` creation (web apps).
+  - Files: `src/validation/schemas.ts`, `src/handlers/orderHandlers.ts`, `src/utils/finix.ts`
+  - Test: Add a `fraud_session_id` to a transfer payload; confirm Finix returns expected result or blocks if fraud is detected. Use sandbox to test a blocked scenario.
+
+## 7) Tokenization Forms usage
+
+- [ ] Ensure backend only accepts Finix token IDs as input for Payment Instrument creation (avoid direct card numbers unless PCI certified).
+  - Files: `src/handlers/orderHandlers.ts`, `src/utils/finix.ts`
+  - Test: Ensure all exposed endpoints accept `token` rather than raw PAN data.
+
+## 8) Webhooks coverage & verification
+
+- [ ] Confirm signature verification on incoming webhooks (HMAC or Finix-supplied mega-token).
+- [ ] Subscribe to: `transfer.*`, `dispute.*`, `merchant.*`, `verifications.*` events as required.
+  - Files: `src/handlers/webhookHandlers.ts`, `src/workers/webhookProcessor.ts`, `src/queues/webhookQueue.ts`
+  - Test: In sandbox, trigger `dispute.created` and confirm the DB updates `order.dispute_state` and the system flags it for review. Verify duplicates are deduped by `event.id` or `trace_id`.
+
+## 9) ACH flows & Authorization/Confirmation language
+
+- [ ] Add checks for ACH flow (bank PI, ACH DEBIT transfers) and confirmation/authorization text for buyers.
+  - Files: `src/handlers/orderHandlers.ts`, `src/utils/finix.ts`, `src/validation/schemas.ts`
+  - Test: Use sandbox bank test numbers to simulate success/failure (R01/R03/etc.), and ensure `bank_account_validation_check` behaves as expected.
+
+## 10) AVS/CVV & Fraud handling mapping
+
+- [ ] Map Finix AVS/CVV results to your backend status/rules:
+  - `security_code_verification` and `address_verification` -> `order` status, risk flags, or block.
+  - Files: `src/handlers/orderHandlers.ts`, `src/utils/finix.ts`, `src/validation/schemas.ts`
+  - Test: Use the `889986` / `889987` testing amounts to trigger AVS/CVV errors and verify blocking.
+
+## 11) Role-based Access & audit logs
+
+- [ ] Ensure only authorized users can initiate refund or forced captures, include an audit trail for such actions.
+  - Files: `src/middleware/*` (or add `src/middleware/authorization.ts`), `src/handlers/orderHandlers.ts`, `src/routes/orderRoutes.ts`
+  - Test: Verify that a Seller can only refund their own orders; Admin can refund or override with reason.
+
+## 12) 3DS & challenge flows
+
+- [ ] Make sure `Authorization` responses with `3ds_redirect_url` are handled and finalization is processed on client and webhook.
+  - Files: `src/utils/finix.ts`, `src/handlers/orderHandlers.ts`, `src/validation/schemas.ts`
+  - Test: Run a sandbox Authorization that requires 3DS and follow challenge flow; ensure finalization status is handled in DB.
+
+## 13) Disputes & Settlements
+
+- [ ] Add handlers to process dispute creation/updates and settlement-related webhooks to update `Order` + accounting fields.
+  - Files: `src/workers/webhookProcessor.ts`, `src/models/Order.ts`
+  - Test: Trigger `dispute.created` and `dispute.closed` in sandbox and see DB updated accordingly.
+
+## 14) Testing (unit / integration / sandbox E2E)
+
+- [ ] Add unit and integration tests to confirm the above flows.
+  - Files: `tests/unit/`, `tests/integration/finix-payment-flow.test.ts`, new E2E tests for sandbox (`tests/integration/finix-sandbox-e2e.test.ts`)
+  - Test: Implement CI gating for these tests (E2E optional behind a sandbox env flag).
+
+## 15) Documentation & developer steps
+
+- [ ] Update `README.md` and add `docs/FINIX_SANDBOX.md` or a short `docs/FINIX_SANDBOX_CHECKLIST.mdx` (this file) with steps for cert reviewers to validate on your UI & API
+- [ ] Provide cURL examples and sandbox test card numbers along with test instructions and expected responses.
+
+---
+
+### How to use this checklist
+
+- Go down the list and mark items as you complete them.
+- For each item, assign a unit and integration test and confirm in sandbox using Finix test data.
+- Provide screen recording or steps for certification review demonstrating the UI flows or the REST payloads & responses.
+
+---
+
+Need help implementing any of these items? I can make PRs for the repo (starting with the highest-priority backend fixes like capture precondition, idempotency across onboarding & transfers, webhook handling, and refund/reversal) and add unit/integration tests.

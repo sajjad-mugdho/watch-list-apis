@@ -1,0 +1,45 @@
+{
+    "keep": {
+        "days": true,
+        "amount": 14
+    },
+    "auditLog": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/.d949b1332f604c2f42dfa77fb59710859cdafec5-audit.json",
+    "files": [
+        {
+            "date": 1768647142145,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/webhooks-2026-01-17.log",
+            "hash": "f26c83c1c58c28bc7f17bfb00daae5afde39bc58392080a92dab7a79bc56de7a"
+        },
+        {
+            "date": 1768672800034,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/webhooks-2026-01-18.log",
+            "hash": "46f25131325ad492532946a18543cc848dfb83c54d1b8f924a03aa8d2b055159"
+        },
+        {
+            "date": 1768759200025,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/webhooks-2026-01-19.log",
+            "hash": "c4b04e7b1bc3c2e069a327c128d741a358f663c4e6155dec2c7feba5c557d155"
+        },
+        {
+            "date": 1769004465580,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/webhooks-2026-01-21.log",
+            "hash": "c7a1289fdf3bf37dd804ef3d9fcb80c21122ce508508e00cbcf5568bb71e0466"
+        },
+        {
+            "date": 1769018458575,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/webhooks-2026-01-22.log",
+            "hash": "e1187f1e37ade11b138a7742abcfc2bcb4c138f26c1a11d6956241e0f3beb69e"
+        },
+        {
+            "date": 1769116868912,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/webhooks-2026-01-23.log",
+            "hash": "5e0bfee4916d14c893531ebe96982a6ae2892fbe65411441eeee2e9565331b7e"
+        },
+        {
+            "date": 1769605949425,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/webhooks-2026-01-28.log",
+            "hash": "2d6068be6079de7f703f1779e7f63a4ef8f55bd8650cc003adb699827c0d985e"
+        }
+    ],
+    "hashType": "sha256"
+}
