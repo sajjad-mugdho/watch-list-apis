@@ -83,10 +83,16 @@ export function verifyFinixSignature(
   signature: string | undefined,
   secret: string
 ): boolean {
-  // If no secret configured, skip verification (dev mode)
+  // If no secret configured, only allow in development mode
   if (!secret || secret.trim() === "") {
+    if (config.nodeEnv === "production") {
+      finixLogger.error(
+        "FINIX_WEBHOOK_SECRET not configured in production - rejecting webhook for security"
+      );
+      return false;
+    }
     finixLogger.warn(
-      "FINIX_WEBHOOK_SECRET not configured - skipping signature verification (INSECURE in production!)"
+      "FINIX_WEBHOOK_SECRET not configured - skipping signature verification (development mode only)"
     );
     return true;
   }
