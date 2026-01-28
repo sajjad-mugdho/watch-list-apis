@@ -176,7 +176,7 @@ export function registerEventHandlers(): void {
   /**
    * Order Lifecycle Notifications
    */
-  events.on('order:created', async ({ buyerId, sellerId, orderId, amount }) => {
+  events.on('order:created', async ({ sellerId, orderId, amount }) => {
     // Notify seller
     await notificationService.create({
       userId: sellerId,

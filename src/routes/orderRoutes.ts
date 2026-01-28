@@ -1,6 +1,5 @@
 import { Router } from "express";
 import {
-  requireCompletedOnboarding,
   requirePlatformAuth,
 } from "../middleware/authentication";
 

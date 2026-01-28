@@ -9,13 +9,39 @@ jest.mock("uuid", () => ({
 
 // Mock Bull library globally to avoid Redis connection errors
 jest.mock("bull", () => {
-  return jest.fn().mockImplementation(() => ({
-    on: jest.fn(),
-    add: jest.fn(),
-    process: jest.fn(),
-    getJobCounts: jest.fn().mockResolvedValue({}),
-    close: jest.fn().mockResolvedValue(undefined),
-  }));
+  return jest.fn().mockImplementation(() => {
+    let processor: any = null;
+
+    return {
+      on: jest.fn(),
+      add: jest.fn().mockImplementation(async (data) => {
+        const job = {
+          id: `job-${Date.now()}-${Math.random()}`,
+          data,
+          attemptsMade: 0,
+          opts: { attempts: 3 },
+          finished: jest.fn().mockResolvedValue(undefined),
+        };
+        
+        // Execute processor if registered
+        if (processor) {
+          try {
+            await processor(job);
+          } catch (e) {
+            console.error("Job processing failed in mock:", e);
+            throw e; 
+          }
+        }
+        return job;
+      }),
+      process: jest.fn().mockImplementation((fn) => {
+        processor = fn;
+      }),
+      getJob: jest.fn().mockResolvedValue({ finished: jest.fn().mockResolvedValue(undefined) }),
+      getJobCounts: jest.fn().mockResolvedValue({}),
+      close: jest.fn().mockResolvedValue(undefined),
+    };
+  });
 });
 
 const mockIoredis: any = {
@@ -46,7 +72,7 @@ jest.mock("@clerk/express", () => {
     clerkMiddleware: jest.fn().mockImplementation(() => (req: any, res: any, next: any) => next()),
     requireAuth: jest.fn().mockImplementation(() => (req: any, res: any, next: any) => next()),
     getAuth: jest.fn().mockImplementation((req: any) => ({ 
-      userId: req.headers["x-test-user"] || "mock_user",
+      userId: req.headers["x-test-user"] || null,
       sessionClaims: {} // Will be populated by customClerkMw if x-test-user is present
     })),
     clerkClient: {
@@ -66,19 +92,33 @@ jest.mock("../src/utils/user", () => {
     ...actual,
     fetchAndSyncLocalUser: jest.fn().mockImplementation((input: any) => {
       const { external_id } = input;
+      console.log(`🔍 [Mock fetchAndSyncLocalUser] external_id: "${external_id}"`);
       let dialist_id = "677a2222222222222222bbb2"; // Default
       
       if (external_id === "buyer_us_complete") {
         dialist_id = "ccc111111111111111111111";
       } else if (external_id === "merchant_approved") {
         dialist_id = "ddd333333333333333333333";
+      } else if (external_id === "user_onboarded_buyer") {
+        dialist_id = "677a2222222222222222bbb2"; // Match customClerkMw
+      } else if (external_id === "user_new_incomplete") {
+        dialist_id = "677a1111111111111111aaa1"; // Match customClerkMw
       }
 
+      let display_name = "Mock User";
+      if (external_id === "user_onboarded_buyer") {
+        display_name = "John Buyer";
+      } else if (external_id === "user_new_incomplete") {
+        display_name = "TestUserCustom"; // For onboarding E2E test
+      }
+
+      console.log(`Returning dialist_id: ${dialist_id}`);
       return Promise.resolve({
         dialist_id,
         onboarding_status: "completed",
-        display_name: "Mock User",
+        display_name,
         isMerchant: external_id === "merchant_approved",
+        onboarding_state: external_id === "merchant_approved" ? "APPROVED" : undefined,
         networks_accessed: false,
         networks_application_id: null,
       });

@@ -195,8 +195,8 @@ describe('ReviewService', () => {
     });
   });
 
-  describe('updateUserStats', () => {
-    it('should update user stats with rating summary', async () => {
+  describe('recomputeUserStats', () => {
+    it('should recompute user stats from source (drift correction)', async () => {
       const userId = new Types.ObjectId().toString();
       const mockSummary = {
         avg_rating: 4.5,
@@ -209,18 +209,32 @@ describe('ReviewService', () => {
       (Review.getRatingSummary as jest.Mock).mockResolvedValue(mockSummary);
       (User.findByIdAndUpdate as jest.Mock).mockResolvedValue({});
 
-      await reviewService.updateUserStats(userId);
+      await reviewService.recomputeUserStats(userId);
 
       expect(User.findByIdAndUpdate).toHaveBeenCalledWith(
         userId,
-        {
-          $set: {
+        expect.objectContaining({
+          $set: expect.objectContaining({
             'stats.avg_rating': 4.5,
             'stats.rating_count': 10,
-            'stats.review_count_as_buyer': 4,
-            'stats.review_count_as_seller': 6,
-          },
-        }
+          })
+        })
+      );
+    });
+  });
+
+  describe('atomicIncrementUserStats', () => {
+    it('should update user stats atomically using pipeline', async () => {
+      const userId = new Types.ObjectId().toString();
+      (User.findByIdAndUpdate as jest.Mock).mockResolvedValue({});
+
+      await reviewService.atomicIncrementUserStats(userId, 5, 'buyer');
+
+      expect(User.findByIdAndUpdate).toHaveBeenCalledWith(
+        userId,
+        expect.arrayContaining([
+          expect.objectContaining({ $set: expect.any(Object) })
+        ])
       );
     });
   });

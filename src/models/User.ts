@@ -413,6 +413,7 @@ const userSchema = new Schema<IUser>(
       following_count: { type: Number, default: 0 },
       friend_count: { type: Number, default: 0 },
       avg_rating: { type: Number, default: 0 },
+      rating_sum: { type: Number, default: 0 }, // Internal: for atomic avg calculation
       rating_count: { type: Number, default: 0 },
       review_count_as_buyer: { type: Number, default: 0 },
       review_count_as_seller: { type: Number, default: 0 },

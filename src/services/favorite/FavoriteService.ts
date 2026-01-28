@@ -1,6 +1,6 @@
 import { IFavorite, FavoriteType, Platform } from '../../models/Favorite';
 import { favoriteRepository } from '../../repositories/FavoriteRepository';
-import { MarketplaceListing } from '../../models/Listings';
+import { MarketplaceListing, NetworkListing } from '../../models/Listings';
 import { ISO } from '../../models/ISO';
 import logger from '../../utils/logger';
 
@@ -34,7 +34,14 @@ export class FavoriteService {
     // EDGE CASE FIX #2: Validate listing is ACTIVE before favoriting
     // Per Michael: "Can only favorite ACTIVE: ISO/WTB and For-Sale listings"
     if (itemType === 'for_sale') {
-      const listing = await MarketplaceListing.findById(itemId);
+      let listing: any = null;
+
+      if (platform === 'marketplace') {
+        listing = await MarketplaceListing.findById(itemId);
+      } else if (platform === 'networks') {
+        listing = await NetworkListing.findById(itemId);
+      }
+
       if (!listing) {
         throw new Error('Listing not found');
       }
