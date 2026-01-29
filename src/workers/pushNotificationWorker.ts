@@ -6,7 +6,7 @@ import logger from "../utils/logger";
 // import apn from "@parse/node-apn"; // TODO: Install @parse/node-apn
 
 pushNotificationQueue.process(async (job) => {
-  const { userId, notificationId, title, body, data: _data } = job.data;
+  const { userId, notificationId, title, body } = job.data;
   
   logger.info("Processing push notification", { jobId: job.id, userId });
   

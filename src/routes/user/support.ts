@@ -108,8 +108,12 @@ router.get(
       res.json(successResponse(req, ticket.toJSON()));
     } catch (err) {
       if (err instanceof Error) {
-        if (err.message.includes("not found") || err.message.includes("Not authorized")) {
+        if (err.message.includes("not found")) {
           res.status(404).json(errorResponse(req, err.message, "NOT_FOUND"));
+          return;
+        }
+        if (err.message.includes("Not authorized")) {
+          res.status(403).json(errorResponse(req, err.message, "FORBIDDEN"));
           return;
         }
       }

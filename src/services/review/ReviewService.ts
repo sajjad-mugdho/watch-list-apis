@@ -248,7 +248,7 @@ export class ReviewService {
       $set: {
         "stats.avg_rating": summary.avg_rating,
         "stats.rating_count": summary.rating_count,
-        "stats.rating_sum": summary.rating_count * summary.avg_rating, // Approx
+        "stats.rating_sum": summary.rating_sum, // Use accurate sum from aggregation
         "stats.review_count_as_buyer": summary.review_count_as_buyer,
         "stats.review_count_as_seller": summary.review_count_as_seller,
       },

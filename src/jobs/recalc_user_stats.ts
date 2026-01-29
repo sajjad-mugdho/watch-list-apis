@@ -25,31 +25,38 @@ async function run() {
     logger.info("Connected.");
 
     const limit = 100;
-    let skip = 0;
     let totalProcessed = 0;
+    let lastId: string | null = null;
 
     const totalUsers = await User.countDocuments();
     logger.info(`Starting drift correction for ${totalUsers} users...`);
 
     while (true) {
-      const users = await User.find().select("_id").skip(skip).limit(limit);
+      // Use cursor-based pagination for O(n) performance instead of skip() O(n²)
+      const userQuery = lastId 
+        ? User.find({ _id: { $gt: lastId } })
+        : User.find();
+      
+      const users: Array<{ _id: mongoose.Types.ObjectId }> = await userQuery
+        .select("_id")
+        .sort({ _id: 1 })
+        .limit(limit)
+        .lean();
 
       if (users.length === 0) {
         break;
       }
 
-      await Promise.all(
-        users.map(async (user) => {
-          try {
-            await reviewService.recomputeUserStats(String(user._id));
-          } catch (err) {
-            logger.error(`Failed to recompute stats for user ${user._id}`, { err });
-          }
-        })
-      );
+      for (const user of users) {
+        try {
+          await reviewService.recomputeUserStats(String(user._id));
+        } catch (err) {
+          logger.error(`Failed to recompute stats for user ${user._id}`, { err });
+        }
+      }
 
       totalProcessed += users.length;
-      skip += limit;
+      lastId = String(users[users.length - 1]._id);
       logger.info(`Processed ${totalProcessed}/${totalUsers} users...`);
     }
 

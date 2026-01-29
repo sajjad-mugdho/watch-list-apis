@@ -9436,7 +9436,7 @@ Once approved:
       summary: "Get user's support tickets",
       security: [{ bearerAuth: [] }, { mockUser: [] }],
       parameters: [
-        { name: "status", in: "query", schema: { type: "string", enum: ["open", "in_progress", "waiting_on_user", "resolved", "closed"] } },
+        { name: "status", in: "query", schema: { type: "string", enum: ["open", "in_progress", "awaiting_user", "resolved", "closed"] } },
         { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
         { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
       ],
@@ -9455,8 +9455,8 @@ Once approved:
               required: ["subject", "category", "message"],
               properties: {
                 subject: { type: "string", maxLength: 200 },
-                category: { type: "string", enum: ["general", "order_issue", "payment", "account", "technical", "other"] },
-                priority: { type: "string", enum: ["low", "normal", "high", "urgent"], default: "normal" },
+                category: { type: "string", enum: ["order_issue", "payment_issue", "account_issue", "listing_issue", "technical_bug", "feature_request", "fraud_report", "other"] },
+                priority: { type: "string", enum: ["low", "medium", "high", "urgent"], default: "medium" },
                 message: { type: "string", maxLength: 5000 },
                 related_order_id: { type: "string" },
                 related_listing_id: { type: "string" },

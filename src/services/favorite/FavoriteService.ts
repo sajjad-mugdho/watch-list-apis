@@ -34,12 +34,12 @@ export class FavoriteService {
     // EDGE CASE FIX #2: Validate listing is ACTIVE before favoriting
     // Per Michael: "Can only favorite ACTIVE: ISO/WTB and For-Sale listings"
     if (itemType === 'for_sale') {
-      let listing: any = null;
+      let listing: { status: string } | null = null;
 
       if (platform === 'marketplace') {
-        listing = await MarketplaceListing.findById(itemId);
+        listing = await MarketplaceListing.findById(itemId).select('status').lean();
       } else if (platform === 'networks') {
-        listing = await NetworkListing.findById(itemId);
+        listing = await NetworkListing.findById(itemId).select('status').lean();
       }
 
       if (!listing) {
