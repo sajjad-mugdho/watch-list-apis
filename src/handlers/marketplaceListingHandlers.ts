@@ -21,7 +21,6 @@ import { validateListingCompleteness } from "../utils/listingValidation";
 import { buildListingFilter, buildListingSort } from "../utils/listingFilters";
 import { Subscription } from "../models/Subscription";
 import { feedService } from "../services/FeedService";
-import { isoMatchingService } from "../services/ISOMatchingService";
 import { listingEvents } from "../events/listingEvents";
 import logger from "../utils/logger";
 

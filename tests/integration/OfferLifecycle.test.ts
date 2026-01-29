@@ -220,5 +220,13 @@ describe('Offer Lifecycle Integration', () => {
     
     expect(acceptNotif).toBeDefined();
     expect(acceptNotif?.title).toContain('Offer Accepted');
+
+    // ✅ VERIFY: System message for listing reservation exists
+    const reservationMsg = await ChatMessage.findOne({
+      stream_channel_id: channel.getstream_channel_id,
+      type: 'listing_reserved'
+    });
+    expect(reservationMsg).toBeDefined();
+    expect(reservationMsg?.type).toBe('listing_reserved');
   });
 });

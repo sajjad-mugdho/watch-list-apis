@@ -52,7 +52,7 @@ class ISOMatchingService {
     } catch (error) {
       logger.error("Error handling listing published event in ISOMatchingService", { 
         error, 
-        listingId: listing._id 
+        listingId: (listing as any)._id 
       });
     }
   }
