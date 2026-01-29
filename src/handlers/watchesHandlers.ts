@@ -161,7 +161,7 @@ export const watches_list_get = async (
         count: items.length,
         total,
         pagination: { limit, offset: skip, hasMore },
-        sort,
+        sortMode: sort, // Renamed from 'sort' to avoid conflict with SortMeta type
       },
     };
 

@@ -16,6 +16,7 @@ import {
   getMutualFriendsSchema,
 } from "../../validation/schemas";
 import { friendshipService } from "../../services/friendship/FriendshipService";
+// Response helpers available: import { createdResponse, paginatedResponse, successResponse, actionResponse, errorResponse } from "../../utils/apiResponse";
 
 const router = Router();
 
