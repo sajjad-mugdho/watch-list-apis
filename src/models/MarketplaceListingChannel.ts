@@ -9,6 +9,7 @@ const OFFER_STATUS_VALUES = [
   "accepted",
   "declined",
   "superseded",
+  "expired",
 ] as const;
 const CHANNEL_STATUS_VALUES = ["open", "closed"] as const;
 const EVENT_TYPE_VALUES = ["inquiry", "offer", "order"] as const;

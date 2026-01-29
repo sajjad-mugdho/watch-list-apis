@@ -15,7 +15,7 @@ import { ISO } from "../models/ISO";
 import { feedService } from "../services/FeedService";
 import logger from "../utils/logger";
 import { attachUser, getUserId, getUser } from "../middleware/attachUser";
-import { validateRequest } from "../validation/middleware";
+import { validateRequest } from "../middleware/validation";
 import {
   createISOSchema,
   updateISOSchema,

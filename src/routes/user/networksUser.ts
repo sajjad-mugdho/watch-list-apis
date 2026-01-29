@@ -7,7 +7,7 @@ import {
   getUserInventorySchema,
   getUserChannelsSchema,
 } from "../../validation/schemas";
-import { validateRequest } from "../../validation/middleware";
+import { validateRequest } from "../../middleware/validation";
 import { networks_user_offers_get } from "../../handlers/networksOfferHandlers";
 
 const router: Router = Router();

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { validateRequest } from "../validation/middleware";
+import { validateRequest } from "../middleware/validation";
 import { getWatchesSchema } from "../validation/schemas";
 import { watches_list_get } from "../handlers/watchesHandlers";
 

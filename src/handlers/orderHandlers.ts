@@ -2894,9 +2894,10 @@ export const getBuyerOrders = async (
     });
 
     res.json({
-      success: true,
       data: orders,
-      count: orders.length,
+      _metadata: {
+        count: orders.length,
+      },
     });
   } catch (error) {
     next(error);
@@ -2930,9 +2931,10 @@ export const getSellerOrders = async (
     });
 
     res.json({
-      success: true,
       data: orders,
-      count: orders.length,
+      _metadata: {
+        count: orders.length,
+      },
     });
   } catch (error) {
     next(error);

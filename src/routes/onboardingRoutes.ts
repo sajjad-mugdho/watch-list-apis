@@ -1,6 +1,6 @@
 // src/routes/user/onboardingRoutes.ts
 import { Router } from "express";
-import { validateRequest } from "../validation/middleware";
+import { validateRequest } from "../middleware/validation";
 import {
   onboarding_acknowledgements_patch,
   onboarding_avatar_patch,

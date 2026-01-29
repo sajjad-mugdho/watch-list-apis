@@ -18,7 +18,7 @@ import {
 } from "../../handlers/imageHandlers";
 import { marketplace_listing_inquire } from "../../handlers/inquiryHandlers";
 import { uploadMultiple } from "../../middleware/upload";
-import { validateRequest } from "../../validation/middleware";
+import { validateRequest } from "../../middleware/validation";
 import {
   createListingSchema,
   updateListingSchema,
