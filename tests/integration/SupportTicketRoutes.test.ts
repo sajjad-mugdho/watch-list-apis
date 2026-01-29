@@ -49,10 +49,13 @@ describe("Support Ticket Endpoints Integration", () => {
         subject: "Existing Ticket",
         category: "payment_issue",
         priority: "high",
-        message: "Payment failed",
         status: "open",
-        description: "Payment failed", // Schema calls it description
-        messages: [],
+        messages: [{
+          sender_id: userA._id,
+          sender_type: "user",
+          message: "Payment failed",
+          created_at: new Date()
+        }],
       });
 
       const response = await request(app)

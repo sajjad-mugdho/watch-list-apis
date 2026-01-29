@@ -172,6 +172,7 @@ export interface IUser extends Document {
     following_count: number;
     friend_count: number;
     avg_rating: number;
+    rating_sum: number; // Internal: for atomic avg calculation
     rating_count: number;
     review_count_as_buyer: number;
     review_count_as_seller: number;

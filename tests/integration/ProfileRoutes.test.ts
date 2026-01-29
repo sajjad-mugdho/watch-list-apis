@@ -3,7 +3,6 @@ import { app } from "../../src/app";
 import { User } from "../../src/models/User";
 import { NetworkListing } from "../../src/models/Listings";
 import { Watch } from "../../src/models/Watches";
-import mongoose from "mongoose";
 
 describe("Profile and Wishlist Endpoints Integration", () => {
   let userA: any;

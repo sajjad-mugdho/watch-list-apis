@@ -9204,6 +9204,7 @@ Once approved:
     get: {
       tags: ["Reviews"],
       summary: "Get reviews for a user",
+      security: [],
       description: "Retrieve paginated reviews for a specific user, optionally filtered by role (buyer/seller).",
       parameters: [
         { name: "user_id", in: "path", required: true, schema: { type: "string" } },
@@ -9220,6 +9221,7 @@ Once approved:
     get: {
       tags: ["Reviews"],
       summary: "Get rating summary for a user",
+      security: [],
       description: "Returns aggregated rating statistics including average, count, and breakdown by star rating.",
       parameters: [
         { name: "user_id", in: "path", required: true, schema: { type: "string" } },

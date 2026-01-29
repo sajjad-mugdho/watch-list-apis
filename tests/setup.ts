@@ -92,7 +92,6 @@ jest.mock("../src/utils/user", () => {
     ...actual,
     fetchAndSyncLocalUser: jest.fn().mockImplementation((input: any) => {
       const { external_id } = input;
-      console.log(`🔍 [Mock fetchAndSyncLocalUser] external_id: "${external_id}"`);
       let dialist_id = "677a2222222222222222bbb2"; // Default
       
       if (external_id === "buyer_us_complete") {
@@ -112,7 +111,7 @@ jest.mock("../src/utils/user", () => {
         display_name = "TestUserCustom"; // For onboarding E2E test
       }
 
-      console.log(`Returning dialist_id: ${dialist_id}`);
+
       return Promise.resolve({
         dialist_id,
         onboarding_status: "completed",

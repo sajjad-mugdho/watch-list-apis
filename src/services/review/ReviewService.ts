@@ -214,18 +214,21 @@ export class ReviewService {
     await User.findByIdAndUpdate(userId, [
       {
         $set: {
-          "stats.rating_count": { $add: ["$stats.rating_count", 1] },
-          "stats.rating_sum": { $add: ["$stats.rating_sum", rating] },
-          [roleField]: { $add: [`$${roleField}`, 1] }
+          "stats.rating_count": { $add: [{ $ifNull: ["$stats.rating_count", 0] }, 1] },
+          "stats.rating_sum": { $add: [{ $ifNull: ["$stats.rating_sum", 0] }, rating] },
+          [roleField]: { $add: [{ $ifNull: [`$${roleField}`, 0] }, 1] }
         }
       },
       {
         $set: {
           "stats.avg_rating": {
              $cond: [
-               { $eq: ["$stats.rating_count", 0] },
+               { $lte: [{ $ifNull: ["$stats.rating_count", 0] }, 0] },
                0,
-               { $divide: ["$stats.rating_sum", "$stats.rating_count"] }
+               { $divide: [
+                 { $ifNull: ["$stats.rating_sum", 0] }, 
+                 { $ifNull: ["$stats.rating_count", 1] }
+               ]}
              ]
           }
         }

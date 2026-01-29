@@ -17,24 +17,24 @@ async function run() {
     throw new Error("MONGODB_URI environment variable is required");
   }
 
-  logger.info("Connecting to MongoDB...");
-  await mongoose.connect(mongoUri);
-  logger.info("Connected.");
-
-  const limit = 100;
-  let skip = 0;
-  let totalProcessed = 0;
-  let hasMore = true;
+  let exitCode = 0;
 
   try {
+    logger.info("Connecting to MongoDB...");
+    await mongoose.connect(mongoUri);
+    logger.info("Connected.");
+
+    const limit = 100;
+    let skip = 0;
+    let totalProcessed = 0;
+
     const totalUsers = await User.countDocuments();
     logger.info(`Starting drift correction for ${totalUsers} users...`);
 
-    while (hasMore) {
+    while (true) {
       const users = await User.find().select("_id").skip(skip).limit(limit);
 
       if (users.length === 0) {
-        hasMore = false;
         break;
       }
 
@@ -42,7 +42,6 @@ async function run() {
         users.map(async (user) => {
           try {
             await reviewService.recomputeUserStats(String(user._id));
-            // Add a small delay/yield if necessary, but Promise.all is fine for batch of 100
           } catch (err) {
             logger.error(`Failed to recompute stats for user ${user._id}`, { err });
           }
@@ -57,10 +56,10 @@ async function run() {
     logger.info("Drift correction complete.");
   } catch (err) {
     logger.error("Job failed", { err });
-    process.exit(1);
+    exitCode = 1;
   } finally {
     await mongoose.disconnect();
-    process.exit(0);
+    process.exit(exitCode);
   }
 }
 
