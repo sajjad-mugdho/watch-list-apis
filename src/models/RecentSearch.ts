@@ -14,7 +14,7 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 export const PLATFORM_VALUES = ["marketplace", "networks"] as const;
 export type Platform = (typeof PLATFORM_VALUES)[number];
 
-// Search context types per Michael's feedback
+// Search context types 
 export const SEARCH_CONTEXT_VALUES = ["for-sale", "profiles", "wtb-iso"] as const;
 export type SearchContext = (typeof SEARCH_CONTEXT_VALUES)[number];
 

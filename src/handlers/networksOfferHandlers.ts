@@ -509,7 +509,7 @@ export const networks_offer_accept = async (
     }
     channel.last_offer = updatedOffer;
 
-    // TODO: Create Order document separately (Phase 2)
+    // TODO: Create Order document separately
     // channel.order = {
     //   from_offer_id: lastOffer._id! as any,
     //   amount: lastOffer.amount,
@@ -523,9 +523,9 @@ export const networks_offer_accept = async (
     await channel.save({ session });
 
     // Update listing status to reserved
-    // TODO: Use status transition method (Phase 1)
+    // TODO: Use status transition method
     listing.status = "reserved";
-    // TODO: Remove deprecated listing.order (Phase 1)
+    // TODO: Remove deprecated listing.order
     // listing.order = {
     //   channel_id: channel._id as any,
     //   buyer_id: channel.buyer_id,

@@ -76,7 +76,7 @@ export interface INetworkListing extends IListing {
     buyer_id: Schema.Types.ObjectId;
   } | null;
 
-  // WTB Listing fields (Gap Fill Phase 8)
+  // WTB Listing fields
   type: "for_sale" | "wtb";
   year_range?: { min?: number; max?: number } | null;
   price_range?: { min?: number; max?: number } | null;
@@ -242,7 +242,7 @@ const networkListingSchema = new Schema<INetworkListing>(
     allow_offers: { type: Schema.Types.Boolean, default: true, index: true },
     order: { type: ListingOrderSchema, default: null },
 
-    // WTB Listing fields (Gap Fill Phase 8)
+    // WTB Listing fields
     type: {
       type: String,
       enum: ["for_sale", "wtb"],

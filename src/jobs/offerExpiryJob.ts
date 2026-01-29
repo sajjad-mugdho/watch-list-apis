@@ -4,7 +4,7 @@
  * Background job that runs periodically to expire stale offers.
  * Uses simple setInterval for simplicity. Can be replaced with Bull queues.
  * 
- * Per Michael's spec: Offers expire after 48 hours automatically.
+ * Offers expire after 48 hours automatically.
  */
 
 import { offerService } from '../services';

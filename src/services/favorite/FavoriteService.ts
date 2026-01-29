@@ -12,27 +12,17 @@ export interface FavoriteParams {
 }
 
 export class FavoriteService {
-  /**
-   * Add an item to favorites
-   * 
-   * Per Michael's requirements:
-   * - Favorites should ONLY apply to Listings
-   * - Can only favorite ACTIVE listings
-   * - WTB/ISO favorites are Networks-only (Marketplace doesn't have ISO/WTB)
-   */
   async addFavorite(params: FavoriteParams): Promise<IFavorite> {
     const { userId, itemType, itemId, platform } = params;
     
     logger.info('Adding favorite', { userId, itemType, itemId, platform });
 
-    // EDGE CASE FIX #3: WTB/ISO is Networks-only
-    // Per Michael: "Marketplace doesn't have ISO/WTB listings anyways"
+    // WTB/ISO is Networks-only
     if (itemType === 'wtb' && platform === 'marketplace') {
       throw new Error('WTB/ISO favorites are only available on the Networks platform');
     }
 
-    // EDGE CASE FIX #2: Validate listing is ACTIVE before favoriting
-    // Per Michael: "Can only favorite ACTIVE: ISO/WTB and For-Sale listings"
+    // Validate listing is ACTIVE before favoriting
     if (itemType === 'for_sale') {
       let listing: { status: string } | null = null;
 

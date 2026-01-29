@@ -2,7 +2,7 @@
  * User ISO Routes
  *
  * Current-user ISO endpoints under /api/v1/user/isos
- * Per Michael's requirements:
+ * ISO/WTB Routes for Current User
  * - Move /api/v1/isos/my → /api/v1/user/isos
  * 
  * Mounted at: /api/v1/user/isos

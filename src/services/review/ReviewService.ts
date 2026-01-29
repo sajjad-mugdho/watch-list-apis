@@ -1,5 +1,5 @@
 /**
- * Review Service (Gap Fill Phase 3)
+ * Review Service
  * 
  * Business logic for the review/rating system
  * Handles review creation, validation, and user stats updates

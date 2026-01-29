@@ -2,7 +2,7 @@
  * User Subscription Routes
  *
  * Current-user subscription endpoints under /api/v1/user/subscription
- * Per Michael's requirements:
+ * Subscription Routes for Current User
  * - Move /api/v1/subscriptions/current → /api/v1/user/subscription
  * 
  * Mounted at: /api/v1/user/subscription

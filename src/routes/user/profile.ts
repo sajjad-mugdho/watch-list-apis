@@ -1,5 +1,5 @@
 /**
- * User Profile Routes (Gap Fill Phase 1)
+ * User Profile Routes
  * 
  * Handles profile updates (bio, social_links) and wishlist management
  */

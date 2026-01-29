@@ -17,20 +17,20 @@ import { FAVORITE_TYPE_VALUES } from "../../models/Favorite";
 const router = Router();
 
 // Validation Schemas
-// Per Michael: Platform is REQUIRED - Marketplace favorites should NOT appear in Networks
-// Per Michael: Only for_sale and wtb types allowed (FAVORITE_TYPE_VALUES updated)
+// Platform is REQUIRED - Marketplace favorites should NOT appear in Networks
+// Only for_sale and wtb types allowed (FAVORITE_TYPE_VALUES updated)
 const addFavoriteSchema = z.object({
   body: z.object({
     item_type: z.enum(FAVORITE_TYPE_VALUES),
     item_id: z.string().min(1),
-    platform: z.enum(["marketplace", "networks"]), // REQUIRED per Michael
+    platform: z.enum(["marketplace", "networks"]), // REQUIRED
   }),
 });
 
 const getFavoritesSchema = z.object({
   query: z.object({
     type: z.enum(FAVORITE_TYPE_VALUES).optional(),
-    platform: z.enum(["marketplace", "networks"]), // REQUIRED per Michael
+    platform: z.enum(["marketplace", "networks"]), // REQUIRED
     limit: z.coerce.number().min(1).max(100).default(20),
     offset: z.coerce.number().min(0).default(0),
   }),
@@ -42,7 +42,7 @@ const favoriteCheckSchema = z.object({
     id: z.string().min(1),
   }),
   query: z.object({
-    platform: z.enum(["marketplace", "networks"]), // REQUIRED per Michael
+    platform: z.enum(["marketplace", "networks"]), // REQUIRED
   }),
 });
 

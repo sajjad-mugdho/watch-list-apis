@@ -1,6 +1,6 @@
 /**
  * FriendshipService Unit Tests
- * Gap Fill Phase 4
+ * Friendship Service Tests
  */
 
 import { FriendshipService } from '../../../src/services/friendship/FriendshipService';

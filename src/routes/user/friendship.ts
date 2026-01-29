@@ -1,5 +1,5 @@
 /**
- * Friendship Routes (Gap Fill Phase 4)
+ * Friendship Routes
  * 
  * Endpoints for managing two-way friendships
  * 

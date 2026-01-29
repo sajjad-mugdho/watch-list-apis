@@ -3,7 +3,7 @@
  * 
  * Business logic for offer lifecycle management.
  * 
- * Key rules (per Michael's Q&A):
+ * Key rules ():
  * - One active offer per buyer per channel
  * - Counter-offer invalidates previous offer
  * - Offers expire after 48 hours automatically

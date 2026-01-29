@@ -23,7 +23,7 @@ export const watches_list_get = async (
     const sort = (req.query.sort ?? "recent").toLowerCase() as
       | "recent"
       | "random";
-    // Gap Fill Phase 2: Category filter
+    // Category filter
     const category = req.query.category;
     const { limit, skip } = buildPaginationOptions(
       req.query.limit,
@@ -66,7 +66,7 @@ export const watches_list_get = async (
           },
         });
 
-        // Gap Fill Phase 2: Apply category filter after search
+        // Apply category filter after search
         if (category) {
           pipeline.push({ $match: { category } });
         }
@@ -100,7 +100,7 @@ export const watches_list_get = async (
           ],
         };
 
-        // Gap Fill Phase 2: Apply category filter
+        // Apply category filter
         if (category) {
           filter.category = category;
         }
@@ -119,7 +119,7 @@ export const watches_list_get = async (
       // No search query
       const pipeline: any[] = [];
 
-      // Gap Fill Phase 2: Apply category filter
+      // Apply category filter
       if (category) {
         pipeline.push({ $match: { category } });
       }

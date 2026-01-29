@@ -56,18 +56,18 @@ export const NOTIFICATION_TYPES = [
   // System
   "system",
   
-  // ===== Gap Fill Phase 3+: New Notification Types =====
+  // ===== New Notification Types =====
   
-  // Reviews (Phase 3)
+  // Reviews
   "review_received",      // When someone leaves you a review
   "review_reminder",      // Prompts user to review after order delivered
   
-  // Friendship (Phase 4)
+  // Friendship
   "friend_request_received",
   "friend_request_accepted",
   "friend_request_declined",
   
-  // Support Tickets (Phase 7 - optional)
+  // Support Tickets (optional)
   "ticket_created",
   "ticket_updated",
   "ticket_response",

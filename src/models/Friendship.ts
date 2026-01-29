@@ -1,5 +1,5 @@
 /**
- * Friendship Model (Gap Fill Phase 4)
+ * Friendship Model
  * 
  * Two-way friend relationships (distinct from one-way Follow)
  * Friends have mutual relationship, follows are unidirectional

@@ -1,5 +1,5 @@
 /**
- * Review Model (Gap Fill Phase 3)
+ * Review Model
  * 
  * Post-transaction ratings and feedback system
  * Distinct from ReferenceCheck which is for pre-sale vouching

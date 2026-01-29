@@ -10,7 +10,7 @@ import logger from "../utils/logger";
 /**
  * Networks-only middleware
  * Gates routes to only work when x-platform header is "networks"
- * Per Michael: Marketplace does NOT support follow functionality
+ * 
  */
 export const networksOnly = (req: Request, res: Response, next: NextFunction) => {
   const platform = req.headers["x-platform"] as string;

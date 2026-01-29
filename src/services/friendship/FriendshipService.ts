@@ -1,5 +1,5 @@
 /**
- * Friendship Service (Gap Fill Phase 4)
+ * Friendship Service
  * 
  * Business logic for friend requests and relationships
  * Handles request/accept/decline flow and user stats updates

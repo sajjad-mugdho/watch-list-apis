@@ -10,7 +10,7 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 // Constants
 // ----------------------------------------------------------
 
-// Per Michael: Favorites should ONLY apply to Listings (for-sale and WTB/ISO)
+// Favorites should ONLY apply to Listings (for-sale and WTB/ISO)
 // Users can toggle between "For Sale" and "WTB" views in the UI
 export const FAVORITE_TYPE_VALUES = [
   "for_sale",  // For-Sale listings (Marketplace + Networks)
@@ -31,7 +31,7 @@ export interface IFavorite extends Document {
   user_id: Types.ObjectId;
   item_type: FavoriteType;
   item_id: Types.ObjectId;
-  platform: Platform;  // NEW: Platform scoping per Michael's feedback
+  platform: Platform;  // Platform scoping
   createdAt: Date;
 }
 
