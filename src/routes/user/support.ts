@@ -17,6 +17,7 @@ import {
 } from "../../validation/schemas";
 import { supportTicketService } from "../../services/support/SupportTicketService";
 import { TicketStatus, TicketCategory, TicketPriority } from "../../models/SupportTicket";
+import { createdResponse, paginatedResponse, successResponse, errorResponse } from "../../utils/apiResponse";
 
 const router = Router();
 
@@ -46,10 +47,7 @@ router.post(
         related_listing_id,
       });
 
-      res.status(201).json({
-        data: ticket.toJSON(),
-        message: "Support ticket created successfully",
-      });
+      res.status(201).json(createdResponse(req, ticket.toJSON(), "Support ticket created successfully"));
     } catch (err) {
       next(err);
     }
@@ -81,15 +79,12 @@ router.get(
         }
       );
 
-      res.json({
-        data: tickets,
-        pagination: {
-          total,
-          limit: Number(limit),
-          offset: Number(offset),
-          hasMore: Number(offset) + Number(limit) < total,
-        },
-      });
+      res.json(paginatedResponse(req, tickets, {
+        total,
+        limit: Number(limit),
+        offset: Number(offset),
+        ...(status ? { filters: { status } } : {}),
+      }));
     } catch (err) {
       next(err);
     }
@@ -110,13 +105,15 @@ router.get(
 
       const ticket = await supportTicketService.getTicket(ticket_id, user_id);
 
-      res.json({
-        data: ticket.toJSON(),
-      });
+      res.json(successResponse(req, ticket.toJSON()));
     } catch (err) {
       if (err instanceof Error) {
-        if (err.message.includes("not found") || err.message.includes("Not authorized")) {
-          res.status(404).json({ error: err.message });
+        if (err.message.includes("not found")) {
+          res.status(404).json(errorResponse(req, err.message, "NOT_FOUND"));
+          return;
+        }
+        if (err.message.includes("Not authorized")) {
+          res.status(403).json(errorResponse(req, err.message, "FORBIDDEN"));
           return;
         }
       }

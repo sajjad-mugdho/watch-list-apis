@@ -10,7 +10,7 @@ import {
   networks_offer_send,
 } from "../../handlers/networksOfferHandlers";
 import { networks_listing_inquire } from "../../handlers/inquiryHandlers";
-import { validateRequest } from "../../validation/middleware";
+import { validateRequest } from "../../middleware/validation";
 import {
   createListingSchema,
   updateListingSchema,

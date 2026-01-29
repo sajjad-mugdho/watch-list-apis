@@ -161,8 +161,8 @@ export const watches_list_get = async (
         count: items.length,
         total,
         pagination: { limit, offset: skip, hasMore },
-        sort,
-      },
+        sort, // Keep original property name for API compatibility
+      } as any, // Use any to allow custom metadata shape
     };
 
     res.json(response);

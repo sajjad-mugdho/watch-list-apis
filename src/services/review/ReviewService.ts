@@ -97,8 +97,8 @@ export class ReviewService {
       is_anonymous,
     });
     
-    // Update target user's stats
-    await this.updateUserStats(target_user_id);
+    // Update target user's stats atomically
+    await this.atomicIncrementUserStats(target_user_id, rating, role);
     
     // Send notification to target user
     try {
@@ -205,21 +205,56 @@ export class ReviewService {
   }
   
   /**
-   * Update user's cached stats after a new review
+   * Update user's cached stats atomically after a new review
+   * Uses MongoDB aggregation pipeline in update to avoid race conditions
    */
-  async updateUserStats(userId: string): Promise<void> {
+  async atomicIncrementUserStats(userId: string, rating: number, role: ReviewRole): Promise<void> {
+    const roleField = role === "buyer" ? "stats.review_count_as_buyer" : "stats.review_count_as_seller";
+    
+    await User.findByIdAndUpdate(userId, [
+      {
+        $set: {
+          "stats.rating_count": { $add: [{ $ifNull: ["$stats.rating_count", 0] }, 1] },
+          "stats.rating_sum": { $add: [{ $ifNull: ["$stats.rating_sum", 0] }, rating] },
+          [roleField]: { $add: [{ $ifNull: [`$${roleField}`, 0] }, 1] }
+        }
+      },
+      {
+        $set: {
+          "stats.avg_rating": {
+             $cond: [
+               { $lte: [{ $ifNull: ["$stats.rating_count", 0] }, 0] },
+               0,
+               { $divide: [
+                 { $ifNull: ["$stats.rating_sum", 0] }, 
+                 { $ifNull: ["$stats.rating_count", 1] }
+               ]}
+             ]
+          }
+        }
+      }
+    ]);
+
+    logger.info("User stats updated atomically", { userId, rating, role });
+  }
+
+  /**
+   * Legacy update method - kept for full re-sync capability (drift correction)
+   */
+  async recomputeUserStats(userId: string): Promise<void> {
     const summary = await Review.getRatingSummary(userId);
     
     await User.findByIdAndUpdate(userId, {
       $set: {
         "stats.avg_rating": summary.avg_rating,
         "stats.rating_count": summary.rating_count,
+        "stats.rating_sum": summary.rating_sum, // Use accurate sum from aggregation
         "stats.review_count_as_buyer": summary.review_count_as_buyer,
         "stats.review_count_as_seller": summary.review_count_as_seller,
       },
     });
     
-    logger.info("User stats updated", { userId, summary });
+    logger.info("User stats recomputed from source", { userId, summary });
   }
   
   /**

@@ -17,6 +17,7 @@ import {
 import { reviewService } from "../services/review/ReviewService";
 import { ReviewRole } from "../models/Review";
 import { requirePlatformAuth } from "../middleware/authentication";
+import { createdResponse, paginatedResponse, successResponse, errorResponse } from "../utils/apiResponse";
 
 const router = Router();
 
@@ -46,10 +47,7 @@ router.post(
         is_anonymous,
       });
 
-      res.status(201).json({
-        data: review.toJSON(),
-        message: "Review created successfully",
-      });
+      res.status(201).json(createdResponse(req, review.toJSON(), "Review created successfully"));
     } catch (err) {
       if (err instanceof Error) {
         // Known business logic errors
@@ -59,12 +57,7 @@ router.post(
           err.message.includes("not a participant") ||
           err.message.includes("Cannot review order")
         ) {
-          res.status(400).json({
-            error: {
-              message: err.message,
-              code: "BAD_REQUEST",
-            },
-          });
+          res.status(400).json(errorResponse(req, err.message, "BAD_REQUEST"));
           return;
         }
       }
@@ -99,15 +92,12 @@ router.get(
         }
       );
 
-      res.json({
-        data: reviews,
-        pagination: {
-          total,
-          limit: Number(limit),
-          offset: Number(offset),
-          hasMore: Number(offset) + Number(limit) < total,
-        },
-      });
+      res.json(paginatedResponse(req, reviews, {
+        total,
+        limit: Number(limit),
+        offset: Number(offset),
+        ...(role ? { filters: { role } } : {}),
+      }));
     } catch (err) {
       next(err);
     }
@@ -128,9 +118,7 @@ router.get(
 
       const summary = await reviewService.getReviewSummary(user_id);
 
-      res.json({
-        data: summary,
-      });
+      res.json(successResponse(req, summary));
     } catch (err) {
       next(err);
     }
@@ -162,15 +150,11 @@ router.get(
         }
       );
 
-      res.json({
-        data: reviews,
-        pagination: {
-          total,
-          limit: Number(limit),
-          offset: Number(offset),
-          hasMore: Number(offset) + Number(limit) < total,
-        },
-      });
+      res.json(paginatedResponse(req, reviews, {
+        total,
+        limit: Number(limit),
+        offset: Number(offset),
+      }));
     } catch (err) {
       next(err);
     }

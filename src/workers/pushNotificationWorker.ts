@@ -6,7 +6,7 @@ import logger from "../utils/logger";
 // import apn from "@parse/node-apn"; // TODO: Install @parse/node-apn
 
 pushNotificationQueue.process(async (job) => {
-  const { userId, notificationId, title, body, data, actionUrl } = job.data;
+  const { userId, notificationId, title, body } = job.data;
   
   logger.info("Processing push notification", { jobId: job.id, userId });
   
@@ -25,12 +25,12 @@ pushNotificationQueue.process(async (job) => {
       if (deviceToken.platform === "android" || deviceToken.platform === "web") {
         // Send via FCM (Placeholder)
         // await sendFCM(deviceToken.token, { title, body, data });
-        logger.debug("[MOCK] Sending FCM", { token: deviceToken.token, title });
+        logger.debug("[MOCK] Sending FCM", { tokenPrefix: deviceToken.token?.slice(0, 8), hasTitle: !!title, hasBody: !!body });
         results.fcm++;
       } else if (deviceToken.platform === "ios") {
         // Send via APNs (Placeholder)
         // await sendAPNs(deviceToken.token, { title, body, data });
-        logger.debug("[MOCK] Sending APNs", { token: deviceToken.token, title });
+        logger.debug("[MOCK] Sending APNs", { tokenPrefix: deviceToken.token?.slice(0, 8), hasTitle: !!title, hasBody: !!body });
         results.apns++;
       }
       

@@ -1,56 +1,11 @@
 /**
- * Deprecation Middleware
+ * Platform Middleware
  * 
- * Adds deprecation headers to routes that are being phased out.
- * Per Michael's requirements - routes should be deprecated before removal.
+ * Contains platform-specific access control middleware.
  */
 
 import { Request, Response, NextFunction } from "express";
 import logger from "../utils/logger";
-
-/**
- * Middleware to mark routes as deprecated
- * Adds Deprecation and Sunset headers per RFC 8594
- */
-export const deprecatedRoute = (options: {
-  message: string;
-  replacement?: string;
-  sunsetDate?: string;
-}) => {
-  return (req: Request, res: Response, next: NextFunction) => {
-    // Add deprecation header
-    res.setHeader("Deprecation", "true");
-    
-    // Add sunset date if provided
-    if (options.sunsetDate) {
-      res.setHeader("Sunset", options.sunsetDate);
-    }
-    
-    // Add Link header pointing to replacement
-    if (options.replacement) {
-      res.setHeader(
-        "Link", 
-        `<${options.replacement}>; rel="successor-version"`
-      );
-    }
-    
-    // Add custom warning header
-    res.setHeader(
-      "X-Deprecation-Notice",
-      options.message
-    );
-
-    // Log deprecation access
-    logger.warn("Deprecated route accessed", {
-      path: req.path,
-      method: req.method,
-      message: options.message,
-      replacement: options.replacement,
-    });
-
-    next();
-  };
-};
 
 /**
  * Networks-only middleware

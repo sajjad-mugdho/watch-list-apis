@@ -1,12 +1,11 @@
 import { Router } from "express";
 import {
-  requireCompletedOnboarding,
   requirePlatformAuth,
 } from "../middleware/authentication";
 
 import * as orderHandlers from "../handlers/orderHandlers";
 import * as debugHandlers from "../handlers/debugHandlers";
-import { validateRequest } from "../validation/middleware";
+import { validateRequest } from "../middleware/validation";
 import {
   processPaymentSchema,
   getTokenizationSchema,

@@ -1072,6 +1072,9 @@ export const processPayment = async (
 
     // Track payment method type for order record
     const paymentMethodType: "card" | "bank" | "token" = "token";
+    
+    // Determine source_type for Finix tags (token vs saved_instrument)
+    const sourceType = (payment_instrument_id && !payment_token) ? "saved_instrument" : "token";
 
     // Decide flow based on instrument type
     // If it's a bank payment instrument (ACH/EFT), we create a Transfer directly
@@ -1083,6 +1086,7 @@ export const processPayment = async (
       order_id: id,
       instrument_type: instrumentType,
       payment_method: paymentMethodType,
+      source_type: sourceType,
       payment_instrument_id: paymentInstrument.payment_instrument_id,
     });
 
@@ -1112,7 +1116,7 @@ export const processPayment = async (
           tags: {
             order_id: id,
             payment_method: paymentMethodType,
-            source_type: paymentMethodType,
+            source_type: sourceType,
           },
           fraud_session_id: effectiveFraudSessionId,
         });
@@ -1145,7 +1149,7 @@ export const processPayment = async (
           tags: {
             order_id: id,
             payment_method: paymentMethodType,
-            source_type: paymentMethodType,
+            source_type: sourceType,
           },
         });
 
@@ -2890,9 +2894,10 @@ export const getBuyerOrders = async (
     });
 
     res.json({
-      success: true,
       data: orders,
-      count: orders.length,
+      _metadata: {
+        count: orders.length,
+      },
     });
   } catch (error) {
     next(error);
@@ -2926,9 +2931,10 @@ export const getSellerOrders = async (
     });
 
     res.json({
-      success: true,
       data: orders,
-      count: orders.length,
+      _metadata: {
+        count: orders.length,
+      },
     });
   } catch (error) {
     next(error);

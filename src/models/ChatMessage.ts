@@ -29,7 +29,7 @@ export interface IChatMessage extends Document {
   sender_clerk_id: string;
   
   // Message metadata
-  type: "regular" | "system" | "offer" | "counter_offer" | "offer_accepted" | "offer_rejected" | "order_created" | "order_paid" | "order_shipped" | "order_delivered" | "inquiry" | "order";
+  type: "regular" | "system" | "offer" | "counter_offer" | "offer_accepted" | "offer_rejected" | "order_created" | "order_paid" | "order_shipped" | "order_delivered" | "inquiry" | "order" | "listing_reserved" | "offer_expired";
   attachments?: any[];
   mentioned_users?: string[];
   parent_id?: string; // For thread replies (GetStream)
@@ -119,7 +119,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     },
     type: {
       type: String,
-      enum: ["regular", "system", "offer", "counter_offer", "offer_accepted", "offer_rejected", "order_created", "order_paid", "order_shipped", "order_delivered", "inquiry", "order"],
+      enum: ["regular", "system", "offer", "counter_offer", "offer_accepted", "offer_rejected", "order_created", "order_paid", "order_shipped", "order_delivered", "inquiry", "order", "listing_reserved", "offer_expired"],
       default: "regular",
       index: true,
     },

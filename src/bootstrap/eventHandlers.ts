@@ -7,10 +7,15 @@
 
 import { events } from '../utils/events';
 import { notificationService } from '../services';
+import { isoMatchingService } from '../services/ISOMatchingService';
 import logger from '../utils/logger';
 
 export function registerEventHandlers(): void {
   logger.info('Registering system event handlers...');
+  
+  // Ensure ISOMatchingService singleton is initialized (registers listing:published listener)
+  // The import triggers constructor which calls initialize()
+  void isoMatchingService;
 
   /**
    * Welcome Notification for New Users
@@ -176,7 +181,7 @@ export function registerEventHandlers(): void {
   /**
    * Order Lifecycle Notifications
    */
-  events.on('order:created', async ({ buyerId, sellerId, orderId, amount }) => {
+  events.on('order:created', async ({ sellerId, orderId, amount }) => {
     // Notify seller
     await notificationService.create({
       userId: sellerId,

@@ -54,6 +54,7 @@ export interface IReviewModel extends Model<IReview> {
   getRatingSummary(userId: string | Types.ObjectId): Promise<{
     avg_rating: number;
     rating_count: number;
+    rating_sum: number; // Accurate sum for persistence (no rounding issues)
     review_count_as_buyer: number;
     review_count_as_seller: number;
     breakdown: { [key: number]: number }; // { 1: 2, 2: 0, 3: 5, 4: 10, 5: 15 }
@@ -148,6 +149,7 @@ ReviewSchema.statics.getRatingSummary = async function(
 ): Promise<{
   avg_rating: number;
   rating_count: number;
+  rating_sum: number; // Accurate sum for persistence (no rounding issues)
   review_count_as_buyer: number;
   review_count_as_seller: number;
   breakdown: { [key: number]: number };
@@ -164,6 +166,7 @@ ReviewSchema.statics.getRatingSummary = async function(
               _id: null,
               avg_rating: { $avg: "$rating" },
               rating_count: { $sum: 1 },
+              rating_sum: { $sum: "$rating" }, // Accurate sum for persistence
             },
           },
         ],
@@ -187,7 +190,7 @@ ReviewSchema.statics.getRatingSummary = async function(
     },
   ]).exec();
   
-  const summary = result[0]?.summary[0] || { avg_rating: 0, rating_count: 0 };
+  const summary = result[0]?.summary[0] || { avg_rating: 0, rating_count: 0, rating_sum: 0 };
   const roleBreakdown = result[0]?.roleBreakdown || [];
   const ratingBreakdown = result[0]?.ratingBreakdown || [];
   
@@ -208,8 +211,9 @@ ReviewSchema.statics.getRatingSummary = async function(
   });
   
   return {
-    avg_rating: Math.round((summary.avg_rating || 0) * 10) / 10, // Round to 1 decimal
+    avg_rating: Math.round((summary.avg_rating || 0) * 10) / 10, // Round to 1 decimal for display
     rating_count: summary.rating_count || 0,
+    rating_sum: summary.rating_sum || 0, // Accurate sum for persistence
     review_count_as_buyer,
     review_count_as_seller,
     breakdown,

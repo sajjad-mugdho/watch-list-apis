@@ -1,7 +1,7 @@
 // src/routes/user/networksUser.ts
 
 import { Router } from "express";
-import { validateRequest } from "../../validation/middleware";
+import { validateRequest } from "../../middleware/validation";
 import { networks_user_public_get } from "../../handlers/usersHandlers";
 import { getUserPublicProfileSchema } from "../../validation/schemas";
 

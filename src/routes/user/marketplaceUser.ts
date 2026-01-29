@@ -4,7 +4,7 @@ import {
   marketplace_user_inventory_get,
 } from "../../handlers/userHandlers";
 import { getUserInventorySchema } from "../../validation/schemas";
-import { validateRequest } from "../../validation/middleware";
+import { validateRequest } from "../../middleware/validation";
 
 const router: Router = Router();
 

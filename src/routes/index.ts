@@ -4,23 +4,21 @@ import { marketplaceRoutes } from "./marketplaceRoutes";
 
 import { healthCheck } from "../middleware/operational";
 import { requirePlatformAuth } from "../middleware/authentication";
-import { deprecatedRoute, networksOnly } from "../middleware/deprecation";
+import { networksOnly } from "../middleware/deprecation";
 import { watchesRoutes } from "./watchesRoutes";
 import { onboardingRoutes } from "./onboardingRoutes";
 import { authRoutes } from "./auth";
 import { debugRoutes } from "./debugRoutes";
-import { chatRoutes } from "./chatRoutes";
 import { feedRoutes } from "./feedRoutes";
 import { followRoutes } from "./followRoutes";
 import { isoRoutes } from "./isoRoutes";
 import { referenceCheckRoutes } from "./referenceCheckRoutes";
 import { subscriptionRoutes } from "./subscriptionRoutes";
 import { getstreamWebhookRoutes } from "./getstreamWebhookRoutes";
-import { messageRoutes } from "./messageRoutes";
 import { userSubRoutes } from "./user"; // Consolidated user routes
 import { reviewRoutes } from "./reviewRoutes"; // Gap Fill Phase 3
 import * as orderHandlers from "../handlers/orderHandlers";
-import { validateRequest } from "../validation/middleware";
+import { validateRequest } from "../middleware/validation";
 import { reserveListingSchema, resetListingSchema } from "../validation/schemas";
 
 const router: Router = Router();
@@ -82,34 +80,6 @@ router.use("/v1/webhooks/getstream", getstreamWebhookRoutes);
 // platform specific routes
 router.use("/v1/networks", requirePlatformAuth(), networksRoutes);
 router.use("/v1/marketplace", requirePlatformAuth(), marketplaceRoutes);
-
-// ===== DEPRECATED ROUTES =====
-// Per Michael: Use platform-namespaced routes instead
-// These routes are deprecated and will be removed in a future version
-
-// DEPRECATED: Use /v1/{platform}/channels/:channelId/messages instead
-router.use(
-  "/v1/messages",
-  requirePlatformAuth(),
-  deprecatedRoute({
-    message: "Deprecated. Use /v1/marketplace/channels/:channelId/messages or /v1/networks/channels/:channelId/messages instead.",
-    replacement: "/v1/{platform}/channels/:channelId/messages",
-    sunsetDate: "2026-04-01",
-  }),
-  messageRoutes
-);
-
-// DEPRECATED: Use /v1/{platform}/channels instead
-router.use(
-  "/v1/chat",
-  requirePlatformAuth(),
-  deprecatedRoute({
-    message: "Deprecated. Use /v1/marketplace/channels or /v1/networks/channels instead.",
-    replacement: "/v1/{platform}/channels",
-    sunsetDate: "2026-04-01",
-  }),
-  chatRoutes
-);
 
 // Feeds - Networks only (no follow-based timeline for Marketplace)
 router.use("/v1/feeds", requirePlatformAuth(), networksOnly, feedRoutes);

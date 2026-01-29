@@ -4,7 +4,7 @@ import {
   marketplace_merchant_status_get,
   marketplace_merchant_refresh_link_post,
 } from "../../handlers/marketplaceMerchantHandlers";
-import { validateRequest } from "../../validation/middleware";
+import { validateRequest } from "../../middleware/validation";
 import {
   MerchantOnboardSchema,
   merchantRefreshLinkSchema,

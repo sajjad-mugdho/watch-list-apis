@@ -172,6 +172,7 @@ export interface IUser extends Document {
     following_count: number;
     friend_count: number;
     avg_rating: number;
+    rating_sum: number; // Internal: for atomic avg calculation
     rating_count: number;
     review_count_as_buyer: number;
     review_count_as_seller: number;
@@ -413,6 +414,7 @@ const userSchema = new Schema<IUser>(
       following_count: { type: Number, default: 0 },
       friend_count: { type: Number, default: 0 },
       avg_rating: { type: Number, default: 0 },
+      rating_sum: { type: Number, default: 0 }, // Internal: for atomic avg calculation
       rating_count: { type: Number, default: 0 },
       review_count_as_buyer: { type: Number, default: 0 },
       review_count_as_seller: { type: Number, default: 0 },

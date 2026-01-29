@@ -9166,4 +9166,356 @@ Once approved:
       responses: { 200: { description: "Notification deleted" } },
     },
   },
+
+  // ==========================================================================
+  // REVIEWS API
+  // ==========================================================================
+  "/api/v1/reviews": {
+    post: {
+      tags: ["Reviews"],
+      summary: "Create a review for a completed order",
+      description: "Submit a review/rating for an order after it has been delivered. Both buyer and seller can submit reviews.",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["order_id", "rating"],
+              properties: {
+                order_id: { type: "string", description: "MongoDB ObjectId of the completed order" },
+                rating: { type: "integer", minimum: 1, maximum: 5, description: "Rating from 1-5 stars" },
+                feedback: { type: "string", maxLength: 1000, description: "Optional written feedback" },
+                is_anonymous: { type: "boolean", default: false, description: "Hide reviewer identity" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        201: { description: "Review created successfully" },
+        400: { description: "Invalid request or duplicate review" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/reviews/users/{user_id}": {
+    get: {
+      tags: ["Reviews"],
+      summary: "Get reviews for a user",
+      security: [],
+      description: "Retrieve paginated reviews for a specific user, optionally filtered by role (buyer/seller).",
+      parameters: [
+        { name: "user_id", in: "path", required: true, schema: { type: "string" } },
+        { name: "role", in: "query", schema: { type: "string", enum: ["buyer", "seller"] } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: {
+        200: { description: "List of reviews with pagination" },
+      },
+    },
+  },
+  "/api/v1/reviews/users/{user_id}/summary": {
+    get: {
+      tags: ["Reviews"],
+      summary: "Get rating summary for a user",
+      security: [],
+      description: "Returns aggregated rating statistics including average, count, and breakdown by star rating.",
+      parameters: [
+        { name: "user_id", in: "path", required: true, schema: { type: "string" } },
+      ],
+      responses: {
+        200: { description: "Rating summary with avg_rating, rating_count, breakdown" },
+      },
+    },
+  },
+  "/api/v1/reviews/me": {
+    get: {
+      tags: ["Reviews"],
+      summary: "Get reviews written by current user",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: {
+        200: { description: "List of reviews written by the authenticated user" },
+      },
+    },
+  },
+
+  // ==========================================================================
+  // USER PROFILE API
+  // ==========================================================================
+  "/api/v1/user/profile": {
+    get: {
+      tags: ["User Profile"],
+      summary: "Get current user's profile",
+      description: "Returns bio, social links, and stats for the authenticated user.",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: {
+        200: { description: "User profile with bio, social_links, stats" },
+      },
+    },
+    patch: {
+      tags: ["User Profile"],
+      summary: "Update user profile",
+      description: "Update bio and/or social links. Partial updates are supported.",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: {
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                bio: { type: "string", maxLength: 500 },
+                social_links: {
+                  type: "object",
+                  properties: {
+                    instagram: { type: "string" },
+                    twitter: { type: "string" },
+                    website: { type: "string", format: "uri" },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Profile updated successfully" },
+        400: { description: "No valid fields to update" },
+      },
+    },
+  },
+
+  // ==========================================================================
+  // WISHLIST API
+  // ==========================================================================
+  "/api/v1/user/wishlist": {
+    get: {
+      tags: ["Wishlist"],
+      summary: "Get user's wishlist",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: { 200: { description: "List of wishlist listings" } },
+    },
+    post: {
+      tags: ["Wishlist"],
+      summary: "Add listing to wishlist",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["listing_id"],
+              properties: { listing_id: { type: "string" } },
+            },
+          },
+        },
+      },
+      responses: { 201: { description: "Listing added to wishlist" } },
+    },
+  },
+  "/api/v1/user/wishlist/{listing_id}": {
+    delete: {
+      tags: ["Wishlist"],
+      summary: "Remove listing from wishlist",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "listing_id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Listing removed from wishlist" } },
+    },
+  },
+  "/api/v1/user/wishlist/check/{listing_id}": {
+    get: {
+      tags: ["Wishlist"],
+      summary: "Check if listing is in wishlist",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "listing_id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Wishlist status (in_wishlist: boolean)" } },
+    },
+  },
+
+  // ==========================================================================
+  // FRIENDSHIPS API
+  // ==========================================================================
+  "/api/v1/user/friends/requests": {
+    post: {
+      tags: ["Friendships"],
+      summary: "Send a friend request",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["user_id"],
+              properties: { user_id: { type: "string" } },
+            },
+          },
+        },
+      },
+      responses: { 201: { description: "Friend request sent" } },
+    },
+  },
+  "/api/v1/user/friends/requests/pending": {
+    get: {
+      tags: ["Friendships"],
+      summary: "Get pending friend requests",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "List of pending friend requests" } },
+    },
+  },
+  "/api/v1/user/friends/requests/{friendship_id}/accept": {
+    post: {
+      tags: ["Friendships"],
+      summary: "Accept a friend request",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "friendship_id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Friend request accepted" } },
+    },
+  },
+  "/api/v1/user/friends/requests/{friendship_id}/decline": {
+    post: {
+      tags: ["Friendships"],
+      summary: "Decline a friend request",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "friendship_id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Friend request declined" } },
+    },
+  },
+  "/api/v1/user/friends": {
+    get: {
+      tags: ["Friendships"],
+      summary: "Get friends list",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [
+        { name: "limit", in: "query", schema: { type: "integer", default: 50 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: { 200: { description: "List of friends" } },
+    },
+  },
+  "/api/v1/user/friends/{friendship_id}": {
+    delete: {
+      tags: ["Friendships"],
+      summary: "Remove a friend (unfriend)",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "friendship_id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Friend removed" } },
+    },
+  },
+  "/api/v1/user/friends/mutual/{user_id}": {
+    get: {
+      tags: ["Friendships"],
+      summary: "Get mutual friends with another user",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [
+        { name: "user_id", in: "path", required: true, schema: { type: "string" } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 50 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: { 200: { description: "List of mutual friends" } },
+    },
+  },
+
+  // ==========================================================================
+  // SUPPORT TICKETS API
+  // ==========================================================================
+  "/api/v1/user/support/tickets": {
+    get: {
+      tags: ["Support"],
+      summary: "Get user's support tickets",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [
+        { name: "status", in: "query", schema: { type: "string", enum: ["open", "in_progress", "awaiting_user", "resolved", "closed"] } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: { 200: { description: "List of support tickets" } },
+    },
+    post: {
+      tags: ["Support"],
+      summary: "Create a support ticket",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["subject", "category", "message"],
+              properties: {
+                subject: { type: "string", maxLength: 200 },
+                category: { type: "string", enum: ["order_issue", "payment_issue", "account_issue", "listing_issue", "technical_bug", "feature_request", "fraud_report", "other"] },
+                priority: { type: "string", enum: ["low", "medium", "high", "urgent"], default: "medium" },
+                message: { type: "string", maxLength: 5000 },
+                related_order_id: { type: "string" },
+                related_listing_id: { type: "string" },
+              },
+            },
+          },
+        },
+      },
+      responses: { 201: { description: "Ticket created successfully" } },
+    },
+  },
+  "/api/v1/user/support/tickets/{ticket_id}": {
+    get: {
+      tags: ["Support"],
+      summary: "Get a specific ticket",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "ticket_id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Ticket details with messages" } },
+    },
+  },
+  "/api/v1/user/support/tickets/{ticket_id}/messages": {
+    post: {
+      tags: ["Support"],
+      summary: "Add a message to a ticket",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "ticket_id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["message"],
+              properties: {
+                message: { type: "string", maxLength: 5000 },
+                attachments: { type: "array", items: { type: "string" } },
+              },
+            },
+          },
+        },
+      },
+      responses: { 200: { description: "Message added" } },
+    },
+  },
+  "/api/v1/user/support/tickets/{ticket_id}/reopen": {
+    post: {
+      tags: ["Support"],
+      summary: "Reopen a closed/resolved ticket",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "ticket_id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Ticket reopened" } },
+    },
+  },
+  "/api/v1/user/support/tickets/count/open": {
+    get: {
+      tags: ["Support"],
+      summary: "Get count of open tickets",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Open tickets count" } },
+    },
+  },
 };

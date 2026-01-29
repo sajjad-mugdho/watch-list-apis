@@ -92,7 +92,8 @@ describe("Platform Onboarding E2E", () => {
       // Step 5: GET /me should now show completed
       const meResponse = await request(app)
         .get("/api/v1/me")
-        .set("x-test-user", "user_new_incomplete");
+        .set("x-test-user", "user_new_incomplete")
+        .set("x-refresh-session", "1");
 
       expect(meResponse.status).toBe(200);
       expect(meResponse.body.data.onboarding_status).toBe("completed");
@@ -278,7 +279,8 @@ describe("Platform Onboarding E2E", () => {
       // GET /me should also show completed
       const meResponse = await request(app)
         .get("/api/v1/me")
-        .set("x-test-user", "user_new_incomplete");
+        .set("x-test-user", "user_new_incomplete")
+        .set("x-refresh-session", "1");
 
       expect(meResponse.status).toBe(200);
       expect(meResponse.body.data.onboarding_status).toBe("completed");
@@ -309,7 +311,8 @@ describe("Platform Onboarding E2E", () => {
       // But GET /me should fall back to DB and return correct status
       const meResponse = await request(app)
         .get("/api/v1/me")
-        .set("x-test-user", "user_new_incomplete");
+        .set("x-test-user", "user_new_incomplete")
+        .set("x-refresh-session", "1");
 
       expect(meResponse.status).toBe(200);
       expect(meResponse.body.data.onboarding_status).toBe("completed");
