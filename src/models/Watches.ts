@@ -1,6 +1,6 @@
 import mongoose, { Schema, Model } from "mongoose";
 
-// Watch category constants (Gap Fill Phase 2)
+// Watch category constants
 export const WATCH_CATEGORY_VALUES = [
   "Luxury",
   "Sport",
@@ -26,7 +26,7 @@ export interface IWatch {
     watch?: string;
     dial?: string;
   };
-  // Gap Fill Phase 2
+  // Watch category for filtering
   category?: WatchCategory;
 }
 
@@ -45,7 +45,7 @@ const watchSchema = new Schema<IWatch>(
       watch: { type: String },
       dial: { type: String },
     },
-    // Gap Fill Phase 2: Watch category for search/filter
+    // Watch category for search/filter
     category: {
       type: String,
       enum: WATCH_CATEGORY_VALUES,

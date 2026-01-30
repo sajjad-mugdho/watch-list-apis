@@ -60,7 +60,7 @@ router.post(
         return;
       }
 
-      // P0 FIX: order_id is REQUIRED per Michael's requirements
+      // order_id is REQUIRED
       // Reference checks can ONLY be created through an ACTIVE Order
       if (!order_id) {
         res.status(400).json({ 
@@ -333,8 +333,7 @@ router.get(
         responded_at: r.responded_at,
       }));
 
-      // EDGE CASE FIX #4: Expose order details per Michael's requirements
-      // Reference checks should expose: order_price, user_roles, private_contract
+      // Expose order details
       let orderDetails: {
         order_price?: number;
         requester_role?: 'buyer' | 'seller';
@@ -361,7 +360,7 @@ router.get(
         data: {
           ...check.toJSON(),
           responses: responseData,
-          // Include order details per Michael's requirements
+          // Include order details
           order_details: orderDetails,
         },
         is_requester: isRequester,

@@ -2,7 +2,7 @@
  * User Route Aggregator
  * 
  * Consolidates all current-user endpoints under /api/v1/user/**
- * Per Michael's requirements: All "current user" endpoints under single namespace
+ * All "current user" endpoints under single namespace
  * 
  * The attachUser middleware is applied at router level, so all sub-routes
  * have access to req.user and req.dialistUserId without needing User.findOne().
@@ -18,8 +18,8 @@ import { userIsoRoutes } from "./isos";
 import { userSubscriptionRoutes } from "./subscription";
 import { userTokenRoutes } from "./tokens";
 import { userProfileRoutes } from "./profile";
-import { userFriendshipRoutes } from "./friendship"; // Gap Fill Phase 4
-import { userSupportRoutes } from "./support"; // Gap Fill Phase 7
+import { userFriendshipRoutes } from "./friendship";
+import { userSupportRoutes } from "./support";
 
 const router = Router();
 
@@ -40,20 +40,7 @@ router.get("/", (req, res) => {
 });
 
 /**
- * /api/v1/user/profile & /api/v1/user/wishlist
- * Gap Fill Phase 1: Profile enhancement (bio, social_links, wishlist, stats)
- */
-router.use("/", userProfileRoutes);
-
-/**
- * /api/v1/user/friends/*
- * Gap Fill Phase 4: Two-way friendships
- */
-router.use("/", userFriendshipRoutes);
-
-/**
- * /api/v1/user/support/*
- * Gap Fill Phase 7: Support tickets
+ * USER ROUTES
  */
 router.use("/support", userSupportRoutes);
 
@@ -72,28 +59,15 @@ router.use("/favorites", userFavoriteRoutes);
  */
 router.use("/searches", userSearchRoutes);
 
-/**
- * /api/v1/user/followers & /api/v1/user/following
- * Per Michael: Move follows under /user/ namespace (Networks-only)
- */
 router.use("/", userFollowRoutes);
 
-/**
- * /api/v1/user/isos/*
- * Per Michael: Move /api/v1/isos/my → /api/v1/user/isos
- */
+// Move /api/v1/isos/my → /api/v1/user/isos
 router.use("/isos", userIsoRoutes);
 
-/**
- * /api/v1/user/subscription/*
- * Per Michael: Move /api/v1/subscriptions/current → /api/v1/user/subscription
- */
+// Move /api/v1/subscriptions/current → /api/v1/user/subscription
 router.use("/subscription", userSubscriptionRoutes);
 
-/**
- * /api/v1/user/tokens/*
- * Per Michael: user/tokens/feed and user/tokens/chat for GetStream tokens
- */
+// user/tokens/feed and user/tokens/chat for GetStream tokens
 router.use("/tokens", userTokenRoutes);
 
 export { router as userSubRoutes };

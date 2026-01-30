@@ -1,5 +1,5 @@
 /**
- * SupportTicket Model (Gap Fill Phase 7)
+ * SupportTicket Model
  * 
  * In-app support ticket system for user issues
  * Tracks conversations between users and support team

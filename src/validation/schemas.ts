@@ -123,7 +123,7 @@ export const RequestUserFromAuthSchema = z
 // Watch Schemas
 // ----------------------------------------------------------
 
-// Category values for validation (Gap Fill Phase 2)
+
 const watchCategoryValues = [
   "Luxury",
   "Sport",
@@ -142,7 +142,7 @@ export const getWatchesSchema = z.object({
   query: z.object({
     q: z.string().trim().max(100, "Search query too long").optional(),
     sort: z.enum(["recent", "random"]).optional(),
-    // Gap Fill Phase 2: Category filter
+    // Category filter
     category: z.enum(watchCategoryValues).optional(),
     limit: z
       .string()
@@ -794,7 +794,7 @@ export const shipOrderSchema = z.object({
 });
 
 // ----------------------------------------------------------
-// Profile Schemas (Gap Fill Phase 1)
+
 // ----------------------------------------------------------
 
 /**
@@ -876,7 +876,7 @@ export const getWishlistSchema = z.object({
 });
 
 // ----------------------------------------------------------
-// Review Schemas (Gap Fill Phase 3)
+
 // ----------------------------------------------------------
 
 /**
@@ -939,7 +939,7 @@ export const getReviewSummarySchema = z.object({
 });
 
 // ----------------------------------------------------------
-// Friendship Schemas (Gap Fill Phase 4)
+
 // ----------------------------------------------------------
 
 /**
@@ -1010,7 +1010,7 @@ export const getMutualFriendsSchema = z.object({
 });
 
 // ----------------------------------------------------------
-// SupportTicket Schemas (Gap Fill Phase 7)
+
 // ----------------------------------------------------------
 
 const ticketCategoryValues = [
@@ -1196,24 +1196,24 @@ export type RequestRefundInput = z.infer<typeof requestRefundSchema>;
 export type UploadTrackingInput = z.infer<typeof uploadTrackingSchema>;
 export type OrderIdParamInput = z.infer<typeof orderIdParamSchema>;
 
-// Profile types (Gap Fill Phase 1)
+
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type AddToWishlistInput = z.infer<typeof addToWishlistSchema>;
 export type RemoveFromWishlistInput = z.infer<typeof removeFromWishlistSchema>;
 export type GetWishlistInput = z.infer<typeof getWishlistSchema>;
 
-// Review types (Gap Fill Phase 3)
+
 export type CreateReviewInput = z.infer<typeof createReviewSchema>;
 export type GetUserReviewsInput = z.infer<typeof getUserReviewsSchema>;
 export type GetReviewSummaryInput = z.infer<typeof getReviewSummarySchema>;
 
-// Friendship types (Gap Fill Phase 4)
+
 export type SendFriendRequestInput = z.infer<typeof sendFriendRequestSchema>;
 export type FriendRequestActionInput = z.infer<typeof friendRequestActionSchema>;
 export type GetFriendsInput = z.infer<typeof getFriendsSchema>;
 export type GetMutualFriendsInput = z.infer<typeof getMutualFriendsSchema>;
 
-// SupportTicket types (Gap Fill Phase 7)
+
 export type CreateSupportTicketInput = z.infer<typeof createSupportTicketSchema>;
 export type GetTicketInput = z.infer<typeof getTicketSchema>;
 export type AddTicketMessageInput = z.infer<typeof addTicketMessageSchema>;

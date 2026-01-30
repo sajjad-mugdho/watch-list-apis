@@ -2,7 +2,7 @@
  * User Follow Routes
  *
  * Current-user follow endpoints under /api/v1/user/
- * Per Michael's requirements:
+ * Follow Routes for Current User (Networks-only)
  * - Follows should be under /user/ namespace
  * - Follow functionality is Networks-only (NOT Marketplace)
  * 

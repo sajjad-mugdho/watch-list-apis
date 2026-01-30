@@ -16,7 +16,7 @@ import { referenceCheckRoutes } from "./referenceCheckRoutes";
 import { subscriptionRoutes } from "./subscriptionRoutes";
 import { getstreamWebhookRoutes } from "./getstreamWebhookRoutes";
 import { userSubRoutes } from "./user"; // Consolidated user routes
-import { reviewRoutes } from "./reviewRoutes"; // Gap Fill Phase 3
+import { reviewRoutes } from "./reviewRoutes";
 import * as orderHandlers from "../handlers/orderHandlers";
 import { validateRequest } from "../middleware/validation";
 import { reserveListingSchema, resetListingSchema } from "../validation/schemas";
@@ -57,18 +57,18 @@ router.use("/v1/watches", watchesRoutes);
 router.use("/v1/onboarding", requirePlatformAuth(), onboardingRoutes);
 router.use("/v1/user", requirePlatformAuth(), userSubRoutes); // Consolidated!
 
-// Reviews - Gap Fill Phase 3 (platform-agnostic, works for both networks and marketplace)
+// Reviews (platform-agnostic, works for both networks and marketplace)
 router.use("/v1/reviews", requirePlatformAuth(), reviewRoutes);
 
 // Social/follow features - mounted on /users/:id
-// Per Michael: Marketplace does NOT support follow functionality - Networks only
+// Marketplace does NOT support follow functionality - Networks only
 router.use("/v1/users", requirePlatformAuth(), networksOnly, followRoutes);
 
 // ISO (In Search Of / WTB) feature
-// EDGE CASE FIX #6: ISOs are Networks-only per Michael (Marketplace doesn't have WTB)
+// ISOs are Networks-only (Marketplace doesn't have WTB)
 router.use("/v1/isos", requirePlatformAuth(), networksOnly, isoRoutes);
 
-// Reference checks - Networks only per Michael
+// Reference checks - Networks only
 router.use("/v1/reference-checks", requirePlatformAuth(), networksOnly, referenceCheckRoutes);
 
 // Subscriptions

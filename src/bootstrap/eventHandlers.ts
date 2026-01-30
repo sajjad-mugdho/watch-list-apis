@@ -217,7 +217,7 @@ export function registerEventHandlers(): void {
       sendPush: true,
     });
 
-    // Gap Fill Phase 3: Trigger review reminder after delivery
+    // Trigger review reminder after delivery
     // Delayed notification prompting buyer to leave a review
     try {
       const { reviewService } = await import('../services/review/ReviewService');

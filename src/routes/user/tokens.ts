@@ -4,7 +4,7 @@
  * Endpoints for getting GetStream tokens for the current authenticated user.
  * Mounted at: /api/v1/user/tokens
  * 
- * Per Michael's requirements:
+ * Token Routes for Current User
  * - user/tokens/feed - Get Stream Feed token
  * - user/tokens/chat - Get Stream Chat token
  */

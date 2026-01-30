@@ -1,5 +1,5 @@
 /**
- * Review Routes (Gap Fill Phase 3)
+ * Review Routes
  * 
  * Endpoints for the review/rating system
  * 

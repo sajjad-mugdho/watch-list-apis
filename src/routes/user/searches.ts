@@ -15,7 +15,7 @@ import { PLATFORM_VALUES, SEARCH_CONTEXT_VALUES } from "../../models/RecentSearc
 const router = Router();
 
 // Validation Schemas
-// EDGE CASE FIX #7: Platform is REQUIRED per Michael
+// Platform is REQUIRED
 // "Platform-based - Marketplace searches should not appear in Networks"
 const addSearchSchema = z.object({
   body: z.object({

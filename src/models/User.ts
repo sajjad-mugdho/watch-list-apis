@@ -159,7 +159,7 @@ export interface IUser extends Document {
     completed_at?: Date | null;
   };
 
-  // Profile Enhancement (Gap Fill Phase 1)
+  // Profile Enhancement
   bio?: string | null;
   social_links?: {
     instagram?: string | null;
@@ -385,7 +385,7 @@ const userSchema = new Schema<IUser>(
       rules_ack: { type: Boolean, default: false },
     },
 
-    // ===== Profile Enhancement (Gap Fill Phase 1) =====
+    // ===== Profile Enhancement =====
     // User bio for profile display
     bio: {
       type: String,

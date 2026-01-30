@@ -1,6 +1,6 @@
 /**
  * SupportTicketService Unit Tests
- * Gap Fill Phase 7
+ * Support Ticket Service Tests
  */
 
 import { SupportTicketService } from '../../../src/services/support/SupportTicketService';

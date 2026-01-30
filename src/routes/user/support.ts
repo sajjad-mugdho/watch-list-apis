@@ -1,5 +1,5 @@
 /**
- * Support Ticket Routes (Gap Fill Phase 7)
+ * Support Ticket Routes
  * 
  * User-facing endpoints for support ticket management
  * 

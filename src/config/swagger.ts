@@ -1268,7 +1268,7 @@ Use this to test API endpoints without real authentication.
             },
           },
         },
-        // Per Michael: Favorites should ONLY apply to Listings (for-sale and WTB)
+        // Favorites should ONLY apply to Listings (for-sale and WTB)
         // Users can toggle between "For Sale" and "WTB" views in the UI
         Favorite: {
           type: "object",

@@ -38,7 +38,7 @@ export interface NotificationResponse {
 
 /**
  * Notification types that bypass mute settings
- * Per Michael: "Important state changes should notify even if chat is muted"
+ * "Important state changes should notify even if chat is muted"
  */
 const CRITICAL_NOTIFICATION_TYPES = [
   'offer_received',
