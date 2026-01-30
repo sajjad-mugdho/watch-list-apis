@@ -16,6 +16,7 @@ import {
   TIER_CONFIG,
 } from "../models/Subscription";
 import { User } from "../models/User";
+import { ValidationError } from "../utils/errors";
 import logger from "../utils/logger";
 
 const router = Router();
@@ -139,21 +140,16 @@ router.post(
       const { tier, billing_cycle, payment_instrument_id } = req.body;
 
       if (!tier || !SUBSCRIPTION_TIER_VALUES.includes(tier)) {
-        res.status(400).json({ error: { message: "Valid tier is required" } });
-        return;
+        throw new ValidationError("Valid tier is required");
       }
 
       if (tier === "free") {
-        res.status(400).json({
-          error: { message: "Cannot upgrade to free tier, use downgrade instead" },
-        });
-        return;
+        throw new ValidationError("Cannot upgrade to free tier, use downgrade instead");
       }
 
       const cycle = billing_cycle || "monthly";
       if (!BILLING_CYCLE_VALUES.includes(cycle)) {
-        res.status(400).json({ error: { message: "Invalid billing cycle" } });
-        return;
+        throw new ValidationError("Invalid billing cycle");
       }
 
       let subscription = await Subscription.getByUserId(user._id.toString());
@@ -185,10 +181,7 @@ router.post(
 
       // Check if payment instrument is provided for paid tiers
       if (!payment_instrument_id) {
-        res.status(400).json({
-          error: { message: "Payment instrument ID is required for paid subscriptions" },
-        });
-        return;
+        throw new ValidationError("Payment instrument ID is required for paid subscriptions");
       }
 
       // ✅ INTEGRATE WITH FINIX - Process real payment

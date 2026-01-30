@@ -66,15 +66,24 @@ jest.mock("ioredis", () => {
 });
 
 // Mock Clerk globally to avoid initialization hangs/network calls
-// Mock Clerk globally to avoid initialization hangs/network calls
 jest.mock("@clerk/express", () => {
   return {
-    clerkMiddleware: jest.fn().mockImplementation(() => (req: any, res: any, next: any) => next()),
+    clerkMiddleware: jest.fn().mockImplementation(() => (req: any, res: any, next: any) => {
+      req.auth = {
+        userId: req.headers["x-test-user"] || null,
+        sessionClaims: {},
+      };
+      next();
+    }),
     requireAuth: jest.fn().mockImplementation(() => (req: any, res: any, next: any) => next()),
-    getAuth: jest.fn().mockImplementation((req: any) => ({ 
-      userId: req.headers["x-test-user"] || null,
-      sessionClaims: {} // Will be populated by customClerkMw if x-test-user is present
-    })),
+    getAuth: jest.fn().mockImplementation((req: any) => {
+      const auth = { 
+        userId: req.headers["x-test-user"] || null,
+        sessionClaims: {} 
+      };
+      if (!req.auth) req.auth = auth;
+      return auth;
+    }),
     clerkClient: {
       users: {
         getUser: jest.fn().mockResolvedValue({}),
@@ -85,42 +94,115 @@ jest.mock("@clerk/express", () => {
   };
 });
 
+// Mock GetStream (Feeds)
+jest.mock("getstream", () => {
+  return {
+    connect: jest.fn().mockImplementation(() => ({
+      feed: jest.fn().mockImplementation(() => ({
+        get: jest.fn().mockResolvedValue({ results: [] }),
+        addActivity: jest.fn().mockResolvedValue({ id: "activity-id" }),
+        follow: jest.fn().mockResolvedValue({}),
+        unfollow: jest.fn().mockResolvedValue({}),
+        following: jest.fn().mockResolvedValue({ results: [] }),
+        followers: jest.fn().mockResolvedValue({ results: [] }),
+        removeActivity: jest.fn().mockResolvedValue({}),
+      })),
+      createUserToken: jest.fn().mockReturnValue("mock-feed-token"),
+    })),
+  };
+});
+
+// Mock Stream Chat
+jest.mock("stream-chat", () => {
+  return {
+    StreamChat: {
+      getInstance: jest.fn().mockImplementation(() => ({
+        createToken: jest.fn().mockReturnValue("mock-chat-token"),
+        upsertUser: jest.fn().mockResolvedValue({}),
+        channel: jest.fn().mockImplementation(() => ({
+          create: jest.fn().mockResolvedValue({}),
+          updatePartial: jest.fn().mockResolvedValue({}),
+          sendMessage: jest.fn().mockResolvedValue({}),
+          watch: jest.fn().mockResolvedValue({}),
+          addMembers: jest.fn().mockResolvedValue({}),
+        })),
+        verifyWebhook: jest.fn().mockReturnValue(true),
+        queryChannels: jest.fn().mockResolvedValue([]),
+      })),
+    },
+  };
+});
+
 // Mock user utils to avoid Clerk sync hangs
 jest.mock("../src/utils/user", () => {
   const actual = jest.requireActual("../src/utils/user");
   return {
     ...actual,
-    fetchAndSyncLocalUser: jest.fn().mockImplementation((input: any) => {
+    fetchAndSyncLocalUser: jest.fn().mockImplementation(async (input: any) => {
       const { external_id } = input;
-      let dialist_id = "677a2222222222222222bbb2"; // Default
       
+      // Attempt to find user in database
+      try {
+        const mongoose = require("mongoose");
+        const User = mongoose.model("User");
+        const user = await User.findOne({ external_id }).select('+external_id +location +onboarding +first_name +last_name +email +phone');
+        
+        if (user) {
+          return {
+            dialist_id: user._id.toString(),
+            external_id: user.external_id,
+            userId: user.external_id,
+            onboarding_status: user.onboarding.status,
+            display_name: user.display_name,
+            display_avatar: user.avatar,
+            location_country: user.location?.country || undefined,
+            location_region: user.location?.region || undefined,
+            location: user.location,
+            isMerchant: false,
+            networks_accessed: false,
+            networks_application_id: null,
+          };
+        }
+      } catch (err) {
+        // Model might not be registered yet or other mongo error
+      }
+
+      // Fallback to legacy hardcoded mocks for existing tests
+      let dialist_id = "677a2222222222222222bbb2"; // Default
+      let external_id_fallback = "clerk_123";
+
       if (external_id === "buyer_us_complete") {
         dialist_id = "ccc111111111111111111111";
       } else if (external_id === "merchant_approved") {
         dialist_id = "ddd333333333333333333333";
       } else if (external_id === "user_onboarded_buyer") {
-        dialist_id = "677a2222222222222222bbb2"; // Match customClerkMw
+        dialist_id = "677a2222222222222222bbb2"; 
       } else if (external_id === "user_new_incomplete") {
-        dialist_id = "677a1111111111111111aaa1"; // Match customClerkMw
+        dialist_id = "677a1111111111111111aaa1";
       }
 
       let display_name = "Mock User";
       if (external_id === "user_onboarded_buyer") {
         display_name = "John Buyer";
       } else if (external_id === "user_new_incomplete") {
-        display_name = "TestUserCustom"; // For onboarding E2E test
+        display_name = "TestUserCustom";
       }
 
 
-      return Promise.resolve({
+      return {
         dialist_id,
+        external_id: external_id || external_id_fallback,
+        userId: external_id || external_id_fallback,
         onboarding_status: "completed",
         display_name,
+        display_avatar: "https://example.com/avatar.jpg",
+        location_country: "US",
+        location_region: "California",
         isMerchant: external_id === "merchant_approved",
         onboarding_state: external_id === "merchant_approved" ? "APPROVED" : undefined,
         networks_accessed: false,
         networks_application_id: null,
-      });
+      };
     }),
     syncUserToClerk: jest.fn().mockResolvedValue(true),
   };

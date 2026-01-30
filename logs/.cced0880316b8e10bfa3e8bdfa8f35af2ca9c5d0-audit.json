@@ -39,6 +39,11 @@
             "date": 1769605949420,
             "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/error-2026-01-28.log",
             "hash": "f32a518596cb1f0c3c5465fcdb6839ab2c507ba5b8306a71957eeb1f4a93c5e8"
+        },
+        {
+            "date": 1769776489365,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/error-2026-01-30.log",
+            "hash": "0f3b704c96ab26cccd2b574976e77ffb04f4958360ff9f99a29201b1139a1bb4"
         }
     ],
     "hashType": "sha256"
