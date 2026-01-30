@@ -15,6 +15,7 @@ export async function loadCurrentUser(req: Request) {
         "avatar",
         "legal_acks",
         "location",
+        "external_id",
         "onboarding",
     ].join(" "));
     if (!user) throw new ValidationError("User not found");
@@ -31,6 +32,7 @@ export async function getCurrentUserByID(id: string) {
         "avatar",
         "legal_acks",
         "location",
+        "external_id",
         "onboarding",
     ].join(" "));
     if (!user) throw new ValidationError("User not found");
@@ -48,6 +50,7 @@ export async function getCurrentUserByExternalID(external_id: string) {
         "avatar",
         "legal_acks",
         "location",
+        "external_id",
         "onboarding",
     ].join(" "));
 

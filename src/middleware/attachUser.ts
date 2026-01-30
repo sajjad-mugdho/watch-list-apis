@@ -40,7 +40,7 @@ export const attachUser = async (
       return;
     }
 
-    const user = await User.findOne({ external_id: auth.userId });
+    const user = await User.findOne({ external_id: auth.userId }).select("+external_id");
 
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });
