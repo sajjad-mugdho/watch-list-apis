@@ -545,6 +545,73 @@ class ChatService {
       throw error;
     }
   }
+
+  /**
+   * Search for messages with specific filters
+   *
+   * @param filter - Search filters (e.g. cid, attachments)
+   * @param messageFilter - Filters for message content (e.g. { "attachments.0": { $exists: true } })
+   * @param limit - Max results
+   * @param next - Pagination token
+   */
+  async searchMessages(
+    filter: any,
+    messageFilter: any = { "attachments.0": { $exists: true } },
+    limit: number = 20,
+    next?: string
+  ): Promise<any> {
+    await this.ensureConnected();
+
+    try {
+      const response = await this.client.search(
+        filter,
+        messageFilter,
+        {
+          limit,
+          ...(next ? { next } : {}),
+        }
+      );
+      return response;
+    } catch (error) {
+      logger.error("Failed to search messages in Stream Chat", {
+        filter,
+        error,
+      });
+      throw error;
+    }
+  }
+
+  /**
+   * Get messages for a channel from GetStream
+   * 
+   * @param channelId - GetStream channel ID
+   * @param limit - Number of messages to fetch
+   * @param before - ID of the message to fetch before (for pagination)
+   */
+  async getChannelMessages(
+    channelId: string,
+    limit: number = 50,
+    before?: string
+  ): Promise<any[]> {
+    await this.ensureConnected();
+    
+    try {
+      const channel = this.client.channel("messaging", channelId);
+      const options: any = { limit };
+      if (before) {
+        options.id_lt = before;
+      }
+      
+      const response = await channel.query({
+        messages: options,
+      });
+      
+      return response.messages;
+    } catch (error) {
+      logger.error("Failed to get messages from Stream", { channelId, error });
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

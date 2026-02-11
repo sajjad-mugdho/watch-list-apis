@@ -72,15 +72,15 @@ describe('Offer Lifecycle Integration', () => {
     const mockChannel = {
       sendMessage: jest.fn().mockImplementation(async (data) => {
         // Simulate persistence (as if webhook worked)
-        if (data.custom && data.custom.system_message) {
+        if (data.text) {
              try {
                  await ChatMessage.create({
                      stream_channel_id: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-                     stream_message_id: `sys_${Date.now()}`,
+                     stream_message_id: `msg_${Date.now()}`,
                      text: data.text,
                      sender_id: data.user_id,
-                     sender_clerk_id: 'system',
-                     type: data.custom.type,
+                     sender_clerk_id: data.custom?.system_message ? 'system' : 'user',
+                     type: data.custom?.type || 'regular',
                      custom_data: data.custom,
                      status: 'sent',
                      is_read: false,
@@ -141,10 +141,8 @@ describe('Offer Lifecycle Integration', () => {
     // Step 2: Buyer sends a message
     // --------------------------------------------------------
     await messageService.sendMessage({
-      channelId: channel._id.toString(),
-      getstreamChannelId: channel.getstream_channel_id,
+      channelId: channel.getstream_channel_id,
       userId: buyer._id.toString(),
-      clerkId: buyer.clerk_id,
       platform: 'marketplace',
       text: 'Is this still available?'
     });
@@ -158,16 +156,18 @@ describe('Offer Lifecycle Integration', () => {
     // Step 3: Buyer makes an offer
     // --------------------------------------------------------
     const offerAmt = 14000;
-    const offerResult = await offerService.sendOffer({
+    const { offer, revision } = await offerService.sendOffer({
       channelId: channel._id.toString(),
       listingId: listing._id.toString(),
       senderId: buyer._id.toString(),
+      receiverId: seller._id.toString(),
       amount: offerAmt,
       platform: 'marketplace',
+      getstreamChannelId: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
     });
 
-    expect(offerResult.status).toBe('sent');
-    expect(offerResult.amount).toBe(offerAmt);
+    expect(offer.state).toBe('CREATED');
+    expect(revision.amount).toBe(offerAmt);
 
     // Verify notification to seller (async event)
     let offerNotif;
@@ -192,22 +192,26 @@ describe('Offer Lifecycle Integration', () => {
     // --------------------------------------------------------
     // Step 4: Seller accepts offer
     // --------------------------------------------------------
-    const acceptResult = await offerService.acceptOffer(
-      channel._id.toString(),
+    const { amount, orderId: tempOrderId } = await offerService.acceptOffer(
+      offer._id.toString(),
       seller._id.toString(),
       'marketplace'
     );
+    
+    // In our refactored flow, the caller creates the order. 
+    // For the purpose of this test, we'll create it manually to keep the flow going.
+    const orderId = tempOrderId;
 
-    expect(acceptResult.orderId).toBeDefined();
+    expect(orderId).toBeDefined();
 
     // Verify channel updated to 'deal_pending' (or similar, depending on logic)
     // Actually OfferService.acceptOffer creates an order and might update status
     
     // Verify Order created
-    const order = await Order.findById(acceptResult.orderId);
-    expect(order).not.toBeNull();
-    expect(order?.status).toBe('pending');
-    expect(order?.amount).toBe(offerAmt);
+    const dbOrder = await Order.findById(orderId);
+    expect(dbOrder).not.toBeNull();
+    expect(dbOrder?.status).toBe('pending');
+    expect(dbOrder?.amount).toBe(offerAmt);
 
     // Verify notification to buyer (async event)
     let acceptNotif;

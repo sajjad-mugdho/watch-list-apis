@@ -10,9 +10,11 @@
 
 import mongoose, { Document, Schema, Types } from "mongoose";
 
-// ----------------------------------------------------------
-// Interface
-// ----------------------------------------------------------
+export interface IAttachment {
+  type: string;
+  url: string;
+  [key: string]: any;
+}
 
 export interface IChatMessage extends Document {
   _id: Types.ObjectId;
@@ -30,7 +32,8 @@ export interface IChatMessage extends Document {
   
   // Message metadata
   type: "regular" | "system" | "offer" | "counter_offer" | "offer_accepted" | "offer_rejected" | "order_created" | "order_paid" | "order_shipped" | "order_delivered" | "inquiry" | "order" | "listing_reserved" | "offer_expired";
-  attachments?: any[];
+  attachments?: IAttachment[];
+
   mentioned_users?: string[];
   parent_id?: string; // For thread replies (GetStream)
   parent_message_id?: string; // For thread replies (MongoDB)
@@ -124,9 +127,12 @@ const ChatMessageSchema = new Schema<IChatMessage>(
       index: true,
     },
     attachments: {
-      type: [Schema.Types.Mixed],
+      type: [Schema.Types.Mixed] as any,
       default: [],
     },
+
+
+
     mentioned_users: {
       type: [String],
       default: [],
@@ -186,7 +192,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     },
     offer_id: {
       type: Schema.Types.ObjectId,
-      ref: "NetworkListingOffer",
+      ref: "Offer",
       default: null,
       index: true,
     },

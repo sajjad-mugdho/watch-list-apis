@@ -182,6 +182,13 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
 
+  // Trust & Safety: Suspension
+  suspended_at?: Date | null;
+  suspension_reason?: string | null;
+  suspended_by?: Types.ObjectId | null;
+  suspension_expires_at?: Date | null;
+  isAdmin?: boolean;
+
   // Virtuals
   dialist_id: any;
   userId: string;
@@ -419,6 +426,13 @@ const userSchema = new Schema<IUser>(
       review_count_as_buyer: { type: Number, default: 0 },
       review_count_as_seller: { type: Number, default: 0 },
     },
+
+    // ===== Trust & Safety: Suspension Fields =====
+    suspended_at: { type: Date, default: null },
+    suspension_reason: { type: String, default: null, trim: true },
+    suspended_by: { type: Schema.Types.ObjectId, ref: "User", default: null },
+    suspension_expires_at: { type: Date, default: null },
+    isAdmin: { type: Boolean, default: false },
   },
   {
     strict: false, // per request

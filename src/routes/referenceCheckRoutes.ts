@@ -18,6 +18,8 @@ import { Notification } from "../models/Notification";
 import { feedService } from "../services/FeedService";
 import { chatService } from "../services/ChatService";
 import { Order } from "../models/Order";
+import { rateLimiters } from "../middleware/operational";
+import { auditService } from "../services/AuditService";
 import logger from "../utils/logger";
 import mongoose from "mongoose";
 
@@ -34,6 +36,7 @@ const router = Router();
  */
 router.post(
   "/",
+  rateLimiters.referenceCheckCreate,
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const auth = (req as any).auth;
@@ -636,6 +639,168 @@ router.delete(
 
       res.json({
         message: "Reference check deleted successfully",
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /api/v1/reference-checks/{id}/vouch:
+ *   post:
+ *     summary: Vouch for a party in a reference check
+ *     tags: [ReferenceCheck]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - vouch_for_user_id
+ *             properties:
+ *               vouch_for_user_id:
+ *                 type: string
+ *                 description: ID of the user to vouch for (must be buyer or seller in the check)
+ *               comment:
+ *                 type: string
+ *                 description: Optional comment for the vouch
+ */
+router.post(
+  "/:id/vouch",
+  rateLimiters.vouchCreate,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const auth = (req as any).auth;
+      if (!auth?.userId) {
+        res.status(401).json({ error: { message: "Unauthorized" } });
+        return;
+      }
+
+      const user = await User.findOne({ external_id: auth.userId });
+      if (!user) {
+        res.status(404).json({ error: { message: "User not found" } });
+        return;
+      }
+
+      const { id } = req.params;
+      const { vouch_for_user_id, comment } = req.body;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.status(400).json({ error: { message: "Invalid reference check ID" } });
+        return;
+      }
+
+      if (!vouch_for_user_id || !mongoose.Types.ObjectId.isValid(vouch_for_user_id)) {
+        res.status(400).json({ error: { message: "Valid vouch_for_user_id is required" } });
+        return;
+      }
+
+      // Import the vouch service dynamically to avoid circular dependencies
+      const { vouchService } = await import("../services/vouch/VouchService");
+
+      // Check eligibility first
+      const eligibility = await vouchService.checkEligibility(
+        id,
+        vouch_for_user_id,
+        user._id.toString()
+      );
+
+      if (!eligibility.eligible) {
+        res.status(400).json({
+          error: { message: eligibility.reason || "Not eligible to vouch" },
+        });
+        return;
+      }
+
+      // Create the vouch
+      const vouch = await vouchService.createVouch({
+        referenceCheckId: id,
+        vouchForUserId: vouch_for_user_id,
+        voucherId: user._id.toString(),
+        comment: comment?.trim(),
+      });
+
+      logger.info("Vouch created via API", {
+        vouchId: vouch.id,
+        referenceCheckId: id,
+        voucherId: user._id,
+        vouchForUserId: vouch_for_user_id,
+      });
+
+      // Audit log (fire and forget)
+      auditService.logVouchEvent({
+        action: "VOUCH_CREATED",
+        actorId: user._id.toString(),
+        actorRole: "buyer",  // voucher role
+        vouchId: vouch.id,
+        referenceCheckId: id,
+        vouchForUserId: vouch_for_user_id,
+        ...(vouch.weight !== undefined && { weight: vouch.weight }),
+        ...(req.ip && { ipAddress: req.ip }),
+        ...(req.get("User-Agent") && { userAgent: req.get("User-Agent") }),
+      });
+
+      res.status(201).json({
+        data: vouch,
+        message: "Vouch added successfully",
+      });
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("Not eligible")) {
+        res.status(400).json({ error: { message: error.message } });
+        return;
+      }
+      next(error);
+    }
+  }
+);
+
+/**
+ * @swagger
+ * /api/v1/reference-checks/{id}/vouches:
+ *   get:
+ *     summary: Get all vouches for a reference check
+ *     tags: [ReferenceCheck]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+  "/:id/vouches",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const auth = (req as any).auth;
+      if (!auth?.userId) {
+        res.status(401).json({ error: { message: "Unauthorized" } });
+        return;
+      }
+
+      const { id } = req.params;
+
+      if (!mongoose.Types.ObjectId.isValid(id)) {
+        res.status(400).json({ error: { message: "Invalid reference check ID" } });
+        return;
+      }
+
+      // Verify reference check exists
+      const check = await ReferenceCheck.findById(id);
+      if (!check) {
+        res.status(404).json({ error: { message: "Reference check not found" } });
+        return;
+      }
+
+      // Import the vouch service dynamically
+      const { vouchService } = await import("../services/vouch/VouchService");
+
+      const vouches = await vouchService.getVouchesForReferenceCheck(id);
+      const totalWeight = await vouchService.getTotalWeight(id);
+
+      res.json({
+        data: vouches,
+        total: vouches.length,
+        total_weight: totalWeight,
       });
     } catch (error) {
       next(error);

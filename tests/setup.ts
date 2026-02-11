@@ -1,7 +1,14 @@
 /// <reference types="jest" />
 
-import { MongoMemoryServer } from "mongodb-memory-server";
+import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
+// Set default environment variables for testing
+process.env.AWS_SQS_WEBHOOK_URL = process.env.AWS_SQS_WEBHOOK_URL || "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue";
+process.env.AWS_REGION = process.env.AWS_REGION || "us-east-1";
+process.env.AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || "test-access-key";
+process.env.AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || "test-secret-key";
+process.env.AWS_S3_BUCKET = process.env.AWS_S3_BUCKET || "test-bucket";
+
 // Mock uuid before importing anything else
 jest.mock("uuid", () => ({
   v4: jest.fn(() => "test-uuid-123"),
@@ -208,12 +215,14 @@ jest.mock("../src/utils/user", () => {
   };
 });
 
-let mongoServer: MongoMemoryServer;
+let mongoServer: any;
 
 // Setup: Start in-memory MongoDB before all tests
 beforeAll(async () => {
   try {
-    mongoServer = await MongoMemoryServer.create();
+    mongoServer = await MongoMemoryReplSet.create({
+      replSet: { count: 1, name: "rs0" },
+    });
     const mongoUri = mongoServer.getUri();
 
     await mongoose.connect(mongoUri, {
@@ -225,7 +234,7 @@ beforeAll(async () => {
     console.error("❌ Failed to setup test database:", error);
     throw error;
   }
-});
+}, 60000);
 
 // Teardown: Stop in-memory MongoDB after all tests
 afterAll(async () => {

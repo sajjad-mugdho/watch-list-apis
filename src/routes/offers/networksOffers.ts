@@ -182,10 +182,9 @@ router.post(
         return;
       }
 
-      await offerService.rejectOffer(
+      await offerService.declineOffer(
         id,
-        user._id.toString(),
-        "networks"
+        user._id.toString()
       );
 
       res.json({
@@ -222,11 +221,10 @@ router.post(
       }
 
       const offer = await offerService.counterOffer({
-        channelId: id,
-        senderId: user._id.toString(),
+        offerId: id,
+        counterById: user._id.toString(),
         amount,
-        message: text,
-        platform: "networks",
+        note: text,
       });
 
       res.status(201).json({

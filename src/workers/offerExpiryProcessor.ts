@@ -1,7 +1,8 @@
 /**
  * Offer Expiry Job Processor
  * 
- * Periodically checks for expired offers across both platforms.
+ * Periodically checks for expired offers using the first-class Offer model.
+ * Queries Offer.findExpiredOffers() and transitions each to EXPIRED state.
  * 48 hours is the default expiry time.
  */
 
@@ -21,26 +22,35 @@ export function startOfferExpiryWorker(): void {
     logger.info('🕒 [Worker] Running scheduled offer expiry check...');
     
     try {
-      // 1. Process Marketplace offers
-      const marketplaceExpired = await offerService.getExpiredOffers('marketplace');
-      for (const channel of marketplaceExpired) {
-        await offerService.expireOffer((channel as any)._id.toString(), 'marketplace');
-      }
+      // Query the Offer collection for expired offers (CREATED/COUNTERED with past expires_at)
+      const expiredOffers = await offerService.getExpiredOffers();
+      
+      let expiredCount = 0;
+      let failedCount = 0;
 
-      // 2. Process Networks offers
-      const networksExpired = await offerService.getExpiredOffers('networks');
-      for (const channel of networksExpired) {
-        await offerService.expireOffer((channel as any)._id.toString(), 'networks');
+      for (const offer of expiredOffers) {
+        try {
+          await offerService.expireOffer(offer._id.toString());
+          expiredCount++;
+        } catch (error) {
+          failedCount++;
+          logger.error('❌ [Worker] Failed to expire individual offer:', {
+            offerId: offer._id.toString(),
+            error,
+          });
+        }
       }
 
       logger.info('✅ [Worker] Offer expiry check completed', {
-        marketplaceCount: marketplaceExpired.length,
-        networksCount: networksExpired.length
+        totalFound: expiredOffers.length,
+        expired: expiredCount,
+        failed: failedCount,
       });
 
       return {
-        marketplace: marketplaceExpired.length,
-        networks: networksExpired.length
+        found: expiredOffers.length,
+        expired: expiredCount,
+        failed: failedCount,
       };
     } catch (error) {
       logger.error('❌ [Worker] Offer expiry check failed:', error);

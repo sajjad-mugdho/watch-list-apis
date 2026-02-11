@@ -102,7 +102,7 @@ export const RequestUserFromAuthSchema = z
     userId: z.string(),
     claims: ValidatedUserClaimsSchema,
   })
-  .transform<Express.RequestUser>(({ userId, claims }) => ({
+  .transform<import("../types/auth").RequestUser>(({ userId, claims }) => ({
     userId,
     dialist_id: claims.dialist_id,
     display_name: claims.display_name,
@@ -1139,8 +1139,7 @@ export const getUserTicketsSchema = z.object({
 // ----------------------------------------------------------
 // Type Exports
 // ----------------------------------------------------------
-export type UserClaims = z.infer<typeof UserClaimsSchema>;
-export type ValidatedUserClaims = z.infer<typeof ValidatedUserClaimsSchema>;
+export type { UserClaims, ValidatedUserClaims } from "../types/auth";
 
 // Onboarding Types
 export type PatchAcksStepInput = z.infer<typeof patchAcksStepSchema>;

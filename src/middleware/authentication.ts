@@ -7,26 +7,16 @@ import {
 } from "../utils/errors";
 import { customGetAuth } from "./customClerkMw";
 import { RequestUserFromAuthSchema } from "../validation/schemas";
-import { fetchAndSyncLocalUser } from "../utils/user"; // adjust path as needed
-
-/**
- * Authentication & Authorization Middleware
- *
- * Available middleware functions:
- * 1. requirePlatformAuth() - Base authentication for all authenticated routes
- * 2. requireCompletedOnboarding() - Ensures user has completed onboarding (for buyers)
- *
- * Usage example for order routes:
- *   router.use(requirePlatformAuth());
- *   router.use(requireCompletedOnboarding()); // Buyers must complete onboarding to purchase
- */
+import { fetchAndSyncLocalUser } from "../utils/user";
+import { User } from "../models/User";
+import logger from "../utils/logger";
 
 const SKIP_PATHS: string[] = ["/health", "/public"];
 
-// ------------------------------------------------------------------
-// Base auth for a platform user access
-// Validates: user auth, claims presence, dialist_id format.
-// ------------------------------------------------------------------
+/**
+ * requirePlatformAuth() - Base authentication for all authenticated routes
+ * Validates: user auth, claims presence, dialist_id format.
+ */
 export function requirePlatformAuth() {
   return async function authMiddleware(
     req: Request,
@@ -34,31 +24,23 @@ export function requirePlatformAuth() {
     next: NextFunction
   ) {
     try {
-      // Optionally allow public paths
       const fullPath = req.baseUrl + req.path;
       if (SKIP_PATHS.some((p) => fullPath.startsWith(p))) return next();
 
-      // Must have a Clerk user
       const auth = customGetAuth(req) as any;
       if (!auth?.userId) throw new AuthenticationError("Unauthorized");
 
-      // Check for x-refresh-session header to force DB fallback
       const forceRefresh =
         req.headers["x-refresh-session"] === "1" ||
         req.headers["x-refresh-session"] === "true";
 
       if (forceRefresh) {
-        console.log(
-          `[auth] x-refresh-session header detected for user ${auth.userId}, forcing DB lookup`
-        );
-        const user_claims = await fetchAndSyncLocalUser({
-          external_id: auth?.userId,
-        });
+        console.log(`[auth] x-refresh-session header detected for user ${auth.userId}, forcing DB lookup`);
+        const user_claims = await fetchAndSyncLocalUser({ external_id: auth?.userId });
         (req as any).user = { userId: auth.userId, ...user_claims };
         return next();
       }
 
-      // Attach a typed user for downstream handlers
       const claimsResult = RequestUserFromAuthSchema.safeParse({
         userId: auth.userId,
         claims: auth.sessionClaims,
@@ -69,12 +51,8 @@ export function requirePlatformAuth() {
         (req as any).dialistUserId = claimsResult.data.dialist_id;
         return next();
       } else {
-        console.warn(
-          `[auth] Missing/invalid claims for user ${auth.userId}, falling back to database`
-        );
-        const user_claims = await fetchAndSyncLocalUser({
-          external_id: auth?.userId,
-        });
+        console.warn(`[auth] Missing/invalid claims for user ${auth.userId}, falling back to database`);
+        const user_claims = await fetchAndSyncLocalUser({ external_id: auth?.userId });
         (req as any).user = { userId: auth.userId, ...user_claims };
         (req as any).dialistUserId = user_claims.dialist_id;
         return next();
@@ -82,20 +60,14 @@ export function requirePlatformAuth() {
     } catch (err) {
       if (err instanceof AppError) return next(err);
       console.error("requireAuth error:", err);
-      return next(
-        new DatabaseError("Unexpected error in auth middleware", {
-          original: err,
-          path: req.path,
-        })
-      );
+      return next(new DatabaseError("Unexpected error in auth middleware", { original: err, path: req.path }));
     }
   };
 }
 
-// ------------------------------------------------------------------
-// Require completed user onboarding
-// Used for buyer actions like purchasing watches
-// ------------------------------------------------------------------
+/**
+ * Middleware to require completed onboarding
+ */
 export function requireCompletedOnboarding() {
   return async function checkOnboardingMiddleware(
     req: Request,
@@ -103,38 +75,54 @@ export function requireCompletedOnboarding() {
     next: NextFunction
   ) {
     try {
-      // Ensure user is authenticated first
-      if (!req.user) {
-        throw new AuthenticationError("Unauthorized - user not authenticated");
-      }
-
-      // Check if user has completed onboarding
+      if (!req.user) throw new AuthenticationError("Unauthorized - user not authenticated");
       if (req.user.onboarding_status !== "completed") {
-        throw new AuthorizationError(
-          "User onboarding must be completed before purchasing watches",
-          {
-            context: {
-              userId: req.user.dialist_id,
-              currentStatus: req.user.onboarding_status,
-              requiredStatus: "completed",
-            },
-          }
-        );
+        throw new AuthorizationError("User onboarding must be completed before purchasing watches", {
+          context: { userId: req.user.dialist_id, currentStatus: req.user.onboarding_status, requiredStatus: "completed" },
+        });
       }
-
       return next();
     } catch (err) {
       if (err instanceof AppError) return next(err);
       console.error("requireCompletedOnboarding error:", err);
-      return next(
-        new DatabaseError("Unexpected error in onboarding check middleware", {
-          original: err,
-          path: req.path,
-        })
-      );
+      return next(new DatabaseError("Unexpected error in onboarding check middleware", { original: err, path: req.path }));
     }
   };
 }
 
-// Alias for routes that just need authentication
+/**
+ * Middleware to require admin role
+ * Must be used AFTER requirePlatformAuth()
+ */
+export const requireAdmin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    const auth = (req as any).auth;
+    if (!auth?.userId) {
+      res.status(401).json({ error: { message: "Unauthorized" } });
+      return;
+    }
+
+    const user = await User.findOne({ external_id: auth.userId });
+    if (!user || !user.isAdmin) {
+      logger.warn(`Unauthorized admin access attempt by user ${auth.userId}`);
+      res.status(403).json({
+        error: {
+          message: "Forbidden: Admin access required",
+          code: "INSUFFICIENT_PERMISSIONS",
+        },
+      });
+      return;
+    }
+
+    next();
+  } catch (error) {
+    logger.error("Error in requireAdmin middleware", { error });
+    next(error);
+  }
+};
+
 export const requireAuth = requirePlatformAuth;

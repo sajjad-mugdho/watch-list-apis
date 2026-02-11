@@ -1,4 +1,6 @@
 import { Request, Response, NextFunction } from "express";
+import "../types/express"; // Ensure global augmentation is loaded
+
 import { randomUUID } from "crypto";
 import { apiLogger } from "../utils/logger";
 
@@ -145,6 +147,154 @@ export const rateLimit = (
   next();
 };
 
+// ============================================================
+// Per-Endpoint Rate Limiter Factory
+// ============================================================
+
+export interface RateLimitConfig {
+  windowMs: number;       // Time window in milliseconds
+  maxRequests: number;    // Max requests per window
+  keyPrefix: string;      // Prefix for the rate limit key
+  useUserId?: boolean;    // Use authenticated user ID instead of IP
+  message?: string;       // Custom error message
+}
+
+const endpointRateLimits = new Map<string, { count: number; resetTime: number }>();
+
+/**
+ * Creates a configurable rate limiter middleware
+ * 
+ * @example
+ * // 5 offers per hour per user
+ * router.post("/offers", createRateLimiter({
+ *   windowMs: 60 * 60 * 1000,
+ *   maxRequests: 5,
+ *   keyPrefix: "offer_create",
+ *   useUserId: true
+ * }), createOfferHandler);
+ */
+export const createRateLimiter = (config: RateLimitConfig) => {
+  const {
+    windowMs,
+    maxRequests,
+    keyPrefix,
+    useUserId = true,
+    message = "Rate limit exceeded. Please try again later.",
+  } = config;
+
+  return (req: Request, res: Response, next: NextFunction): void => {
+    // Build rate limit key
+    let keyIdentifier: string;
+    if (useUserId && (req as any).auth?.userId) {
+      keyIdentifier = (req as any).auth.userId;
+    } else {
+      keyIdentifier = req.ip || req.socket.remoteAddress || "unknown";
+    }
+    const key = `${keyPrefix}:${keyIdentifier}`;
+    const now = Date.now();
+
+    // Clean up expired entries
+    for (const [k, value] of endpointRateLimits.entries()) {
+      if (value.resetTime < now - windowMs) {
+        endpointRateLimits.delete(k);
+      }
+    }
+
+    // Get or create entry
+    let entry = endpointRateLimits.get(key);
+    if (!entry || entry.resetTime < now - windowMs) {
+      entry = { count: 0, resetTime: now };
+    }
+
+    entry.count++;
+    endpointRateLimits.set(key, entry);
+
+    // Set rate limit headers
+    const remaining = Math.max(0, maxRequests - entry.count);
+    res.setHeader(`X-RateLimit-Limit-${keyPrefix}`, maxRequests);
+    res.setHeader(`X-RateLimit-Remaining-${keyPrefix}`, remaining);
+    res.setHeader(
+      `X-RateLimit-Reset-${keyPrefix}`,
+      Math.ceil((entry.resetTime + windowMs) / 1000)
+    );
+
+    // Check if exceeded
+    if (entry.count > maxRequests) {
+      const requestId = req.headers["x-request-id"] as string;
+      const userId = (req as any).auth?.userId;
+
+      apiLogger.warn(`🚦 Rate limit exceeded for ${keyPrefix}`, {
+        requestId,
+        key,
+        count: entry.count,
+        limit: maxRequests,
+        windowMs,
+        userId,
+      });
+
+      res.status(429).json({
+        error: {
+          message,
+          code: "RATE_LIMIT_EXCEEDED",
+          retryAfter: Math.ceil((entry.resetTime + windowMs - now) / 1000),
+        },
+        requestId,
+      });
+      return;
+    }
+
+    next();
+  };
+};
+
+// Pre-configured rate limiters for common use cases
+export const rateLimiters = {
+  // Offer creation: 10 offers per hour
+  offerCreate: createRateLimiter({
+    windowMs: 60 * 60 * 1000,
+    maxRequests: 10,
+    keyPrefix: "offer_create",
+    useUserId: true,
+    message: "You have reached the maximum number of offers per hour. Please try again later.",
+  }),
+
+  // Counter offers: 20 per hour
+  offerCounter: createRateLimiter({
+    windowMs: 60 * 60 * 1000,
+    maxRequests: 20,
+    keyPrefix: "offer_counter",
+    useUserId: true,
+    message: "You have reached the maximum number of counter offers per hour.",
+  }),
+
+  // Vouch creation: 5 vouches per hour
+  vouchCreate: createRateLimiter({
+    windowMs: 60 * 60 * 1000,
+    maxRequests: 5,
+    keyPrefix: "vouch_create",
+    useUserId: true,
+    message: "You have reached the maximum number of vouches per hour. Please try again later.",
+  }),
+
+  // Reference check creation: 3 per hour
+  referenceCheckCreate: createRateLimiter({
+    windowMs: 60 * 60 * 1000,
+    maxRequests: 3,
+    keyPrefix: "refcheck_create",
+    useUserId: true,
+    message: "You have reached the maximum number of reference checks per hour.",
+  }),
+
+  // Auth token generation: 10 per minute
+  authToken: createRateLimiter({
+    windowMs: 60 * 1000,
+    maxRequests: 10,
+    keyPrefix: "auth_token",
+    useUserId: false,
+    message: "Too many token requests. Please wait before trying again.",
+  }),
+};
+
 // Health check with system metrics
 export const healthCheck = (req: Request, res: Response): void => {
   const requestId = req.headers["x-request-id"] as string;
@@ -189,3 +339,69 @@ export const notFoundHandler = (req: Request, res: Response): void => {
     requestId,
   });
 };
+
+// Readiness check for Kubernetes readiness probes
+// Unlike healthCheck, this verifies external dependencies are ready
+export const readinessCheck = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const requestId = req.headers["x-request-id"] as string;
+
+  try {
+    // Check MongoDB connection
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const mongoose = require("mongoose");
+    const dbState = mongoose.connection.readyState;
+    // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
+
+    const isDbReady = dbState === 1;
+
+    if (!isDbReady) {
+      apiLogger.warn("Readiness check failed: Database not connected", {
+        requestId,
+        dbState,
+      });
+
+      res.status(503).json({
+        status: "not_ready",
+        reason: "Database connection not established",
+        checks: {
+          database: {
+            status: "unhealthy",
+            state: dbState,
+          },
+        },
+        requestId,
+      });
+      return;
+    }
+
+    res.json({
+      status: "ready",
+      timestamp: new Date().toISOString(),
+      checks: {
+        database: {
+          status: "healthy",
+          state: "connected",
+        },
+      },
+      requestId,
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    apiLogger.error("Readiness check error", {
+      requestId,
+      error: errorMessage,
+    });
+
+    res.status(503).json({
+      status: "not_ready",
+      reason: "Readiness check failed",
+      error: errorMessage,
+      requestId,
+    });
+  }
+};
+

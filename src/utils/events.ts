@@ -25,7 +25,7 @@ export interface EventMap {
   'message:read': {
     channelId: string;
     userId: string;
-    messageCount: number;
+    messageCount?: number;
   };
   'offer:sent': { 
     offerId: string; 
@@ -124,6 +124,55 @@ export interface EventMap {
     userId: string;
     isoId: string;
     matchedListingId: string;
+  };
+
+  // ===== Vouch Events =====
+  'vouch:added': {
+    vouchId: string;
+    voucherId: string;
+    vouchedUserId: string;
+    referenceCheckId: string;
+    voucherName?: string;
+  };
+  'vouch:removed': {
+    vouchId: string;
+    voucherId: string;
+    vouchedUserId: string;
+    referenceCheckId: string;
+  };
+
+  // ===== Trust Case Events =====
+  'trustCase:created': {
+    caseId: string;
+    caseNumber: string;
+    reportedUserId: string;
+    reporterUserId: string;
+    category: string;
+    priority: string;
+  };
+  'trustCase:escalated': {
+    caseId: string;
+    caseNumber: string;
+    escalatedTo: string;
+    reason: string;
+  };
+  'trustCase:resolved': {
+    caseId: string;
+    caseNumber: string;
+    resolvedBy: string;
+    resolution: string;
+  };
+  'trustCase:closed': {
+    caseId: string;
+    caseNumber: string;
+    closedBy: string;
+  };
+  'user:suspended': {
+    userId: string;
+    suspendedById: string;
+    caseId: string;
+    reason: string;
+    durationDays: number;
   };
 }
 
