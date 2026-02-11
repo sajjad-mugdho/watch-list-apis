@@ -28,7 +28,6 @@ import { OfferRevision, IOfferRevision } from "../../models/OfferRevision";
 import { ReservationTerms } from "../../models/ReservationTerms";
 import { EventOutbox, EventType } from "../../models/EventOutbox";
 import { chatService } from "../ChatService";
-import { events } from "../../utils/events";
 import logger from "../../utils/logger";
 
 // ----------------------------------------------------------
@@ -252,17 +251,6 @@ export class OfferService {
       }
     }
 
-    // Emit event
-    events.emit("offer:sent", {
-      offerId: offer._id.toString(),
-      channelId,
-      senderId,
-      receiverId,
-      amount,
-      listingId,
-      platform,
-    });
-
     logger.info("[OfferService] Offer created", {
       offerId: offer._id.toString(),
       channelId,
@@ -380,10 +368,6 @@ export class OfferService {
     }
 
     // --- Post-Transaction Side Effects ---
-    const isBuyer = offer.buyer_id.toString() === counterById;
-    const receiverId = isBuyer
-      ? offer.seller_id.toString()
-      : offer.buyer_id.toString();
 
     // 9. Send system message (Legacy parity)
     if (offer.getstream_channel_id) {
@@ -404,17 +388,6 @@ export class OfferService {
         });
       }
     }
-
-    // Emit event
-    events.emit("offer:countered", {
-      offerId: offer._id.toString(),
-      channelId: offer.channel_id.toString(),
-      senderId: counterById,
-      receiverId,
-      amount,
-      previousAmount: 0, // Should be from previous revision
-      platform: offer.platform,
-    });
 
     logger.info("[OfferService] Offer countered", {
       offerId: offer._id.toString(),
@@ -592,17 +565,6 @@ export class OfferService {
       }
     }
 
-    // Emit event
-    events.emit("offer:accepted", {
-      offerId: offer._id.toString(),
-      channelId: offer.channel_id.toString(),
-      buyerId: offer.buyer_id.toString(),
-      sellerId: offer.seller_id.toString(),
-      amount: latestRevision.amount,
-      orderId: "", // Set by handler after order creation
-      platform: offer.platform,
-    });
-
     logger.info("[OfferService] Offer accepted", {
       offerId: offer._id.toString(),
       amount: latestRevision.amount,
@@ -694,15 +656,6 @@ export class OfferService {
         }
     }
 
-    events.emit("offer:rejected", {
-      offerId: offer._id.toString(),
-      channelId: offer.channel_id.toString(),
-      buyerId: offer.buyer_id.toString(),
-      sellerId: offer.seller_id.toString(),
-      amount: latestRevision?.amount || 0,
-      platform: offer.platform,
-    });
-
     return offer;
   }
 
@@ -777,14 +730,6 @@ export class OfferService {
             logger.warn("[OfferService] Failed to send expiry message", e);
         }
     }
-
-    events.emit("offer:expired", {
-      offerId: offer._id.toString(),
-      channelId: offer.channel_id.toString(),
-      buyerId: offer.buyer_id.toString(),
-      sellerId: offer.seller_id.toString(),
-      amount: latestRevision?.amount || 0,
-    });
 
     return offer;
   }

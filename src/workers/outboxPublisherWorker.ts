@@ -125,6 +125,65 @@ function emitOutboxEvent(event: IEventOutbox): void {
       });
       break;
 
+    // Vouch events
+    case "VOUCH_ADDED":
+      events.emit("vouch:added", {
+        vouchId: payload.vouchId || "",
+        voucherId: payload.voucherId || "",
+        vouchedUserId: payload.vouchForUserId || "",
+        referenceCheckId: payload.referenceCheckId || "",
+        voucherName: payload.voucherName,
+      });
+      break;
+
+    // Trust Case events
+    case "TRUST_CASE_CREATED":
+      events.emit("trustCase:created", {
+        caseId: payload.caseId,
+        caseNumber: payload.caseNumber,
+        reportedUserId: payload.reportedUserId,
+        reporterUserId: payload.reporterUserId || "",
+        category: payload.category,
+        priority: payload.priority,
+      });
+      break;
+
+    case "TRUST_CASE_ESCALATED":
+      events.emit("trustCase:escalated", {
+        caseId: payload.caseId,
+        caseNumber: payload.caseNumber,
+        escalatedTo: payload.escalatedTo,
+        reason: payload.reason,
+      });
+      break;
+
+    case "TRUST_CASE_RESOLVED":
+      events.emit("trustCase:resolved", {
+        caseId: payload.caseId,
+        caseNumber: payload.caseNumber,
+        resolvedBy: payload.resolvedBy,
+        resolution: payload.resolution,
+      });
+      break;
+
+    case "TRUST_CASE_CLOSED":
+      events.emit("trustCase:closed", {
+        caseId: payload.caseId,
+        caseNumber: payload.caseNumber,
+        closedBy: payload.closedBy,
+      });
+      break;
+
+    case "USER_SUSPENDED":
+      events.emit("user:suspended", {
+        userId: payload.userId,
+        suspendedById: payload.suspendedById,
+        caseId: payload.caseId,
+        reason: payload.reason,
+        durationDays: payload.durationDays,
+      });
+      break;
+
     default:
       logger.debug("[OutboxPublisher] Unhandled event type, skipping", {
         eventType: event_type,

@@ -1,5 +1,5 @@
 import { IUser } from "../models/User";
-import { ValidatedUserClaims } from "../validation/schemas";
+import { ValidatedUserClaims } from "../types/auth";
 import { config } from "../config";
 import { clerkClient } from "@clerk/express";
 import { getCurrentUserByExternalID, getCurrentUserByID } from "./frequentQueries";
@@ -182,9 +182,9 @@ export async function buildClaimsFromDbUser(
   const claims: ValidatedUserClaims = {
     dialist_id: dbUser._id.toString(),
     display_name: dbUser.display_name,
-    display_avatar: dbUser.avatar,
-    location_country: dbUser.location?.country || undefined,
-    location_region: dbUser.location?.region || undefined,
+    display_avatar: dbUser.avatar ?? null,
+    location_country: dbUser.location?.country ?? null,
+    location_region: dbUser.location?.region ?? null,
     onboarding_status: dbUser.onboarding.status,
     isMerchant, // Always include merchant status (false if no MerchantOnboarding record)
     networks_application_id: dbUser?.networks_application_id

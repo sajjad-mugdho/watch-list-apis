@@ -44,7 +44,7 @@ export const UserClaimsSchema = z
       .min(2, "location_region must be 2+ chars")
       .optional(),
     onboarding_state: z
-      .enum(["PROVISIONING", "UPDATE_REQUESTED", "REJECTED", "APPROVED"])
+      .enum(["PENDING", "PROVISIONING", "UPDATE_REQUESTED", "REJECTED", "APPROVED"])
       .optional(),
   })
   .passthrough();
@@ -102,22 +102,13 @@ export const RequestUserFromAuthSchema = z
     userId: z.string(),
     claims: ValidatedUserClaimsSchema,
   })
-  .transform<import("../types/auth").RequestUser>(({ userId, claims }) => ({
-    userId,
-    dialist_id: claims.dialist_id,
-    display_name: claims.display_name,
-    display_avatar: claims.display_avatar,
-
-    location_country: claims.location_country,
-    location_region: claims.location_region,
-
-    onboarding_state: claims.onboarding_state,
-    isMerchant: claims.isMerchant,
-    onboarding_status: claims.onboarding_status,
-
-    networks_application_id: claims.networks_application_id,
-    networks_accessed: claims.networks_accessed,
-  }));
+  .transform<import("../types/auth").RequestUser>(
+    ({ userId, claims }) =>
+      ({
+        ...claims,
+        userId,
+      } as import("../types/auth").RequestUser)
+  );
 
 // ----------------------------------------------------------
 // Watch Schemas

@@ -13,7 +13,7 @@ export interface UserClaims {
   display_avatar?: string;
   location_country?: string;
   location_region?: string;
-  onboarding_state?: "PROVISIONING" | "UPDATE_REQUESTED" | "REJECTED" | "APPROVED";
+  onboarding_state?: "PENDING" | "PROVISIONING" | "UPDATE_REQUESTED" | "REJECTED" | "APPROVED";
   [key: string]: any;
 }
 
@@ -27,11 +27,17 @@ export interface ValidatedUserClaims {
   display_name: string | null;
   networks_application_id: string | null;
   networks_accessed: boolean | null;
-  display_avatar?: string;
-  location_country?: string;
-  location_region?: string;
-  onboarding_state?: "PENDING" | "PROVISIONING" | "UPDATE_REQUESTED" | "REJECTED" | "APPROVED";
-  isMerchant?: boolean;
+  display_avatar?: string | null;
+  location_country?: string | null;
+  location_region?: string | null;
+  onboarding_state?:
+    | "PENDING"
+    | "PROVISIONING"
+    | "UPDATE_REQUESTED"
+    | "REJECTED"
+    | "APPROVED"
+    | null;
+  isMerchant?: boolean | null;
   [key: string]: any; // Add index signature for compatibility with Clerk's UserPublicMetadata
 }
 

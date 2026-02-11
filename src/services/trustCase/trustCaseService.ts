@@ -7,7 +7,7 @@
  * Status machine: OPEN → INVESTIGATING → ESCALATED → RESOLVED → CLOSED
  */
 
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import {
   TrustCase,
   ITrustCase,
@@ -109,54 +109,68 @@ export class TrustCaseService {
     if (referenceCheckId) evidenceParams.referenceCheckId = referenceCheckId;
     const evidenceSnapshot = await this.gatherEvidence(evidenceParams);
 
-    // 3. Create the case
-    const trustCase = await TrustCase.create({
-      case_number: caseNumber,
-      reporter_user_id: reporterUserId
-        ? new Types.ObjectId(reporterUserId)
-        : undefined,
-      reported_user_id: new Types.ObjectId(reportedUserId),
-      order_id: orderId ? new Types.ObjectId(orderId) : undefined,
-      reference_check_id: referenceCheckId
-        ? new Types.ObjectId(referenceCheckId)
-        : undefined,
-      status: "OPEN",
-      priority,
-      category,
-      evidence_snapshot: evidenceSnapshot,
-      notes: [
-        {
-          author_id: reporterUserId
-            ? new Types.ObjectId(reporterUserId)
-            : new Types.ObjectId("000000000000000000000000"), // system
-          content: `Case created: ${reason}`,
-          created_at: new Date(),
-        },
-      ],
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // 4. Write outbox event
-    await EventOutbox.create({
-      aggregate_type: "trust_case",
-      aggregate_id: trustCase._id,
-      event_type: "TRUST_CASE_CREATED" as EventType,
-      payload: {
+    try {
+      // 3. Create the case
+      const trustCase = new TrustCase({
+        case_number: caseNumber,
+        reporter_user_id: reporterUserId
+          ? new Types.ObjectId(reporterUserId)
+          : undefined,
+        reported_user_id: new Types.ObjectId(reportedUserId),
+        order_id: orderId ? new Types.ObjectId(orderId) : undefined,
+        reference_check_id: referenceCheckId
+          ? new Types.ObjectId(referenceCheckId)
+          : undefined,
+        status: "OPEN",
+        priority,
+        category,
+        evidence_snapshot: evidenceSnapshot,
+        notes: [
+          {
+            author_id: reporterUserId
+              ? new Types.ObjectId(reporterUserId)
+              : new Types.ObjectId("000000000000000000000000"), // system
+            content: `Case created: ${reason}`,
+            created_at: new Date(),
+          },
+        ],
+      });
+      await trustCase.save({ session });
+
+      // 4. Write outbox event
+      const event = new EventOutbox({
+        aggregate_type: "trust_case",
+        aggregate_id: trustCase._id,
+        event_type: "TRUST_CASE_CREATED" as EventType,
+        payload: {
+          caseId: trustCase._id.toString(),
+          caseNumber,
+          reportedUserId,
+          reporterUserId,
+          category,
+          priority,
+        },
+        published: false,
+      });
+      await event.save({ session });
+
+      await session.commitTransaction();
+
+      logger.info("[TrustCaseService] Trust case created", {
         caseId: trustCase._id.toString(),
         caseNumber,
-        reportedUserId,
-        reporterUserId,
-        category,
-        priority,
-      },
-      published: false,
-    });
+      });
 
-    logger.info("[TrustCaseService] Trust case created", {
-      caseId: trustCase._id.toString(),
-      caseNumber,
-    });
-
-    return trustCase;
+      return trustCase;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   /**
@@ -204,45 +218,58 @@ export class TrustCaseService {
     escalatedById: string,
     reason: string
   ): Promise<ITrustCase> {
-    const trustCase = await TrustCase.findById(caseId);
-    if (!trustCase) throw new Error("Trust case not found");
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (trustCase.status === "RESOLVED" || trustCase.status === "CLOSED") {
-      throw new Error("Cannot escalate a resolved or closed case");
+    try {
+      const trustCase = await TrustCase.findById(caseId).session(session);
+      if (!trustCase) throw new Error("Trust case not found");
+
+      if (trustCase.status === "RESOLVED" || trustCase.status === "CLOSED") {
+        throw new Error("Cannot escalate a resolved or closed case");
+      }
+
+      trustCase.status = "ESCALATED";
+      trustCase.escalated_to = new Types.ObjectId(escalatedToId);
+      trustCase.priority = "critical";
+
+      trustCase.notes.push({
+        author_id: new Types.ObjectId(escalatedById),
+        content: `Case escalated: ${reason}`,
+        created_at: new Date(),
+      } as any);
+
+      await trustCase.save({ session });
+
+      // Write outbox
+      const event = new EventOutbox({
+        aggregate_type: "trust_case",
+        aggregate_id: trustCase._id,
+        event_type: "TRUST_CASE_ESCALATED" as EventType,
+        payload: {
+          caseId: trustCase._id.toString(),
+          caseNumber: trustCase.case_number,
+          escalatedTo: escalatedToId,
+          reason,
+        },
+        published: false,
+      });
+      await event.save({ session });
+
+      await session.commitTransaction();
+
+      logger.info("[TrustCaseService] Case escalated", {
+        caseId,
+        escalatedToId,
+      });
+
+      return trustCase;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    trustCase.status = "ESCALATED";
-    trustCase.escalated_to = new Types.ObjectId(escalatedToId);
-    trustCase.priority = "critical";
-
-    trustCase.notes.push({
-      author_id: new Types.ObjectId(escalatedById),
-      content: `Case escalated: ${reason}`,
-      created_at: new Date(),
-    } as any);
-
-    await trustCase.save();
-
-    // Write outbox
-    await EventOutbox.create({
-      aggregate_type: "trust_case",
-      aggregate_id: trustCase._id,
-      event_type: "TRUST_CASE_ESCALATED" as EventType,
-      payload: {
-        caseId: trustCase._id.toString(),
-        caseNumber: trustCase.case_number,
-        escalatedTo: escalatedToId,
-        reason,
-      },
-      published: false,
-    });
-
-    logger.info("[TrustCaseService] Case escalated", {
-      caseId,
-      escalatedToId,
-    });
-
-    return trustCase;
   }
 
   /**
@@ -276,82 +303,107 @@ export class TrustCaseService {
   async resolveCase(params: ResolveCaseParams): Promise<ITrustCase> {
     const { caseId, resolvedById, resolution } = params;
 
-    const trustCase = await TrustCase.findById(caseId);
-    if (!trustCase) throw new Error("Trust case not found");
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (trustCase.status === "RESOLVED" || trustCase.status === "CLOSED") {
-      throw new Error("Case is already resolved or closed");
-    }
+    try {
+      const trustCase = await TrustCase.findById(caseId).session(session);
+      if (!trustCase) throw new Error("Trust case not found");
 
-    trustCase.status = "RESOLVED";
-    trustCase.resolution = resolution;
-    trustCase.resolved_at = new Date();
+      if (trustCase.status === "RESOLVED" || trustCase.status === "CLOSED") {
+        throw new Error("Case is already resolved or closed");
+      }
 
-    trustCase.notes.push({
-      author_id: new Types.ObjectId(resolvedById),
-      content: `Case resolved: ${resolution}`,
-      created_at: new Date(),
-    } as any);
+      trustCase.status = "RESOLVED";
+      trustCase.resolution = resolution;
+      trustCase.resolved_at = new Date();
 
-    await trustCase.save();
+      trustCase.notes.push({
+        author_id: new Types.ObjectId(resolvedById),
+        content: `Case resolved: ${resolution}`,
+        created_at: new Date(),
+      } as any);
 
-    // Write outbox
-    await EventOutbox.create({
-      aggregate_type: "trust_case",
-      aggregate_id: trustCase._id,
-      event_type: "TRUST_CASE_RESOLVED" as EventType,
-      payload: {
-        caseId: trustCase._id.toString(),
-        caseNumber: trustCase.case_number,
+      await trustCase.save({ session });
+
+      // Write outbox
+      const event = new EventOutbox({
+        aggregate_type: "trust_case",
+        aggregate_id: trustCase._id,
+        event_type: "TRUST_CASE_RESOLVED" as EventType,
+        payload: {
+          caseId: trustCase._id.toString(),
+          caseNumber: trustCase.case_number,
+          resolution,
+          resolvedBy: resolvedById,
+        },
+        published: false,
+      });
+      await event.save({ session });
+
+      await session.commitTransaction();
+
+      logger.info("[TrustCaseService] Case resolved", {
+        caseId,
         resolution,
-        resolvedBy: resolvedById,
-      },
-      published: false,
-    });
+      });
 
-    logger.info("[TrustCaseService] Case resolved", {
-      caseId,
-      resolution,
-    });
-
-    return trustCase;
+      return trustCase;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   /**
    * Close a case (after resolution).
    */
   async closeCase(caseId: string, closedById: string): Promise<ITrustCase> {
-    const trustCase = await TrustCase.findById(caseId);
-    if (!trustCase) throw new Error("Trust case not found");
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (trustCase.status !== "RESOLVED") {
-      throw new Error("Only resolved cases can be closed");
+    try {
+      const trustCase = await TrustCase.findById(caseId).session(session);
+      if (!trustCase) throw new Error("Trust case not found");
+
+      if (trustCase.status !== "RESOLVED") {
+        throw new Error("Only resolved cases can be closed");
+      }
+
+      trustCase.status = "CLOSED";
+
+      trustCase.notes.push({
+        author_id: new Types.ObjectId(closedById),
+        content: "Case closed",
+        created_at: new Date(),
+      } as any);
+
+      await trustCase.save({ session });
+
+      // Write outbox
+      const event = new EventOutbox({
+        aggregate_type: "trust_case",
+        aggregate_id: trustCase._id,
+        event_type: "TRUST_CASE_CLOSED" as EventType,
+        payload: {
+          caseId: trustCase._id.toString(),
+          caseNumber: trustCase.case_number,
+          closedBy: closedById,
+        },
+        published: false,
+      });
+      await event.save({ session });
+
+      await session.commitTransaction();
+      return trustCase;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    trustCase.status = "CLOSED";
-
-    trustCase.notes.push({
-      author_id: new Types.ObjectId(closedById),
-      content: "Case closed",
-      created_at: new Date(),
-    } as any);
-
-    await trustCase.save();
-
-    // Write outbox
-    await EventOutbox.create({
-      aggregate_type: "trust_case",
-      aggregate_id: trustCase._id,
-      event_type: "TRUST_CASE_CLOSED" as EventType,
-      payload: {
-        caseId: trustCase._id.toString(),
-        caseNumber: trustCase.case_number,
-        closedBy: closedById,
-      },
-      published: false,
-    });
-
-    return trustCase;
   }
 
   /**
@@ -360,62 +412,90 @@ export class TrustCaseService {
   async suspendUser(params: SuspendUserParams): Promise<ITrustCase> {
     const { caseId, userId, durationDays, reason, suspendedById } = params;
 
-    const trustCase = await TrustCase.findById(caseId);
-    if (!trustCase) throw new Error("Trust case not found");
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Update user with suspension
-    const user = await User.findById(userId);
-    if (!user) throw new Error("User not found");
-
-    // Set suspension fields on user
-    (user as any).suspended_at = new Date();
-    (user as any).suspension_reason = reason;
-    (user as any).suspended_by = new Types.ObjectId(suspendedById);
-    (user as any).suspension_expires_at = new Date(
-      Date.now() + durationDays * 24 * 60 * 60 * 1000
-    );
-    (user as any).adminOverride = true;
-    await user.save();
-
-    // Record on trust case
-    trustCase.suspension_applied = {
-      user_id: new Types.ObjectId(userId),
-      duration_days: durationDays,
-      reason,
-      applied_at: new Date(),
-    };
-
-    trustCase.notes.push({
-      author_id: new Types.ObjectId(suspendedById),
-      content: `User ${userId} suspended for ${durationDays} days: ${reason}`,
-      created_at: new Date(),
-    } as any);
-
-    await trustCase.save();
-
-    // Notify suspended user
     try {
-      await Notification.create({
+      const trustCase = await TrustCase.findById(caseId).session(session);
+      if (!trustCase) throw new Error("Trust case not found");
+
+      // Update user with suspension
+      const user = await User.findById(userId).session(session);
+      if (!user) throw new Error("User not found");
+
+      // Set suspension fields on user
+      (user as any).suspended_at = new Date();
+      (user as any).suspension_reason = reason;
+      (user as any).suspended_by = new Types.ObjectId(suspendedById);
+      (user as any).suspension_expires_at = new Date(
+        Date.now() + durationDays * 24 * 60 * 60 * 1000
+      );
+      (user as any).adminOverride = true;
+      await user.save({ session });
+
+      // Record on trust case
+      trustCase.suspension_applied = {
         user_id: new Types.ObjectId(userId),
-        type: "account_suspended",
-        title: "Account Suspended",
-        body: `Your account has been suspended for ${durationDays} days. Reason: ${reason}`,
-        data: { caseNumber: trustCase.case_number },
+        duration_days: durationDays,
+        reason,
+        applied_at: new Date(),
+      };
+
+      trustCase.notes.push({
+        author_id: new Types.ObjectId(suspendedById),
+        content: `User ${userId} suspended for ${durationDays} days: ${reason}`,
+        created_at: new Date(),
+      } as any);
+
+      await trustCase.save({ session });
+
+      // Write outbox event for suspension
+      const event = new EventOutbox({
+        aggregate_type: "user",
+        aggregate_id: user._id,
+        event_type: "USER_SUSPENDED" as EventType,
+        payload: {
+          userId,
+          suspendedById,
+          caseId,
+          reason,
+          durationDays,
+        },
+        published: false,
       });
-    } catch (err) {
-      logger.warn("[TrustCaseService] Failed to send suspension notification", {
+      await event.save({ session });
+
+      await session.commitTransaction();
+
+      // Notify suspended user (non-blocking)
+      try {
+        await Notification.create({
+          user_id: new Types.ObjectId(userId),
+          type: "account_suspended",
+          title: "Account Suspended",
+          body: `Your account has been suspended for ${durationDays} days. Reason: ${reason}`,
+          data: { caseNumber: trustCase.case_number },
+        });
+      } catch (err) {
+        logger.warn("[TrustCaseService] Failed to send suspension notification", {
+          userId,
+          err,
+        });
+      }
+
+      logger.info("[TrustCaseService] User suspended", {
+        caseId,
         userId,
-        err,
+        durationDays,
       });
+
+      return trustCase;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    logger.info("[TrustCaseService] User suspended", {
-      caseId,
-      userId,
-      durationDays,
-    });
-
-    return trustCase;
   }
 
   /**

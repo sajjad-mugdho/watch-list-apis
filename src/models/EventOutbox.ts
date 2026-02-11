@@ -10,6 +10,7 @@ export const AGGREGATE_TYPE_VALUES = [
   "reference_check",
   "vouch",
   "trust_case",
+  "user",
 ] as const;
 
 export type AggregateType = (typeof AGGREGATE_TYPE_VALUES)[number];
@@ -50,12 +51,15 @@ export const TRUST_CASE_EVENT_TYPES = [
   "TRUST_CASE_CLOSED",
 ] as const;
 
+export const USER_EVENT_TYPES = ["USER_SUSPENDED"] as const;
+
 export type EventType =
   | (typeof OFFER_EVENT_TYPES)[number]
   | (typeof ORDER_EVENT_TYPES)[number]
   | (typeof REFERENCE_CHECK_EVENT_TYPES)[number]
   | (typeof VOUCH_EVENT_TYPES)[number]
-  | (typeof TRUST_CASE_EVENT_TYPES)[number];
+  | (typeof TRUST_CASE_EVENT_TYPES)[number]
+  | (typeof USER_EVENT_TYPES)[number];
 
 // ----------------------------------------------------------
 // Interface

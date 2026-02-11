@@ -11,7 +11,7 @@
  * - Weight calculated based on voucher reputation
  */
 
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import { Vouch, IVouch, ConnectionType } from "../../models/Vouch";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
 import { Friendship } from "../../models/Friendship";
@@ -136,7 +136,7 @@ export class VouchService {
       voucherId,
     });
 
-    // 1. Check eligibility
+    // 1. Check eligibility (Read-only checks)
     const eligibility = await this.checkEligibility(
       referenceCheckId,
       vouchForUserId,
@@ -158,42 +158,57 @@ export class VouchService {
     // 4. Calculate weight
     const weight = await this.calculateWeight(voucher, connection);
 
-    // 5. Create vouch
-    const vouch = await Vouch.create({
-      reference_check_id: new Types.ObjectId(referenceCheckId),
-      vouched_for_user_id: new Types.ObjectId(vouchForUserId),
-      vouched_by_user_id: new Types.ObjectId(voucherId),
-      comment: comment || undefined,
-      weight,
-      voucher_snapshot: {
-        display_name: (voucher as any).display_name || (voucher as any).username || "User",
-        avatar: (voucher as any).avatar,
-        connection_type: connection.type,
-        reputation_score: (voucher as any).reputation_score,
-      },
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // 6. Write to outbox
-    await EventOutbox.create({
-      aggregate_type: "vouch",
-      aggregate_id: vouch._id,
-      event_type: "VOUCH_ADDED",
-      payload: {
-        vouchId: vouch._id.toString(),
-        referenceCheckId,
-        vouchForUserId,
-        voucherId,
+    try {
+      // 5. Create vouch
+      const vouch = new Vouch({
+        reference_check_id: new Types.ObjectId(referenceCheckId),
+        vouched_for_user_id: new Types.ObjectId(vouchForUserId),
+        vouched_by_user_id: new Types.ObjectId(voucherId),
+        comment: comment || undefined,
         weight,
-      },
-      published: false,
-    });
+        voucher_snapshot: {
+          display_name: (voucher as any).display_name || (voucher as any).username || "User",
+          avatar: (voucher as any).avatar,
+          connection_type: connection.type,
+          reputation_score: (voucher as any).reputation_score,
+        },
+      });
+      await vouch.save({ session });
 
-    logger.info("[VouchService] Vouch created", {
-      vouchId: vouch._id.toString(),
-      weight,
-    });
+      // 6. Write to outbox
+      const event = new EventOutbox({
+        aggregate_type: "vouch",
+        aggregate_id: vouch._id,
+        event_type: "VOUCH_ADDED",
+        payload: {
+          vouchId: vouch._id.toString(),
+          referenceCheckId,
+          vouchForUserId,
+          voucherId,
+          weight,
+          voucherName: (voucher as any).display_name || (voucher as any).username,
+        },
+        published: false,
+      });
+      await event.save({ session });
 
-    return this.toDTO(vouch);
+      await session.commitTransaction();
+
+      logger.info("[VouchService] Vouch created", {
+        vouchId: vouch._id.toString(),
+        weight,
+      });
+
+      return this.toDTO(vouch);
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
   }
 
   /**
