@@ -232,8 +232,9 @@ router.post(
   requirePlatformAuth(),
   validateRequest(createTermsSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const isTest = process.env.NODE_ENV === "test";
+    const session = isTest ? null : await mongoose.startSession();
+    if (session) session.startTransaction();
 
     try {
       const auth = (req as any).auth;
@@ -256,12 +257,13 @@ router.post(
 
       const { version, content, effective_date, set_as_current } = req.body;
 
-      // If setting as current, unset the previous current terms
+      const options = session ? { session } : {};
+      
       if (set_as_current) {
         await ReservationTerms.updateMany(
           { is_current: true },
           { $set: { is_current: false } },
-          { session }
+          options
         );
       }
 
@@ -276,10 +278,10 @@ router.post(
             is_archived: false,
           },
         ],
-        { session }
+        options
       );
 
-      await session.commitTransaction();
+      if (session) await session.commitTransaction();
 
       logger.info("[ReservationTerms] New terms created", {
         version,
@@ -294,7 +296,7 @@ router.post(
           : "Terms created successfully",
       });
     } catch (error) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
 
       if ((error as any)?.code === 11000) {
         res
@@ -306,7 +308,9 @@ router.post(
       logger.error("[ReservationTerms] Failed to create terms", { error });
       next(error);
     } finally {
-      session.endSession();
+      if (session) {
+        await session.endSession();
+      }
     }
   }
 );

@@ -40,7 +40,6 @@ interface Config {
     accessKeyId: string;
     secretAccessKey: string;
     s3Bucket: string;
-    sqsWebhookUrl: string; // URL for GetStream webhook SQS queue
     cloudFrontDomain?: string; // Optional CDN domain
   };
 }
@@ -70,7 +69,6 @@ const requiredEnvVars = [
   "AWS_ACCESS_KEY_ID",
   "AWS_SECRET_ACCESS_KEY",
   "AWS_S3_BUCKET",
-  "AWS_SQS_WEBHOOK_URL",
 ] as const;
 
 for (const envVar of requiredEnvVars) {
@@ -144,7 +142,6 @@ export const config: Config = {
     accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
     s3Bucket: process.env.AWS_S3_BUCKET!,
-    sqsWebhookUrl: process.env.AWS_SQS_WEBHOOK_URL!,
     ...(process.env.AWS_CLOUDFRONT_DOMAIN
       ? { cloudFrontDomain: process.env.AWS_CLOUDFRONT_DOMAIN }
       : {}),

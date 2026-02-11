@@ -100,14 +100,16 @@ ReservationTermsSchema.index(
 ReservationTermsSchema.index({ effective_date: -1 });
 
 // ----------------------------------------------------------
-// Pre-save Hook: Compute Content Hash
+// Pre-validate Hook: Compute Content Hash
 // ----------------------------------------------------------
-ReservationTermsSchema.pre("save", function (next) {
+ReservationTermsSchema.pre("validate", function (next) {
   if (this.isNew || this.isModified("content")) {
-    this.content_hash = crypto
-      .createHash("sha256")
-      .update(this.content)
-      .digest("hex");
+    if (this.content) {
+      this.content_hash = crypto
+        .createHash("sha256")
+        .update(this.content)
+        .digest("hex");
+    }
   }
   next();
 });

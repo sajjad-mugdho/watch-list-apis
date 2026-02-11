@@ -174,8 +174,9 @@ Plus **1 SQS consumer**:
 
 ```
 ┌───────────────────────────────────────────────────────────┐
-│ KEEP SQS FOR:                                             │
-│   ✅ GetStream webhook ingestion (SqsWebhookConsumer)     │
+│ ARCHITECTURE DECISION (User Override):                    │
+│   ❌ GetStream webhook ingestion (SqsWebhookConsumer)     │
+│      REMOVED. Replaced with HTTP Webhook -> Bull Queue.   │
 │                                                           │
 │ DO NOT ADD SQS FOR:                                       │
 │   ❌ Outbox publisher — use Bull repeatable job            │
@@ -183,10 +184,9 @@ Plus **1 SQS consumer**:
 │   ❌ Offer expiry — already on Bull cron                   │
 │   ❌ Any new internal event processing                     │
 │                                                           │
-│ FUTURE CONSIDERATION:                                     │
-│   🔄 If you split into microservices later, consider      │
-│      SQS/SNS for cross-service messaging.                 │
-│      For monolith → Bull + Redis is optimal.              │
+│ CURRENT STATE:                                            │
+│   All background processing now uses Bull + Redis.        │
+│   SQS dependency removed from application code.           │
 └───────────────────────────────────────────────────────────┘
 ```
 

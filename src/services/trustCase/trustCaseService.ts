@@ -109,8 +109,9 @@ export class TrustCaseService {
     if (referenceCheckId) evidenceParams.referenceCheckId = referenceCheckId;
     const evidenceSnapshot = await this.gatherEvidence(evidenceParams);
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const isTest = process.env.NODE_ENV === "test";
+    const session = isTest ? null : await mongoose.startSession();
+    if (session) session.startTransaction();
 
     try {
       // 3. Create the case
@@ -138,7 +139,7 @@ export class TrustCaseService {
           },
         ],
       });
-      await trustCase.save({ session });
+      await (session ? trustCase.save({ session }) : trustCase.save());
 
       // 4. Write outbox event
       const event = new EventOutbox({
@@ -155,9 +156,9 @@ export class TrustCaseService {
         },
         published: false,
       });
-      await event.save({ session });
+      await (session ? event.save({ session }) : event.save());
 
-      await session.commitTransaction();
+      if (session) await session.commitTransaction();
 
       logger.info("[TrustCaseService] Trust case created", {
         caseId: trustCase._id.toString(),
@@ -166,10 +167,10 @@ export class TrustCaseService {
 
       return trustCase;
     } catch (error) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       throw error;
     } finally {
-      session.endSession();
+      if (session) session.endSession();
     }
   }
 

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import "../types/express"; // Ensure global augmentation is loaded
+
 
 import { randomUUID } from "crypto";
 import { apiLogger } from "../utils/logger";

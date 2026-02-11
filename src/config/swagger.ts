@@ -1,4 +1,4 @@
-import swaggerJSDos from "swagger-jsdoc";
+import swaggerJSDoc from "swagger-jsdoc";
 
 const options = {
   definition: {
@@ -2490,7 +2490,7 @@ Use this to test API endpoints without real authentication.
   apis: ["./src/routes/**/*.ts", "./src/handlers/**/*.ts"], // This will be ignored since we're defining everything inline
 };
 
-export const swaggerSpec = swaggerJSDos(options) as any;
+export const swaggerSpec = swaggerJSDoc(options) as any;
 
 // Manually add paths since we're not using file annotations
 swaggerSpec.paths = {
@@ -2529,6 +2529,40 @@ swaggerSpec.paths = {
         },
       },
     },
+  },
+  // --- Webhooks ---
+  "/api/v1/webhooks/getstream": {
+    post: {
+      tags: ["Webhooks"],
+      summary: "GetStream webhook handler",
+      description: "Receives events from GetStream Cloud for tracking and business logic. Uses async Bull queue processing.",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: { type: "object" }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: "Webhook received",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  jobId: { type: "string" }
+                }
+              }
+            }
+          }
+        },
+        401: { description: "Invalid signature" }
+      }
+    }
   },
   // --- Reservation Terms ---
   "/api/v1/reservation-terms/current": {

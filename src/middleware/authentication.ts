@@ -106,7 +106,8 @@ export const requireAdmin = async (
       return;
     }
 
-    const user = await User.findOne({ external_id: auth.userId });
+    const user = await User.findOne({ external_id: auth.userId }).select("+isAdmin +external_id");
+
     if (!user || !user.isAdmin) {
       logger.warn(`Unauthorized admin access attempt by user ${auth.userId}`);
       res.status(403).json({
