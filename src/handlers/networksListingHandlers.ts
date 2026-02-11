@@ -187,16 +187,10 @@ export const networks_listing_create = async (
 
     res.status(201).json(response);
   } catch (err) {
-    console.error(err);
-    if (
-      err instanceof NotFoundError ||
-      err instanceof MissingUserContextError
-    ) {
-      next(err);
-    } else {
-      console.error(err);
-      next(new DatabaseError("Failed to create listing", err));
+    if (err instanceof ValidationError || err instanceof AuthorizationError || err instanceof NotFoundError) {
+      return next(err);
     }
+    next(new DatabaseError("Failed to create listing", err));
   }
 };
 

@@ -3078,6 +3078,7 @@ export const resetListing = async (
       },
     });
   } catch (err) {
+    console.log("DEBUG: reserveListing error:", err);
     next(err);
   }
 };

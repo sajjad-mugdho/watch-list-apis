@@ -70,5 +70,11 @@ router.use("/subscription", userSubscriptionRoutes);
 // user/tokens/feed and user/tokens/chat for GetStream tokens
 router.use("/tokens", userTokenRoutes);
 
+// user/profile routes for bio, social links, wishlist
+router.use("/", userProfileRoutes);
+
+// user/friends routes for friendship management
+router.use("/", userFriendshipRoutes);
+
 export { router as userSubRoutes };
 

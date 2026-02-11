@@ -44,7 +44,7 @@ export const UserClaimsSchema = z
       .min(2, "location_region must be 2+ chars")
       .optional(),
     onboarding_state: z
-      .enum(["PROVISIONING", "UPDATE_REQUESTED", "REJECTED", "APPROVED"])
+      .enum(["PENDING", "PROVISIONING", "UPDATE_REQUESTED", "REJECTED", "APPROVED"])
       .optional(),
   })
   .passthrough();
@@ -72,14 +72,16 @@ export const ValidatedUserClaimsSchema = z
       .nullable(),
     networks_accessed: z.boolean().nullable(),
     // Can be undefined in DB
-    display_avatar: z.string().optional(),
+    display_avatar: z.string().nullable().optional(),
     location_country: z
       .string()
       .min(2, "location_country must be 2+ chars")
+      .nullable()
       .optional(),
     location_region: z
       .string()
       .min(2, "location_region must be 2+ chars")
+      .nullable()
       .optional(),
     onboarding_state: z
       .enum([
@@ -102,22 +104,13 @@ export const RequestUserFromAuthSchema = z
     userId: z.string(),
     claims: ValidatedUserClaimsSchema,
   })
-  .transform<Express.RequestUser>(({ userId, claims }) => ({
-    userId,
-    dialist_id: claims.dialist_id,
-    display_name: claims.display_name,
-    display_avatar: claims.display_avatar,
-
-    location_country: claims.location_country,
-    location_region: claims.location_region,
-
-    onboarding_state: claims.onboarding_state,
-    isMerchant: claims.isMerchant,
-    onboarding_status: claims.onboarding_status,
-
-    networks_application_id: claims.networks_application_id,
-    networks_accessed: claims.networks_accessed,
-  }));
+  .transform<import("../types/auth").RequestUser>(
+    ({ userId, claims }) =>
+      ({
+        ...claims,
+        userId,
+      } as import("../types/auth").RequestUser)
+  );
 
 // ----------------------------------------------------------
 // Watch Schemas
@@ -1139,8 +1132,7 @@ export const getUserTicketsSchema = z.object({
 // ----------------------------------------------------------
 // Type Exports
 // ----------------------------------------------------------
-export type UserClaims = z.infer<typeof UserClaimsSchema>;
-export type ValidatedUserClaims = z.infer<typeof ValidatedUserClaimsSchema>;
+export type { UserClaims, ValidatedUserClaims } from "../types/auth";
 
 // Onboarding Types
 export type PatchAcksStepInput = z.infer<typeof patchAcksStepSchema>;

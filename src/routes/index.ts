@@ -2,8 +2,8 @@ import { Router, Request, Response } from "express";
 import { networksRoutes } from "./networksRoutes";
 import { marketplaceRoutes } from "./marketplaceRoutes";
 
-import { healthCheck } from "../middleware/operational";
-import { requirePlatformAuth } from "../middleware/authentication";
+import { healthCheck, readinessCheck } from "../middleware/operational";
+import { requirePlatformAuth, requireAdmin } from "../middleware/authentication";
 import { networksOnly } from "../middleware/deprecation";
 import { watchesRoutes } from "./watchesRoutes";
 import { onboardingRoutes } from "./onboardingRoutes";
@@ -17,9 +17,13 @@ import { subscriptionRoutes } from "./subscriptionRoutes";
 import { getstreamWebhookRoutes } from "./getstreamWebhookRoutes";
 import { userSubRoutes } from "./user"; // Consolidated user routes
 import { reviewRoutes } from "./reviewRoutes";
+import { conversationRoutes } from "./conversationRoutes";
+
+import { trustCaseRoutes } from "./admin/trustCaseRoutes";
 import * as orderHandlers from "../handlers/orderHandlers";
 import { validateRequest } from "../middleware/validation";
 import { reserveListingSchema, resetListingSchema } from "../validation/schemas";
+import { reservationTermsRoutes } from "./reservationTermsRoutes";
 
 const router: Router = Router();
 
@@ -28,6 +32,9 @@ router.get("/", (_req: Request, res: Response) => {
 });
 // Health check endpoint with system metrics
 router.get("/health", healthCheck);
+
+// Readiness check endpoint for Kubernetes probes
+router.get("/ready", readinessCheck);
 
 // ⚠️ TEMPORARY DEV ENDPOINT - No auth required (must be before authenticated routes)
 // Remove in production!
@@ -83,5 +90,14 @@ router.use("/v1/marketplace", requirePlatformAuth(), marketplaceRoutes);
 
 // Feeds - Networks only (no follow-based timeline for Marketplace)
 router.use("/v1/feeds", requirePlatformAuth(), networksOnly, feedRoutes);
+
+// Conversations - enriched channel data with business context
+router.use("/v1/conversations", requirePlatformAuth(), conversationRoutes);
+
+// Reservation Terms - versioned legal terms
+router.use("/v1/reservation-terms", reservationTermsRoutes);
+
+// Admin routes - Trust & Safety
+router.use("/v1/admin/trust-cases", requirePlatformAuth(), requireAdmin(), trustCaseRoutes);
 
 export { router as apiRoutes };

@@ -39,6 +39,16 @@
             "date": 1769605949422,
             "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/combined-2026-01-28.log",
             "hash": "359a9d05ef889dcb7349e0f9be730dd1f434a86d2f802407601923b36400214d"
+        },
+        {
+            "date": 1769729461373,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/combined-2026-01-30.log",
+            "hash": "16d2963c1cb4165a91e959d7f796e17694309ee501e385e108367baa8a355a21"
+        },
+        {
+            "date": 1769797496563,
+            "name": "/home/sajjad-mugdho/Downloads/dialist-api-main/logs/combined-2026-01-31.log",
+            "hash": "ca7d23a818efc84bb49570ac1dbc0dfdb2a73b819e4438c47a093713ebf945d4"
         }
     ],
     "hashType": "sha256"

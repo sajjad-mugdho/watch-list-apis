@@ -31,33 +31,17 @@ async function processExpiredOffers(): Promise<void> {
   try {
     logger.info('Starting offer expiry job');
 
-    // Process marketplace offers
-    const marketplaceExpired = await offerService.getExpiredOffers('marketplace');
-    let marketplaceCount = 0;
+    // Process all expired offers (no longer separated by platform)
+    const expiredOffers = await offerService.getExpiredOffers();
+    let expiredCount = 0;
     
-    for (const channel of marketplaceExpired as any[]) {
+    for (const offer of expiredOffers as any[]) {
       try {
-        await offerService.expireOffer(channel._id.toString(), 'marketplace');
-        marketplaceCount++;
+        await offerService.expireOffer(offer._id.toString());
+        expiredCount++;
       } catch (error) {
-        logger.error('Failed to expire marketplace offer', {
-          channelId: channel._id,
-          error: error instanceof Error ? error.message : error,
-        });
-      }
-    }
-
-    // Process networks offers
-    const networksExpired = await offerService.getExpiredOffers('networks');
-    let networksCount = 0;
-
-    for (const channel of networksExpired as any[]) {
-      try {
-        await offerService.expireOffer(channel._id.toString(), 'networks');
-        networksCount++;
-      } catch (error) {
-        logger.error('Failed to expire networks offer', {
-          channelId: channel._id,
+        logger.error('Failed to expire offer', {
+          offerId: offer._id,
           error: error instanceof Error ? error.message : error,
         });
       }
@@ -65,8 +49,7 @@ async function processExpiredOffers(): Promise<void> {
 
     const duration = Date.now() - startTime;
     logger.info('Offer expiry job completed', {
-      marketplaceExpired: marketplaceCount,
-      networksExpired: networksCount,
+      expiredCount,
       durationMs: duration,
     });
   } catch (error) {

@@ -161,10 +161,8 @@ router.post(
       }
 
       const message = await messageService.sendMessage({
-        channelId: channel._id.toString(),
-        getstreamChannelId: channelId,
+        channelId, // This is the GetStream ID from req.params
         userId: user._id.toString(),
-        clerkId: auth.userId,
         platform: "networks",
         text,
         type,

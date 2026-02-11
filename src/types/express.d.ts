@@ -1,15 +1,12 @@
 // src/types/express.d.ts
 import {AuthObject} from "@clerk/express";
-import {UserClaims, ValidatedUserClaims} from "../validation/schemas";
+import {RequestUser as CoreRequestUser} from "./auth";
 
 export {};
 
 declare global {
     namespace Express {
-        /** User object we attach to req (from Clerk claims) */
-        interface RequestUser extends ValidatedUserClaims{
-            userId: string;
-        }
+        interface RequestUser extends CoreRequestUser {}
 
         interface RequestMetrics {
             startTime: number;
@@ -18,8 +15,12 @@ declare global {
 
         interface Request {
             metrics?: RequestMetrics;
-            user?: RequestUser; // now available on req.user everywhere
+            user?: any; // Supports both CoreRequestUser (from Clerk) and IUser (from DB)
             auth?: AuthObject | undefined;
+            dialistUserId?: string;
         }
     }
 }
+
+
+

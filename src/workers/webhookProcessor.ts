@@ -10,7 +10,6 @@ import { WebhookJobData, webhookQueue } from "../queues/webhookQueue";
 import { WebhookEvent } from "../models/WebhookEvent";
 import { FinixWebhookEvent } from "../models/FinixWebhookEvent";
 import { GetstreamWebhookEvent } from "../models/GetstreamWebhookEvent";
-import { ChatMessage } from "../models/ChatMessage";
 import logger from "../utils/logger";
 import { User } from "../models/User";
 import Order from "../models/Order";
@@ -1080,78 +1079,14 @@ async function handleGetstreamMessageNew(
   event: any,
   eventId: string
 ): Promise<string> {
-  const { message, channel_id, channel_type } = event;
+  const { message, channel_id } = event;
 
   try {
     // Find sender by GetStream user ID (which is our MongoDB user._id)
     const sender = await User.findById(message.user?.id);
-    if (!sender) {
-      logger.warn("Message from unknown user", {
-        userId: message.user?.id,
-        eventId,
-      });
-      // Don't fail - still store the message
-    }
-
-    // Extract marketplace context from channel metadata
     const listingId = event.channel?.listing_id || null;
-    const offerId = event.channel?.offer_id || null;
-    const orderId = event.channel?.order_id || null;
 
-    // Determine message type from custom data
-    let messageType: "regular" | "system" | "offer" | "order" | "inquiry" =
-      "regular";
-    if (message.type === "system") {
-      messageType = "system";
-    } else if (message.custom?.type === "offer") {
-      messageType = "offer";
-    } else if (message.custom?.type === "order") {
-      messageType = "order";
-    } else if (message.custom?.type === "inquiry") {
-      messageType = "inquiry";
-    }
-
-    // Check if message already exists (idempotency)
-    const existingMessage = await ChatMessage.findOne({
-      stream_message_id: message.id,
-    });
-
-    if (existingMessage) {
-      logger.info("Message already stored, skipping", {
-        streamMessageId: message.id,
-        eventId,
-      });
-      return `Message ${message.id} already exists`;
-    }
-
-    // Store message in MongoDB
-    const chatMessage = await ChatMessage.create({
-      stream_message_id: message.id,
-      stream_channel_id: channel_id,
-      stream_channel_type: channel_type,
-      text: message.text || "",
-      sender_id: sender?._id,
-      sender_clerk_id: message.user?.id || "",
-      type: messageType,
-      attachments: message.attachments || [],
-      mentioned_users: message.mentioned_users || [],
-      parent_id: message.parent_id || null,
-      listing_id: listingId,
-      offer_id: offerId,
-      order_id: orderId,
-      custom_data: message.custom || {},
-      status: "delivered",
-      delivered_at: new Date(),
-      source: "webhook",
-    });
-
-    logger.info("Message stored in MongoDB via webhook", {
-      messageId: chatMessage._id,
-      streamMessageId: message.id,
-      channelId: channel_id,
-      eventId,
-    });
-
+    // ✅ UPDATE STATS (Business Logic remains)
     // Track activity for analytics
     if (sender) {
       await User.findByIdAndUpdate(sender._id, {
@@ -1168,7 +1103,13 @@ async function handleGetstreamMessageNew(
       });
     }
 
-    return `Stored message ${message.id} for channel ${channel_id}`;
+    logger.debug("GetStream message.new processed (stats updated, message storage skipped)", {
+      streamMessageId: message.id,
+      channelId: channel_id,
+      eventId,
+    });
+
+    return `Processed stats for message ${message.id} for channel ${channel_id}`;
   } catch (error) {
     logger.error("Failed to handle message.new", {
       error: error instanceof Error ? error.message : String(error),
@@ -1188,38 +1129,13 @@ async function handleGetstreamMessageUpdated(
 ): Promise<string> {
   const { message } = event;
 
-  try {
-    const result = await ChatMessage.findOneAndUpdate(
-      { stream_message_id: message.id },
-      {
-        text: message.text,
-        attachments: message.attachments || [],
-        edited_at: new Date(),
-        updated_at_stream: new Date(message.updated_at),
-      }
-    );
+  // Skipped: MongoDB no longer stores messages
+  logger.debug("GetStream message.updated received (skipped MongoDB sync)", {
+    streamMessageId: message.id,
+    eventId,
+  });
 
-    if (result) {
-      logger.info("Message updated in MongoDB", {
-        messageId: message.id,
-        eventId,
-      });
-      return `Updated message ${message.id}`;
-    } else {
-      logger.warn("Message not found for update", {
-        messageId: message.id,
-        eventId,
-      });
-      return `Message ${message.id} not found for update`;
-    }
-  } catch (error) {
-    logger.error("Failed to handle message.updated", {
-      error: error instanceof Error ? error.message : String(error),
-      messageId: message?.id,
-      eventId,
-    });
-    throw error;
-  }
+  return `Skipped MongoDB update for message ${message.id}`;
 }
 
 /**
@@ -1231,37 +1147,13 @@ async function handleGetstreamMessageDeleted(
 ): Promise<string> {
   const { message } = event;
 
-  try {
-    const result = await ChatMessage.findOneAndUpdate(
-      { stream_message_id: message.id },
-      {
-        is_deleted: true,
-        deleted_at: new Date(),
-        status: "deleted",
-      }
-    );
+  // Skipped: MongoDB no longer stores messages
+  logger.debug("GetStream message.deleted received (skipped MongoDB sync)", {
+    streamMessageId: message.id,
+    eventId,
+  });
 
-    if (result) {
-      logger.info("Message marked as deleted in MongoDB", {
-        messageId: message.id,
-        eventId,
-      });
-      return `Deleted message ${message.id}`;
-    } else {
-      logger.warn("Message not found for deletion", {
-        messageId: message.id,
-        eventId,
-      });
-      return `Message ${message.id} not found for deletion`;
-    }
-  } catch (error) {
-    logger.error("Failed to handle message.deleted", {
-      error: error instanceof Error ? error.message : String(error),
-      messageId: message?.id,
-      eventId,
-    });
-    throw error;
-  }
+  return `Skipped MongoDB deletion for message ${message.id}`;
 }
 
 /**
@@ -1316,44 +1208,14 @@ async function handleGetstreamReactionEvent(
 ): Promise<string> {
   const { reaction, message } = event;
 
-  logger.info(`Reaction ${action}`, {
+  // Skipped: MongoDB no longer stores messages or reactions
+  logger.debug(`GetStream reaction.${action} received (skipped MongoDB sync)`, {
     reactionType: reaction?.type,
     messageId: message?.id,
-    userId: reaction?.user?.id,
     eventId,
   });
 
-  // Update reaction in ChatMessage if needed
-  if (message?.id && reaction) {
-    if (action === "new") {
-      await ChatMessage.findOneAndUpdate(
-        { stream_message_id: message.id },
-        {
-          $push: {
-            reactions: {
-              user_id: reaction.user?.id,
-              type: reaction.type,
-              created_at: new Date(),
-            },
-          },
-        }
-      );
-    } else if (action === "deleted") {
-      await ChatMessage.findOneAndUpdate(
-        { stream_message_id: message.id },
-        {
-          $pull: {
-            reactions: {
-              user_id: reaction.user?.id,
-              type: reaction.type,
-            },
-          },
-        }
-      );
-    }
-  }
-
-  return `Reaction ${action} for message ${message?.id}`;
+  return `Skipped MongoDB sync for reaction ${action} on message ${message?.id}`;
 }
 
 /**

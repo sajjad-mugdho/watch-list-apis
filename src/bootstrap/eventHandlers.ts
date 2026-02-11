@@ -10,6 +10,25 @@ import { notificationService } from '../services';
 import { isoMatchingService } from '../services/ISOMatchingService';
 import logger from '../utils/logger';
 
+let outboxStarted = false;
+
+/**
+ * Start the outbox publisher once.
+ * Short-circuits if already started.
+ */
+export async function startOutboxPublisherOnce(): Promise<void> {
+  if (outboxStarted) return;
+  
+  try {
+    const { startOutboxPublisher } = await import('../workers/outboxPublisherWorker');
+    startOutboxPublisher();
+    outboxStarted = true;
+    logger.info('Outbox publisher worker started.');
+  } catch (err) {
+    logger.warn('Failed to start outbox publisher worker', { err });
+  }
+}
+
 export function registerEventHandlers(): void {
   logger.info('Registering system event handlers...');
   
@@ -257,6 +276,74 @@ export function registerEventHandlers(): void {
       sendPush: true,
     });
   });
+
+  // ===========================================================
+  // Vouch Events
+  // ===========================================================
+
+  /**
+   * Vouch Added — Notify the user who was vouched for
+   */
+  events.on('vouch:added', async ({ vouchedUserId, voucherName, referenceCheckId }) => {
+    logger.debug('Handling vouch:added event', { vouchedUserId, referenceCheckId });
+    
+    await notificationService.create({
+      userId: vouchedUserId,
+      type: 'vouch_received',
+      title: 'New Vouch Received!',
+      body: voucherName
+        ? `${voucherName} vouched for you.`
+        : 'Someone vouched for you.',
+      data: { referenceCheckId },
+      sendPush: true,
+    });
+  });
+
+  // ===========================================================
+  // Trust Case Events
+  // ===========================================================
+
+  /**
+   * Trust Case Created — Notify admin team (placeholder: logs for now)
+   */
+  events.on('trustCase:created', async ({ caseId, caseNumber, reportedUserId, category, priority }) => {
+    logger.info('[TrustCase] Case created', { caseId, caseNumber, reportedUserId, category, priority });
+    // In production, notify admin Slack channel or admin dashboard via push
+  });
+
+  /**
+   * Trust Case Escalated — Notify the escalation target admin
+   */
+  events.on('trustCase:escalated', async ({ caseId, caseNumber, escalatedTo, reason }) => {
+    logger.info('[TrustCase] Case escalated', { caseId, caseNumber, escalatedTo });
+    
+    await notificationService.create({
+      userId: escalatedTo,
+      type: 'trust_case_escalated',
+      title: `Escalated Case: ${caseNumber}`,
+      body: reason,
+      data: { caseId },
+      sendPush: true,
+    });
+  });
+
+  /**
+   * User Suspended — Notify the suspended user
+   */
+  events.on('user:suspended', async ({ userId, reason, durationDays }) => {
+    logger.warn('[TrustCase] User suspended', { userId, durationDays });
+    
+    await notificationService.create({
+      userId,
+      type: 'account_suspended',
+      title: 'Account Suspended',
+      body: `Your account has been suspended for ${durationDays} days. Reason: ${reason}`,
+      sendPush: true,
+    });
+  });
+
+  // No longer started via IIFE to prevent multiple starts
+  // Call startOutboxPublisherOnce from app bootstrap instead
 
   logger.info('Event handlers registered successfully.');
 }

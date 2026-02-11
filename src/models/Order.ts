@@ -27,11 +27,33 @@ export interface IOrder extends Document {
     images?: string[];
     thumbnail?: string | null;
   };
-  from_offer_id: Types.ObjectId | null;
+  // Enhanced offer/terms tracking
+  offer_id?: Types.ObjectId | null;
+  offer_revision_id?: Types.ObjectId | null;
+  reservation_terms_id?: Types.ObjectId | null;
+  from_offer_id: Types.ObjectId | null; // Legacy field - use offer_id instead
+  
+  // Seller snapshot for complete order record
+  seller_snapshot?: {
+    _id: Types.ObjectId;
+    display_name: string;
+    email: string;
+    avatar?: string;
+    location?: {
+      country?: string;
+      region?: string;
+      city?: string;
+    };
+    merchant_id?: string;
+  };
+  
   buyer_id: Types.ObjectId;
   seller_id: Types.ObjectId;
   amount: number;
   currency: string;
+  
+  // Optimistic concurrency
+  version: number;
 
   status: OrderStatus;
 
@@ -118,11 +140,46 @@ const OrderSchema = new Schema<IOrder>(
       index: true,
     },
     listing_snapshot: { type: ListingSnapshotSchema, required: true },
+    
+    // Enhanced offer/terms tracking
+    offer_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Offer",
+      index: true,
+    },
+    offer_revision_id: {
+      type: Schema.Types.ObjectId,
+      ref: "OfferRevision",
+    },
+    reservation_terms_id: {
+      type: Schema.Types.ObjectId,
+      ref: "ReservationTerms",
+    },
     from_offer_id: {
       type: Schema.Types.ObjectId,
-      ref: "NetworkListingChannel", // TODO: Make this dynamic with refPath if needed
+      ref: "NetworkListingChannel", // Legacy field - use offer_id instead
       required: false,
     },
+    
+    // Seller snapshot
+    seller_snapshot: {
+      type: new Schema(
+        {
+          _id: { type: Schema.Types.ObjectId, required: true },
+          display_name: { type: String, required: true },
+          email: { type: String, required: true },
+          avatar: { type: String },
+          location: {
+            country: { type: String },
+            region: { type: String },
+            city: { type: String },
+          },
+          merchant_id: { type: String },
+        },
+        { _id: false }
+      ),
+    },
+    
     buyer_id: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -222,9 +279,20 @@ const OrderSchema = new Schema<IOrder>(
     },
 
     metadata: { type: Schema.Types.Mixed, default: {} },
+    
+    // Optimistic concurrency
+    version: { type: Number, default: 1 },
   },
   { timestamps: true }
 );
+
+// Pre-save hook for optimistic concurrency
+OrderSchema.pre("save", function (next) {
+  if (!this.isNew && this.isModified()) {
+    this.version = ((this as any).version || 1) + 1;
+  }
+  next();
+});
 
 OrderSchema.index({ buyer_id: 1, status: 1 });
 OrderSchema.index({ seller_id: 1, status: 1 });

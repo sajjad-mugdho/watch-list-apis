@@ -3,537 +3,797 @@
  * 
  * Business logic for offer lifecycle management.
  * 
- * Key rules ():
- * - One active offer per buyer per channel
- * - Counter-offer invalidates previous offer
- * - Offers expire after 48 hours automatically
- * - Cannot offer on reserved listings
- * - Can inquire on reserved listings
+ * Key features:
+ * - Uses first-class Offer and OfferRevision models
+ * - Atomic transactions for state changes
+ * - Event-driven side-effects via EventOutbox
+ * - Chat integration via chatService
+ * - Listing reservation on acceptance
  */
 
-import { Types } from 'mongoose';
+import mongoose, { Types } from "mongoose";
 import { 
-  channelRepository, 
   Platform,
-  Channel 
-} from '../../repositories';
-import { MarketplaceListing, NetworkListing } from '../../models/Listings';
-import { chatService } from '../ChatService';
-import { events } from '../../utils/events';
-import logger from '../../utils/logger';
-import { Order } from '../../models/Order';
+  channelRepository,
+} from "../../repositories";
+import { 
+  MarketplaceListing, 
+  NetworkListing 
+} from "../../models/Listings";
+import { NetworkListingChannel } from "../../models/ListingChannel";
+import { MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
+import { Order } from "../../models/Order";
+import { Offer, IOffer } from "../../models/Offer";
+import { OfferRevision, IOfferRevision } from "../../models/OfferRevision";
+import { ReservationTerms } from "../../models/ReservationTerms";
+import { EventOutbox, EventType } from "../../models/EventOutbox";
+import { chatService } from "../ChatService";
+import logger from "../../utils/logger";
 
-// Offer expiry duration (48 hours)
-const OFFER_EXPIRY_HOURS = 48;
+// ----------------------------------------------------------
+// Types
+// ----------------------------------------------------------
 
 export interface SendOfferParams {
   channelId: string;
   listingId: string;
   senderId: string;
+  receiverId: string;
   amount: number;
-  message?: string;
+  currency?: string;
+  note?: string;
   platform: Platform;
+  expiresInHours?: number;
+  getstreamChannelId?: string;
+}
+
+export interface SendOfferResponse {
+  offer: IOffer;
+  revision: IOfferRevision;
 }
 
 export interface CounterOfferParams {
-  channelId: string;
-  senderId: string;
+  offerId: string;
+  counterById: string;
   amount: number;
-  message?: string;
-  platform: Platform;
+  currency?: string;
+  note?: string;
+  expiresInHours?: number;
 }
 
-export interface OfferResponse {
-  id: string;
-  senderId: string;
+export interface AcceptOfferResponse {
+  offer: IOffer;
+  revision: IOfferRevision;
+  channelId: string;
   amount: number;
-  status: string;
-  type: 'initial' | 'counter';
-  expiresAt: Date;
-  createdAt: Date;
-  message?: string;
+  orderId: string;
 }
+
+// ----------------------------------------------------------
+// OfferService Implementation
+// ----------------------------------------------------------
 
 export class OfferService {
+  private static readonly DEFAULT_OFFER_EXPIRY_HOURS = 48;
+
   /**
-   * Send a new offer
-   * 
-   * Business Rules:
-   * - Listing must be active and allow offers
-   * - Cannot offer on own listing
-   * - Offer must be positive
-   * - Cannot have multiple active offers in same channel
-   * - Offer expires after 48 hours
+   * Send an initial offer on a listing channel.
+   * Creates Offer + first OfferRevision + EventOutbox entry in a transaction.
    */
-  async sendOffer(params: SendOfferParams): Promise<OfferResponse> {
-    const { channelId, listingId, senderId, amount, message, platform } = params;
-
-    logger.info('Sending offer', { channelId, listingId, senderId, amount });
-
-    // 1. Validate listing eligibility
-    const ListingModel = platform === 'marketplace' ? MarketplaceListing : NetworkListing;
-    const listing = await (ListingModel as any).findById(listingId);
-    
-    if (!listing) throw new Error('Listing not found');
-    if (listing.status !== 'active') throw new Error('Listing is not active');
-    if (!listing.allow_offers) throw new Error('Offers not allowed on this listing');
-    if (listing.dialist_id.toString() === senderId) throw new Error('Cannot make offer on own listing');
-    if (amount <= 0) throw new Error('Offer amount must be positive');
-    if (listing.price && amount >= listing.price) {
-      throw new Error('Offer must be below asking price');
-    }
-
-    // 2. Get channel and verify membership
-    let channel = await channelRepository.findById(channelId, platform);
-    if (!channel) {
-      throw new Error('Channel not found');
-    }
-
-    const isMember = 
-      channel.buyer_id.toString() === senderId ||
-      channel.seller_id.toString() === senderId;
-    
-    if (!isMember) {
-      throw new Error('Not a member of this channel');
-    }
-
-    // 3. Check for existing active offer
-    if (channel.last_offer && channel.last_offer.status === 'sent') {
-      const isExpired = channel.last_offer.expiresAt && 
-        new Date(channel.last_offer.expiresAt) <= new Date();
-      
-      if (!isExpired) {
-        throw new Error('An active offer already exists. Accept, counter, or wait for expiry.');
-      }
-    }
-
-    // 4. Create offer
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + OFFER_EXPIRY_HOURS);
-
-    const offer: any = {
-      _id: new Types.ObjectId(),
-      sender_id: new Types.ObjectId(senderId),
-      amount,
-      message: message || null,
-      offer_type: 'initial',
-      status: 'sent',
-      expiresAt,
-      createdAt: new Date(),
-    };
-
-    // 5. Update channel with offer
-    await channelRepository.updateLastOffer(channelId, offer, platform);
-
-    // 6. Send system message via GetStream
-    if (channel.getstream_channel_id) {
-      try {
-        await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
-          {
-            type: 'offer',
-            amount,
-            offer_id: offer._id.toString(),
-            message: message || `Offer of $${amount}`,
-          },
-          senderId
-        );
-      } catch (error) {
-        logger.warn('Failed to send system message', { channelId, error });
-      }
-    }
-
-    // 7. Determine receiver
-    const receiverId = channel.buyer_id.toString() === senderId
-      ? channel.seller_id.toString()
-      : channel.buyer_id.toString();
-
-    // 8. Emit event (side effects handled by listeners)
-    events.emit('offer:sent', {
-      offerId: offer._id.toString(),
-      channelId: channel.getstream_channel_id || channelId,
+  async sendOffer(params: SendOfferParams): Promise<SendOfferResponse> {
+    const {
+      channelId,
+      listingId,
       senderId,
       receiverId,
       amount,
-      listingId: listing._id.toString(),
+      currency = "USD",
+      note,
       platform,
-    });
+      expiresInHours = OfferService.DEFAULT_OFFER_EXPIRY_HOURS,
+      getstreamChannelId,
+    } = params;
 
-    logger.info('Offer sent', { offerId: offer._id, amount });
-
-    return {
-      id: offer._id.toString(),
-      senderId,
-      amount,
-      status: 'sent',
-      type: 'initial',
-      expiresAt,
-      createdAt: offer.createdAt,
-      ...(message ? { message } : {}),
-    };
-  }
-
-  /**
-   * Send a counter offer
-   * 
-   * Business Rules:
-   * - Buyer counter must NOT exceed current offer
-   * - Seller counter must NOT be below current offer
-   * - Invalidates previous offer
-   */
-  async counterOffer(params: CounterOfferParams): Promise<OfferResponse> {
-    const { channelId, senderId, amount, message, platform } = params;
-
-    logger.info('Sending counter offer', { channelId, senderId, amount });
-
-    // 1. Get channel and verify
-    const channel = await channelRepository.findById(channelId, platform);
-    if (!channel) {
-      throw new Error('Channel not found');
+    // 1. Get the listing to validate + snapshot
+    const ListingModel = platform === "networks" ? NetworkListing : MarketplaceListing;
+    const listing = await (ListingModel as any).findById(listingId);
+    
+    if (!listing) {
+      throw new Error("Listing not found");
+    }
+    if (listing.status !== "active") {
+      throw new Error("Listing is not active");
     }
 
-    // 2. Check for existing offer to counter
-    if (!channel.last_offer || channel.last_offer.status !== 'sent') {
-      throw new Error('No active offer to counter');
+    if (listing.price && amount >= listing.price) {
+      throw new Error("Offer must be below asking price");
     }
 
-    const lastOffer = channel.last_offer;
-
-    // 3. Verify sender is receiver of current offer
-    if (lastOffer.sender_id.toString() === senderId) {
-      throw new Error('Cannot counter your own offer');
-    }
-
-    // 4. Validate counter amount based on role
-    const isBuyer = channel.buyer_id.toString() === senderId;
-    if (isBuyer && amount > lastOffer.amount) {
-      throw new Error('Buyer counter must not exceed current offer');
-    }
-    if (!isBuyer && amount < lastOffer.amount) {
-      throw new Error('Seller counter must not be below current offer');
-    }
-
-    const previousAmount = lastOffer.amount;
-
-    // 5. Create counter offer
-    const expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + OFFER_EXPIRY_HOURS);
-
-    const counterOffer: any = {
-      _id: new Types.ObjectId(),
-      sender_id: new Types.ObjectId(senderId),
-      amount,
-      message: message || null,
-      offer_type: 'counter',
-      status: 'sent',
-      expiresAt,
-      createdAt: new Date(),
+    const listingSnapshot = {
+      brand: (listing as any).brand || "",
+      model: (listing as any).model || "",
+      reference: (listing as any).reference || "",
+      price: listing.price,
+      condition: (listing as any).condition,
+      thumbnail: (listing as any).thumbnail || (listing as any).images?.[0],
     };
 
-    // 6. Invalidate previous offer and set new one
-    await channelRepository.updateById(
-      channelId,
-      {
-        $push: { 
-          offer_history: { 
-            ...lastOffer, 
-            status: 'superseded' 
-          } 
-        },
-        $set: { 
-          last_offer: counterOffer,
-          last_event_type: 'offer',
-        },
-      } as any,
-      platform
-    );
+    // 5. Transactional create: Offer + OfferRevision + EventOutbox (Models initialized at bootstrap)
 
-    // 7. Send system message
-    if (channel.getstream_channel_id) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let offer: any;
+    let revision: any;
+
+    try {
+      // 2. Check for existing active offer (match unique index) - moved inside transaction
+      const existingOffer = await (Offer as any).findOne({
+        listing_id: new Types.ObjectId(listingId),
+        buyer_id: new Types.ObjectId(senderId),
+        state: { $in: ["CREATED", "COUNTERED"] },
+      }).session(session);
+
+      if (existingOffer) {
+        throw new Error(
+          "An active offer already exists. Accept, counter, or wait for expiry."
+        );
+      }
+
+      const expiresAt = new Date(
+        Date.now() + expiresInHours * 60 * 60 * 1000
+      );
+
+      // Create offer
+      offer = new Offer({
+        listing_id: new Types.ObjectId(listingId),
+        channel_id: new Types.ObjectId(channelId),
+        buyer_id: new Types.ObjectId(senderId),
+        seller_id: new Types.ObjectId(receiverId),
+        platform,
+        getstream_channel_id: getstreamChannelId || "",
+        state: "CREATED",
+        expires_at: expiresAt,
+        listing_snapshot: listingSnapshot,
+      });
+      await offer.save({ session });
+
+      // Get current terms
+      const currentTerms = await ReservationTerms.getCurrent();
+
+      // Create revision
+      revision = new OfferRevision({
+        offer_id: offer._id,
+        amount,
+        currency,
+        note,
+        reservation_terms_id: currentTerms?._id,
+        created_by: new Types.ObjectId(senderId),
+        revision_number: 1,
+      });
+      await revision.save({ session });
+
+      // Link revision to offer
+      offer.active_revision_id = revision._id;
+      await offer.save({ session });
+
+      // Write to outbox
+      const outboxEntry = new EventOutbox({
+        aggregate_type: "offer",
+        aggregate_id: offer._id,
+        event_type: "OFFER_CREATED" as EventType,
+        payload: {
+          offerId: offer._id.toString(),
+          revisionId: revision._id.toString(),
+          channelId,
+          listingId,
+          buyerId: senderId,
+          sellerId: receiverId,
+          amount,
+          currency,
+          platform,
+          expiresAt: expiresAt.toISOString(),
+        },
+        published: false,
+      });
+      await outboxEntry.save({ session });
+
+      // Also update channel for backward compatibility
+      await this.updateChannelLastOffer(channelId, platform, {
+        _id: offer._id,
+        sender_id: senderId,
+        amount,
+        status: "sent",
+        offer_type: "initial",
+        createdAt: new Date(),
+        expiresAt,
+      }, session);
+
+      await session.commitTransaction();
+    } catch (error) {
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    // --- Post-Transaction Side Effects ---
+    // 5. Send system message (Legacy parity)
+    if (getstreamChannelId) {
       try {
         await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
+          getstreamChannelId,
           {
-            type: 'counter_offer',
+            type: "offer",
             amount,
-            offer_id: counterOffer._id.toString(),
-            message: message || `Counter offer of $${amount}`,
+            message: `New offer for $${amount}`,
           },
           senderId
         );
-      } catch (error) {
-        logger.warn('Failed to send system message', { channelId, error });
+      } catch (chatError) {
+        logger.warn("[OfferService] Failed to send offer system message", {
+          channelId,
+          chatError,
+        });
       }
     }
 
-    // 8. Determine receiver and notify
-    const originalSenderId = lastOffer.sender_id.toString();
-
-    // 9. Emit event
-    events.emit('offer:countered', {
-      offerId: counterOffer._id.toString(),
-      channelId: channel.getstream_channel_id || channelId,
-      senderId,
-      receiverId: originalSenderId,
+    logger.info("[OfferService] Offer created", {
+      offerId: offer._id.toString(),
+      channelId,
+      listingId,
       amount,
-      previousAmount,
       platform,
     });
 
-    logger.info('Counter offer sent', { offerId: counterOffer._id, amount });
-
-    return {
-      id: counterOffer._id.toString(),
-      senderId,
-      amount,
-      status: 'sent',
-      type: 'counter',
-      expiresAt,
-      createdAt: counterOffer.createdAt,
-      ...(message ? { message } : {}),
-    };
+    return { offer, revision };
   }
 
   /**
-   * Accept an offer
-   * 
-   * Business Rules:
-   * - Listing must be active
-   * - Reserves listing and creates order
+   * Counter an existing offer.
+   * Transitions state to COUNTERED, creates new revision.
+   */
+  async counterOffer(params: CounterOfferParams): Promise<SendOfferResponse> {
+    const {
+      offerId,
+      counterById,
+      amount,
+      currency = "USD",
+      note,
+      expiresInHours = OfferService.DEFAULT_OFFER_EXPIRY_HOURS,
+    } = params;
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let offer: any;
+    let revision: any;
+
+    try {
+      // 1. Get offer with optimistic locking
+      offer = await Offer.findById(offerId).session(session);
+      if (!offer) throw new Error("Offer not found");
+
+      if (!offer.isActive()) {
+        throw new Error(
+          `Offer cannot be countered in state: ${offer.state}`
+        );
+      }
+
+      // 2. Verify counter party is the other side of the offer
+      const isBuyer = offer.buyer_id.toString() === counterById;
+      const isSeller = offer.seller_id.toString() === counterById;
+      if (!isBuyer && !isSeller) {
+        throw new Error("Only buyer or seller can counter this offer");
+      }
+
+      // 3. Get latest revision for numbering
+      const latestRevision = await OfferRevision.getLatestRevision(offerId);
+      const nextRevisionNumber = latestRevision
+        ? latestRevision.revision_number + 1
+        : 1;
+
+      // 4. Get current terms
+      const currentTerms = await ReservationTerms.getCurrent();
+
+      // 5. Create new revision
+      [revision] = await OfferRevision.create(
+        [
+          {
+            offer_id: offer._id,
+            amount,
+            currency,
+            note,
+            reservation_terms_id: currentTerms?._id,
+            created_by: new Types.ObjectId(counterById),
+            revision_number: nextRevisionNumber,
+          },
+        ],
+        { session }
+      );
+
+      // 6. Update offer state
+      const previousState = offer.state;
+      offer.state = "COUNTERED";
+      offer.active_revision_id = revision._id;
+      offer.expires_at = new Date(
+        Date.now() + expiresInHours * 60 * 60 * 1000
+      );
+      await offer.save({ session });
+
+      // 7. Write outbox
+      await EventOutbox.create(
+        [
+          {
+            aggregate_type: "offer",
+            aggregate_id: offer._id,
+            event_type: "OFFER_COUNTERED" as EventType,
+            payload: {
+              offerId: offer._id.toString(),
+              revisionId: revision._id.toString(),
+              channelId: offer.channel_id.toString(),
+              counterById,
+              amount,
+              currency,
+              platform: offer.platform,
+              previousState,
+            },
+            published: false,
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+    } catch (error) {
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    // --- Post-Transaction Side Effects ---
+
+    // 9. Send system message (Legacy parity)
+    if (offer.getstream_channel_id) {
+      try {
+        await chatService.sendSystemMessage(
+          offer.getstream_channel_id,
+          {
+            type: "counter_offer",
+            amount,
+            message: `Counter offer for $${amount}`,
+          },
+          counterById
+        );
+      } catch (chatError) {
+        logger.warn("[OfferService] Failed to send counter system message", {
+          offerId: offer._id,
+          chatError,
+        });
+      }
+    }
+
+    logger.info("[OfferService] Offer countered", {
+      offerId: offer._id.toString(),
+      amount,
+    });
+
+    return { offer, revision };
+  }
+
+  /**
+   * Accept an offer.
+   * Transitions to ACCEPTED, writes outbox.
+   * Returns data needed for order creation (caller handles order).
    */
   async acceptOffer(
-    channelId: string,
-    userId: string,
-    platform: Platform
-  ): Promise<{ orderId: string }> {
-    logger.info('Accepting offer', { channelId, userId });
+    offerId: string,
+    acceptorId: string,
+    _platform?: string // Backward compat: platform is stored on Offer doc
+  ): Promise<AcceptOfferResponse> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    const channel = await channelRepository.findById(channelId, platform);
-    if (!channel) throw new Error('Channel not found');
+    let offer: any;
+    let latestRevision: any;
+    let previousState: string = "";
+    let orderId: string = "";
 
-    if (!channel.last_offer || channel.last_offer.status !== 'sent') {
-      throw new Error('No active offer to accept');
-    }
+    try {
+      // 1. Get offer
+      offer = await Offer.findById(offerId).session(session);
+      if (!offer) throw new Error("Offer not found");
 
-    if (channel.last_offer.sender_id.toString() === userId) {
-      throw new Error('Cannot accept your own offer');
-    }
+      if (!offer.canBeAccepted()) {
+        throw new Error(
+          `Offer cannot be accepted in state: ${offer.state}${offer.isExpired() ? " (expired)" : ""}`
+        );
+      }
 
-    const ListingModel = platform === 'marketplace' ? MarketplaceListing : NetworkListing;
-    const listing = await (ListingModel as any).findById(channel.listing_id);
-    if (!listing || listing.status !== 'active') {
-      throw new Error('Listing is no longer available');
-    }
+      // 2. Verify acceptor is the correct party
+      latestRevision = await OfferRevision.getLatestRevision(offerId);
+      if (!latestRevision) {
+        throw new Error("No revision found for this offer");
+      }
 
-    const offer = channel.last_offer;
-    
-    // 0. Create Order
-    const order = await Order.create({
-      listing_type: platform === 'marketplace' ? 'MarketplaceListing' : 'NetworkListing',
-      listing_id: new Types.ObjectId(channel.listing_id.toString()),
-      listing_snapshot: {
-        brand: (listing as any).watch_snapshot?.brand || (listing as any).brand || '',
-        model: (listing as any).watch_snapshot?.model || (listing as any).model || '',
-        reference: (listing as any).watch_snapshot?.reference || (listing as any).reference || '',
-        price: listing.price || 0,
-        thumbnail: typeof (listing as any).thumbnail === 'string' ? (listing as any).thumbnail : ((listing as any).images?.[0] || ''),
-      },
-      buyer_id: new Types.ObjectId(channel.buyer_id.toString()),
-      seller_id: new Types.ObjectId(channel.seller_id.toString()),
-      amount: offer.amount,
-      currency: 'USD',
-      status: 'pending',
-      channel_type: platform === 'marketplace' ? 'MarketplaceListingChannel' : 'NetworkListingChannel',
-      channel_id: new Types.ObjectId(channelId),
-      getstream_channel_id: channel.getstream_channel_id,
-    });
-    
-    const orderId = order._id.toString();
+      if (latestRevision.created_by.toString() === acceptorId) {
+        throw new Error("Cannot accept your own offer/counter");
+      }
 
-    // 1. Update listing status to reserved
-    listing.status = 'reserved';
-    listing.order = {
-      channel_id: channel._id as any,
-      buyer_id: channel.buyer_id,
-      buyer_name: (channel as any).buyer_snapshot?.name || 'Buyer',
-      reserved_at: new Date(),
-    };
-    await listing.save();
+      const isBuyer = offer.buyer_id.toString() === acceptorId;
+      const isSeller = offer.seller_id.toString() === acceptorId;
+      if (!isBuyer && !isSeller) {
+        throw new Error("Only buyer or seller can accept this offer");
+      }
 
-    // 2. Update channel/offer status
-    await channelRepository.updateById(
-      channelId,
-      {
-        $push: { offer_history: { ...offer, status: 'accepted' } },
-        $set: { 
-          last_offer: { ...offer, status: 'accepted' },
-          last_event_type: 'order',
-          order_id: new Types.ObjectId(orderId),
+      // 3. Update offer state
+      previousState = offer.state;
+      offer.state = "ACCEPTED";
+      await offer.save({ session });
+
+      // 4. Reserve listing
+      const ListingModel = offer.platform === "networks" ? NetworkListing : MarketplaceListing;
+      const channel = await channelRepository.findById(offer.channel_id.toString(), offer.platform);
+      
+      await (ListingModel as any).updateOne(
+        { _id: offer.listing_id },
+        { 
+          $set: { 
+            status: "reserved",
+            order: {
+              channel_id: offer.channel_id,
+              reserved_at: new Date(),
+              buyer_name: (channel as any)?.buyer_snapshot?.name || "Buyer",
+              buyer_id: offer.buyer_id
+            }
+          } 
         },
-      } as any,
-      platform
-    );
+        { session }
+      );
 
-    // 3. Send system message
-    if (channel.getstream_channel_id) {
+      // 4. Create Order
+      const order = new Order({
+        listing_type: offer.platform === "networks" ? "NetworkListing" : "MarketplaceListing",
+        listing_id: offer.listing_id,
+        listing_snapshot: {
+          brand: (channel as any)?.listing_snapshot?.brand || "",
+          model: (channel as any)?.listing_snapshot?.model || "",
+          reference: (channel as any)?.listing_snapshot?.reference || "",
+          price: (channel as any)?.listing_snapshot?.price || latestRevision.amount,
+        },
+        buyer_id: offer.buyer_id,
+        seller_id: offer.seller_id,
+        amount: latestRevision.amount,
+        currency: latestRevision.currency || "USD",
+        status: "pending",
+        offer_id: offer._id,
+        offer_revision_id: latestRevision._id,
+        channel_id: offer.channel_id,
+        channel_type: offer.platform === "networks" ? "NetworkListingChannel" : "MarketplaceListingChannel",
+        getstream_channel_id: offer.getstream_channel_id,
+        reserved_at: new Date(),
+      });
+      await order.save({ session });
+      orderId = order._id.toString();
+
+      // 5. Write outbox
+      await EventOutbox.create(
+        [
+          {
+            aggregate_type: "offer",
+            aggregate_id: offer._id,
+            event_type: "OFFER_ACCEPTED" as EventType,
+            payload: {
+              offerId: offer._id.toString(),
+              orderId,
+              acceptedBy: acceptorId,
+              amount: latestRevision.amount,
+              buyerId: offer.buyer_id.toString(),
+              sellerId: offer.seller_id.toString(),
+              channelId: offer.channel_id.toString(),
+              platform: offer.platform,
+              previousState,
+              revisionId: latestRevision._id.toString(),
+            },
+            published: false,
+          },
+        ],
+        { session }
+      );
+
+      // 5. Update channel status for backward compatibility
+      await this.updateChannelStatus(
+        offer.channel_id.toString(),
+        offer.platform,
+        "accepted",
+        session
+      );
+
+      await session.commitTransaction();
+    } catch (error) {
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    // --- Post-Transaction Side Effects ---
+    // 6. Send system message (Legacy parity)
+    if (offer.getstream_channel_id) {
       try {
         await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
+          offer.getstream_channel_id,
           {
-            type: 'offer_accepted',
-            amount: offer.amount,
-            offer_id: offer._id!.toString(),
-            order_id: orderId,
+            type: "offer_accepted",
+            amount: latestRevision.amount,
+            message: "Offer accepted!",
           },
-          userId
+          acceptorId
         );
-
+        
         await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
+          offer.getstream_channel_id,
           {
-            type: 'listing_reserved',
-            order_id: orderId,
+            type: "listing_reserved",
+            message: "Listing reserved",
           },
-          userId
+          acceptorId
         );
-      } catch (error) {
-        logger.warn('Failed to send system messages', { channelId, error });
+      } catch (chatError) {
+        logger.warn("[OfferService] Failed to send acceptance system message", {
+          offerId: offer._id,
+          chatError,
+        });
       }
     }
 
-    // 4. Determine receiver (the one who sent the offer being accepted)
-    // const receiverId = offer.sender_id.toString();
+    logger.info("[OfferService] Offer accepted", {
+      offerId: offer._id.toString(),
+      amount: latestRevision.amount,
+      acceptedBy: acceptorId,
+    });
 
-    // 5. Emit event
-    events.emit('offer:accepted', {
-      offerId: offer._id!.toString(),
-      channelId: channel.getstream_channel_id || channelId,
-      buyerId: channel.buyer_id.toString(),
-      sellerId: channel.seller_id.toString(),
-      amount: offer.amount,
+    return {
+      offer,
+      revision: latestRevision,
+      channelId: offer.channel_id.toString(),
+      amount: latestRevision.amount,
       orderId,
-      platform,
-    });
-
-    return { orderId };
+    };
   }
 
   /**
-   * Reject an offer
+   * Decline an offer.
    */
-  async rejectOffer(
+  async declineOffer(offerId: string, declinedById: string): Promise<IOffer> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let offer: any;
+    let latestRevision: any;
+
+    try {
+      offer = await Offer.findById(offerId).session(session);
+      if (!offer) throw new Error("Offer not found");
+
+      if (!offer.isActive()) {
+        throw new Error(`Offer cannot be declined in state: ${offer.state}`);
+      }
+
+      const isBuyer = offer.buyer_id.toString() === declinedById;
+      const isSeller = offer.seller_id.toString() === declinedById;
+      if (!isBuyer && !isSeller) {
+        throw new Error("Only buyer or seller can decline this offer");
+      }
+
+      const previousState = offer.state;
+      offer.state = "DECLINED";
+      await offer.save({ session });
+
+      latestRevision = await OfferRevision.getLatestRevision(offerId);
+
+      // Write outbox
+      await EventOutbox.create(
+        [
+          {
+            aggregate_type: "offer",
+            aggregate_id: offer._id,
+            event_type: "OFFER_DECLINED" as EventType,
+            payload: {
+              offerId: offer._id.toString(),
+              declinedBy: declinedById,
+              platform: offer.platform,
+              previousState,
+            },
+            published: false,
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+    } catch (error) {
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    // Side effect
+    if (offer.getstream_channel_id) {
+        try {
+            await chatService.sendSystemMessage(
+              offer.getstream_channel_id,
+              {
+                type: "offer_rejected",
+                amount: latestRevision?.amount,
+                message: "Offer declined",
+              },
+              declinedById
+            );
+        } catch (e) {
+            logger.warn("[OfferService] Failed to send decline message", e);
+        }
+    }
+
+    return offer;
+  }
+
+  /**
+   * Expire an offer.
+   */
+  async expireOffer(offerId: string): Promise<IOffer> {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    let offer: any;
+    let latestRevision: any;
+
+    try {
+      offer = await Offer.findById(offerId).session(session);
+      if (!offer) throw new Error("Offer not found");
+
+      if (!offer.isActive()) {
+        // Already handled or moved to final state
+        await session.abortTransaction();
+        session.endSession();
+        return offer;
+      }
+
+      const previousState = offer.state;
+      offer.state = "EXPIRED";
+      await offer.save({ session });
+
+      latestRevision = await OfferRevision.getLatestRevision(offerId);
+
+      // Write outbox
+      await EventOutbox.create(
+        [
+          {
+            aggregate_type: "offer",
+            aggregate_id: offer._id,
+            event_type: "OFFER_EXPIRED" as EventType,
+            payload: {
+              offerId: offer._id.toString(),
+              platform: offer.platform,
+              previousState,
+            },
+            published: false,
+          },
+        ],
+        { session }
+      );
+
+      await session.commitTransaction();
+    } catch (error) {
+      if (session.inTransaction()) {
+        await session.abortTransaction();
+      }
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    // Side effect
+    if (offer.getstream_channel_id) {
+        try {
+            await chatService.sendSystemMessage(
+              offer.getstream_channel_id,
+              {
+                type: "offer_expired",
+                amount: latestRevision?.amount,
+                message: "Offer expired",
+              },
+              "system"
+            );
+        } catch (e) {
+            logger.warn("[OfferService] Failed to send expiry message", e);
+        }
+    }
+
+    return offer;
+  }
+
+  /**
+   * Get all expired offers (CREATED/COUNTERED and passed expires_at)
+   */
+  async getExpiredOffers(): Promise<IOffer[]> {
+    return Offer.findExpiredOffers();
+  }
+
+  /**
+   * Backward Compatibility: Update the channel document's last_offer field.
+   */
+  async updateChannelLastOffer(
     channelId: string,
-    userId: string,
-    platform: Platform
+    platform: Platform,
+    lastOfferData: any,
+    session?: any
   ): Promise<void> {
-    logger.info('Rejecting offer', { channelId, userId });
+    const ChannelModel =
+      platform === "marketplace"
+        ? MarketplaceListingChannel
+        : NetworkListingChannel;
 
-    const channel = await channelRepository.findById(channelId, platform);
-    if (!channel) throw new Error('Channel not found');
-
-    if (!channel.last_offer || channel.last_offer.status !== 'sent') {
-      throw new Error('No active offer to reject');
-    }
-
-    if (channel.last_offer.sender_id.toString() === userId) {
-      throw new Error('Cannot reject your own offer');
-    }
-
-    const offer = channel.last_offer;
-
-    // 1. Update status
-    await channelRepository.updateById(
-      channelId,
-      {
-        $push: { offer_history: { ...offer, status: 'declined' } },
-        $set: { last_offer: { ...offer, status: 'declined' } },
-      } as any,
-      platform
-    );
-
-    // 2. Send system message
-    if (channel.getstream_channel_id) {
-      try {
-        await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
-          {
-            type: 'offer_rejected',
-            amount: offer.amount,
-            offer_id: offer._id!.toString(),
+    try {
+      await ChannelModel.findByIdAndUpdate(
+        channelId,
+        {
+          $set: {
+            last_offer: lastOfferData,
+            last_event_type: "offer",
           },
-          userId
-        );
-      } catch (error) {
-        logger.warn('Failed to send system message', { channelId, error });
-      }
+        },
+        { session }
+      );
+    } catch (error) {
+      logger.warn("[OfferService] Failed to update channel last offer", {
+        channelId,
+        error,
+      });
     }
-
-    // 4. Emit event
-    events.emit('offer:rejected', {
-      offerId: offer._id!.toString(),
-      channelId: channel.getstream_channel_id || channelId,
-      buyerId: channel.buyer_id.toString(),
-      sellerId: channel.seller_id.toString(),
-      amount: offer.amount,
-      platform,
-    });
   }
 
   /**
-   * Expire an offer
+   * Backward Compatibility: Update the channel document's status field.
    */
-  async expireOffer(channelId: string, platform: Platform): Promise<void> {
-    logger.info('Expiring offer', { channelId });
+  async updateChannelStatus(
+    channelId: string,
+    platform: Platform,
+    status: string,
+    session?: any
+  ): Promise<void> {
+    const ChannelModel =
+      platform === "marketplace"
+        ? MarketplaceListingChannel
+        : NetworkListingChannel;
 
-    const channel = await channelRepository.findById(channelId, platform);
-    if (!channel?.last_offer) return;
-
-    const offer = channel.last_offer;
-
-    // 1. Update status
-    await channelRepository.updateById(
-      channelId,
-      {
-        $push: { offer_history: { ...offer, status: 'expired' } },
-        $set: { last_offer: null },
-      } as any,
-      platform
-    );
-
-    // 2. Send system message
-    if (channel.getstream_channel_id) {
-      try {
-        await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
-          {
-            type: 'offer_expired',
-            amount: offer.amount,
-            message: 'Offer expired',
-          },
-          'system'
-        );
-      } catch (error) {
-        logger.warn('Failed to send expiry message', { channelId, error });
-      }
+    try {
+      await ChannelModel.findByIdAndUpdate(
+        channelId,
+        { $set: { status } },
+        { session }
+      );
+    } catch (error) {
+      logger.warn("[OfferService] Failed to update channel status", {
+        channelId,
+        error,
+      });
     }
-
-    // 4. Emit event
-    events.emit('offer:expired', {
-      offerId: offer._id!.toString(),
-      channelId: channel.getstream_channel_id || channelId,
-      buyerId: channel.buyer_id.toString(),
-      sellerId: channel.seller_id.toString(),
-      amount: offer.amount,
-    });
-  }
-
-  /**
-   * Get all expired offers for processing
-   */
-  async getExpiredOffers(platform: Platform): Promise<Channel[]> {
-    return channelRepository.findExpiredOffers(platform);
   }
 }
 
-// Singleton instance
+// Export singleton instance
 export const offerService = new OfferService();
+
+// Backward-compat method aliases used by existing route handlers
+(OfferService.prototype as any).rejectOffer = OfferService.prototype.declineOffer;

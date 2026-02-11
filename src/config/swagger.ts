@@ -1,4 +1,4 @@
-import swaggerJSDos from "swagger-jsdoc";
+import swaggerJSDoc from "swagger-jsdoc";
 
 const options = {
   definition: {
@@ -115,6 +115,12 @@ Use this to test API endpoints without real authentication.
 
 **Note:** This only works in development/test environments. Production ignores this header.`,
         },
+      },
+      headers: {
+        IdempotencyKey: {
+          description: "Optional idempotency key to prevent duplicate operations. Required for transactional operations.",
+          schema: { type: "string" }
+        }
       },
       schemas: {
         ApiResponse: {
@@ -2245,6 +2251,108 @@ Use this to test API endpoints without real authentication.
           },
           required: ["channel_id", "text"],
         },
+        TrustCase: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            case_number: { type: "string" },
+            reporter_user_id: { type: "string" },
+            reported_user_id: { type: "string" },
+            status: { type: "string", enum: ["OPEN", "INVESTIGATING", "ESCALATED", "RESOLVED", "CLOSED"] },
+            priority: { type: "string", enum: ["low", "medium", "high", "critical"] },
+            category: { type: "string", enum: ["fraud", "dispute", "safety", "abuse", "other"] },
+            reason: { type: "string" },
+            assigned_to: { type: "string", nullable: true },
+            notes: {
+              type: "array",
+              items: { $ref: "#/components/schemas/TrustCaseNote" }
+            },
+            evidence_snapshot: { type: "object" },
+            resolution: { type: "string", nullable: true },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+        },
+        TrustCaseNote: {
+          type: "object",
+          properties: {
+            author_id: { type: "string" },
+            content: { type: "string" },
+            timestamp: { type: "string", format: "date-time" }
+          },
+        },
+        ReservationTerms: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            version: { type: "string", example: "2026.02.10" },
+            content: { type: "string" },
+            content_hash: { type: "string" },
+            effective_date: { type: "string", format: "date-time" },
+            is_current: { type: "boolean" },
+            is_archived: { type: "boolean" },
+            createdAt: { type: "string", format: "date-time" }
+          },
+        },
+        EnrichedConversation: {
+           type: "object",
+           properties: {
+             getstream_channel_id: { type: "string" },
+             platform: { type: "string", enum: ["marketplace", "networks"] },
+             parties: { 
+               type: "array",
+               items: { 
+                 type: "object",
+                 properties: {
+                   id: { type: "string" },
+                   name: { type: "string" },
+                   avatar: { type: "string", nullable: true }
+                 }
+               }
+             },
+             business_context: {
+               type: "object",
+               properties: {
+                 listing: { type: "object", nullable: true },
+                 last_offer: { $ref: "#/components/schemas/Offer", nullable: true },
+                 order: { $ref: "#/components/schemas/Order", nullable: true }
+               }
+             }
+           },
+        },
+        Offer: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            listing_id: { type: "string" },
+            buyer_id: { type: "string" },
+            seller_id: { type: "string" },
+            amount: { type: "number" },
+            currency: { type: "string", enum: ["USD", "CAD"] },
+            status: { type: "string", enum: ["pending", "accepted", "declined", "countered", "expired", "cancelled"] },
+            current_revision_id: { type: "string" },
+            revisions: {
+              type: "array",
+              items: { $ref: "#/components/schemas/OfferRevision" }
+            },
+            expires_at: { type: "string", format: "date-time" },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" }
+          },
+        },
+        OfferRevision: {
+          type: "object",
+          properties: {
+            _id: { type: "string" },
+            offer_id: { type: "string" },
+            revision_number: { type: "integer" },
+            amount: { type: "number" },
+            currency: { type: "string" },
+            made_by: { type: "string" },
+            reservation_terms_id: { type: "string" },
+            createdAt: { type: "string", format: "date-time" }
+          },
+        },
       },
     },
     security: [
@@ -2361,12 +2469,28 @@ Use this to test API endpoints without real authentication.
         name: "Networks - Messages",
         description: "Networks messages - Sub-resource of channels. Platform context known from route.",
       },
+      {
+        name: "Admin - Trust Cases",
+        description: "Admin-only trust case management and resolution.",
+      },
+      {
+        name: "Reservation Terms",
+        description: "Versioned legal and reservation terms.",
+      },
+      {
+        name: "Conversations",
+        description: "Enriched channel context with business data.",
+      },
+      {
+        name: "Marketplace - Offers",
+        description: "Offers and counter-offers for marketplace listings.",
+      },
     ],
   },
   apis: ["./src/routes/**/*.ts", "./src/handlers/**/*.ts"], // This will be ignored since we're defining everything inline
 };
 
-export const swaggerSpec = swaggerJSDos(options) as any;
+export const swaggerSpec = swaggerJSDoc(options) as any;
 
 // Manually add paths since we're not using file annotations
 swaggerSpec.paths = {
@@ -2405,6 +2529,337 @@ swaggerSpec.paths = {
         },
       },
     },
+  },
+  // --- Webhooks ---
+  "/api/v1/webhooks/getstream": {
+    post: {
+      tags: ["Webhooks"],
+      summary: "GetStream webhook handler",
+      description: "Receives events from GetStream Cloud for tracking and business logic. Uses async Bull queue processing.",
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: { type: "object" }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: "Webhook received",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  message: { type: "string" },
+                  jobId: { type: "string" }
+                }
+              }
+            }
+          }
+        },
+        401: { description: "Invalid signature" }
+      }
+    }
+  },
+  // --- Reservation Terms ---
+  "/api/v1/reservation-terms/current": {
+    get: {
+      tags: ["Reservation Terms"],
+      summary: "Get the current active reservation terms",
+      responses: {
+        200: {
+          description: "Current terms retrieved",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ReservationTerms" } } }
+        },
+        404: { description: "No current terms found" }
+      }
+    }
+  },
+  "/api/v1/reservation-terms/{version}": {
+    get: {
+      tags: ["Reservation Terms"],
+      summary: "Get reservation terms by version",
+      parameters: [{ name: "version", in: "path", required: true, schema: { type: "string" } }],
+      responses: {
+        200: {
+          description: "Terms retrieved",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ReservationTerms" } } }
+        },
+        404: { description: "Version not found" }
+      }
+    }
+  },
+  "/api/v1/reservation-terms": {
+    get: {
+      tags: ["Reservation Terms"],
+      summary: "List all reservation terms versions",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+        { name: "include_archived", in: "query", schema: { type: "boolean", default: false } },
+      ],
+      responses: {
+        200: {
+          description: "Terms list retrieved",
+          content: {
+            "application/json": {
+              schema: {
+                properties: {
+                  data: { type: "array", items: { $ref: "#/components/schemas/ReservationTerms" } },
+                  total: { type: "integer" },
+                  limit: { type: "integer" },
+                  offset: { type: "integer" },
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    post: {
+      tags: ["Reservation Terms"],
+      summary: "Create new reservation terms version (admin only)",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["version", "content", "effective_date"],
+              properties: {
+                version: { type: "string" },
+                content: { type: "string" },
+                effective_date: { type: "string", format: "date-time" },
+                set_as_current: { type: "boolean", default: false },
+              }
+            }
+          }
+        }
+      },
+      responses: { 201: { description: "Terms created" } }
+    }
+  },
+  "/api/v1/reservation-terms/{version}/archive": {
+    post: {
+      tags: ["Reservation Terms"],
+      summary: "Archive a terms version (admin only)",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "version", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Archived" } }
+    }
+  },
+  "/api/v1/reservation-terms/{version}/set-current": {
+    post: {
+      tags: ["Reservation Terms"],
+      summary: "Set a terms version as current (admin only)",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "version", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Set as current" } }
+    }
+  },
+  // --- Conversations ---
+  "/api/v1/conversations": {
+    get: {
+      tags: ["Conversations"],
+      summary: "Get user's conversations with enriched context",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "platform", in: "query", schema: { type: "string", enum: ["marketplace", "networks"], default: "marketplace" } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: {
+        200: {
+          description: "Conversations retrieved",
+          content: {
+            "application/json": {
+              schema: {
+                properties: {
+                  data: { type: "array", items: { $ref: "#/components/schemas/EnrichedConversation" } },
+                  limit: { type: "integer" },
+                  offset: { type: "integer" },
+                  total: { type: "integer" },
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/conversations/search": {
+    get: {
+      tags: ["Conversations"],
+      summary: "Search conversations",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "q", in: "query", required: true, schema: { type: "string" } },
+        { name: "platform", in: "query", schema: { type: "string", enum: ["marketplace", "networks"], default: "marketplace" } },
+      ],
+      responses: {
+        200: {
+          description: "Search results",
+          content: {
+            "application/json": {
+              schema: {
+                properties: {
+                  data: { type: "array", items: { $ref: "#/components/schemas/EnrichedConversation" } },
+                  query: { type: "string" },
+                  total: { type: "integer" },
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/conversations/{id}": {
+    get: {
+      tags: ["Conversations"],
+      summary: "Get full context for a specific conversation",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string" } },
+        { name: "platform", in: "query", schema: { type: "string", enum: ["marketplace", "networks"], default: "marketplace" } },
+      ],
+      responses: {
+        200: {
+          description: "Conversation context retrieved",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/EnrichedConversation" } } }
+        }
+      }
+    }
+  },
+  "/api/v1/conversations/{id}/media": {
+    get: {
+      tags: ["Conversations"],
+      summary: "Get shared media for a conversation",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string" } },
+        { name: "platform", in: "query", schema: { type: "string", enum: ["marketplace", "networks"], default: "marketplace" } },
+        { name: "type", in: "query", schema: { type: "string", enum: ["image", "video", "file", "all"], default: "all" } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "next", in: "query", schema: { type: "string" } },
+      ],
+      responses: {
+        200: {
+          description: "Media retrieved",
+          content: { "application/json": { schema: { type: "object" } } }
+        }
+      }
+    }
+  },
+  // --- Marketplace Offers ---
+  "/api/v1/marketplace/offers": {
+    get: {
+      tags: ["Marketplace - Offers"],
+      summary: "Get current user's marketplace offers",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "type", in: "query", schema: { type: "string", enum: ["sent", "received"] } },
+        { name: "status", in: "query", schema: { type: "string" } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: {
+        200: {
+          description: "Offers retrieved",
+          content: {
+            "application/json": {
+              schema: {
+                properties: {
+                  data: { type: "array", items: { $ref: "#/components/schemas/Offer" } },
+                  total: { type: "integer" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/marketplace/offers/{id}": {
+    get: {
+      tags: ["Marketplace - Offers"],
+      summary: "Get specific marketplace offer details",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: {
+        200: {
+          description: "Offer details retrieved",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/Offer" } } }
+        }
+      }
+    }
+  },
+  "/api/v1/marketplace/offers/{id}/accept": {
+    post: {
+      tags: ["Marketplace - Offers"],
+      summary: "Accept a marketplace offer",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 
+        200: { 
+          description: "Offer accepted",
+          content: {
+            "application/json": {
+              schema: {
+                properties: {
+                  success: { type: "boolean" },
+                  order_id: { type: "string" },
+                  message: { type: "string" }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/marketplace/offers/{id}/reject": {
+    post: {
+      tags: ["Marketplace - Offers"],
+      summary: "Reject a marketplace offer",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Offer rejected" } }
+    }
+  },
+  "/api/v1/marketplace/offers/{id}/counter": {
+    post: {
+      tags: ["Marketplace - Offers"],
+      summary: "Counter a marketplace offer",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["amount"],
+              properties: {
+                amount: { type: "number" },
+                message: { type: "string" }
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        201: {
+          description: "Counter offer sent",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/Offer" } } }
+        }
+      }
+    }
   },
   "/api/v1/user": {
     get: {
@@ -2445,6 +2900,172 @@ swaggerSpec.paths = {
         },
       },
     },
+  },
+  // --- Admin Trust Cases ---
+  "/api/v1/admin/trust-cases": {
+    get: {
+      tags: ["Admin - Trust Cases"],
+      summary: "List trust cases with filters",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "status", in: "query", schema: { type: "string", enum: ["OPEN", "INVESTIGATING", "ESCALATED", "RESOLVED", "CLOSED"] } },
+        { name: "priority", in: "query", schema: { type: "string", enum: ["low", "medium", "high", "critical"] } },
+        { name: "category", in: "query", schema: { type: "string", enum: ["fraud", "dispute", "safety", "abuse", "other"] } },
+        { name: "assigned_to", in: "query", schema: { type: "string" } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+      ],
+      responses: {
+        200: {
+          description: "Cases retrieved successfully",
+          content: {
+            "application/json": {
+              schema: {
+                properties: {
+                  data: { type: "array", items: { $ref: "#/components/schemas/TrustCase" } },
+                  total: { type: "integer" },
+                  limit: { type: "integer" },
+                  offset: { type: "integer" },
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    post: {
+      tags: ["Admin - Trust Cases"],
+      summary: "Create a new trust case",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["reported_user_id", "category", "reason"],
+              properties: {
+                reported_user_id: { type: "string" },
+                order_id: { type: "string" },
+                reference_check_id: { type: "string" },
+                category: { type: "string", enum: ["fraud", "dispute", "safety", "abuse", "other"] },
+                priority: { type: "string", enum: ["low", "medium", "high", "critical"], default: "medium" },
+                reason: { type: "string", minLength: 5 },
+              }
+            }
+          }
+        }
+      },
+      responses: {
+        201: { description: "Case created successfully" }
+      }
+    }
+  },
+  "/api/v1/admin/trust-cases/{id}": {
+    get: {
+      tags: ["Admin - Trust Cases"],
+      summary: "Get a specific trust case",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: {
+        200: {
+          description: "Case retrieved",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/TrustCase" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/admin/trust-cases/{id}/assign": {
+    put: {
+      tags: ["Admin - Trust Cases"],
+      summary: "Assign a case to an admin",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["assignee_id"],
+              properties: { assignee_id: { type: "string" } }
+            }
+          }
+        }
+      },
+      responses: { 200: { description: "Assigned" } }
+    }
+  },
+  "/api/v1/admin/trust-cases/{id}/note": {
+    post: {
+      tags: ["Admin - Trust Cases"],
+      summary: "Add a note to a case",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["content"],
+              properties: { content: { type: "string" } }
+            }
+          }
+        }
+      },
+      responses: { 200: { description: "Note added" } }
+    }
+  },
+  "/api/v1/admin/trust-cases/{id}/resolve": {
+    put: {
+      tags: ["Admin - Trust Cases"],
+      summary: "Resolve a case",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["resolution"],
+              properties: { resolution: { type: "string" } }
+            }
+          }
+        }
+      },
+      responses: { 200: { description: "Resolved" } }
+    }
+  },
+  "/api/v1/admin/trust-cases/{id}/suspend-user": {
+    post: {
+      tags: ["Admin - Trust Cases"],
+      summary: "Suspend a user as part of a trust case",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["user_id", "duration_days", "reason"],
+              properties: {
+                user_id: { type: "string" },
+                duration_days: { type: "integer" },
+                reason: { type: "string" },
+              }
+            }
+          }
+        }
+      },
+      responses: { 200: { description: "User suspended" } }
+    }
   },
   "/api/v1/user/favorites": {
     get: {

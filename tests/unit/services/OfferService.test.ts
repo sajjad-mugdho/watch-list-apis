@@ -1,6 +1,7 @@
 import { offerService } from '../../../src/services/offer/OfferService';
 import { MarketplaceListingChannel } from '../../../src/models/MarketplaceListingChannel';
 import { MarketplaceListing } from '../../../src/models/Listings';
+import { Offer } from '../../../src/models/Offer';
 import { events } from '../../../src/utils/events';
 import { Types } from 'mongoose';
 
@@ -63,17 +64,21 @@ describe('OfferService', () => {
       const emitSpy = jest.spyOn(events, 'emit');
 
       // Execute
-      const response = await offerService.sendOffer({
+      const { offer, revision } = await offerService.sendOffer({
         channelId,
         listingId,
         senderId: buyerId,
+        receiverId: sellerId,
         amount: 14000,
-        platform: 'marketplace'
+        platform: 'marketplace',
+        getstreamChannelId: 'gs_channel_123'
       });
 
       // Verify response
-      expect(response.amount).toBe(14000);
-      expect(response.status).toBe('sent');
+      expect(offer).toBeDefined();
+      expect(revision).toBeDefined();
+      expect(revision.amount).toBe(14000);
+      expect(offer.state).toBe('CREATED');
 
       // Verify DB update
       const updatedChannel = await MarketplaceListingChannel.findById(channelId);
@@ -91,8 +96,10 @@ describe('OfferService', () => {
         channelId,
         listingId,
         senderId: buyerId,
+        receiverId: sellerId,
         amount: 16000,
-        platform: 'marketplace'
+        platform: 'marketplace',
+        getstreamChannelId: 'gs_channel_123'
       })).rejects.toThrow('Offer must be below asking price');
     });
 
@@ -103,8 +110,10 @@ describe('OfferService', () => {
         channelId,
         listingId,
         senderId: buyerId,
+        receiverId: sellerId,
         amount: 14000,
-        platform: 'marketplace'
+        platform: 'marketplace',
+        getstreamChannelId: 'gs_channel_123'
       })).rejects.toThrow('Listing is not active');
     });
   });
@@ -112,31 +121,33 @@ describe('OfferService', () => {
   describe('acceptOffer', () => {
     it('should accept offer, reserve listing, and emit event', async () => {
       // 1. Send an offer first
-      await offerService.sendOffer({
+      const { offer } = await offerService.sendOffer({
         channelId,
         listingId,
         senderId: buyerId,
+        receiverId: sellerId,
         amount: 14000,
-        platform: 'marketplace'
+        platform: 'marketplace',
+        getstreamChannelId: 'gs_channel_123'
       });
 
       const emitSpy = jest.spyOn(events, 'emit');
 
       // 2. Accept (by seller)
-      const { orderId } = await offerService.acceptOffer(channelId, sellerId, 'marketplace');
+      const { amount, channelId: respChannelId } = await offerService.acceptOffer(offer._id.toString(), sellerId, 'marketplace');
 
       // 3. Verify
-      expect(orderId).toBeDefined();
+      expect(amount).toBe(14000);
+      expect(respChannelId).toBe(channelId);
 
       const listing = await MarketplaceListing.findById(listingId);
       expect(listing?.status).toBe('reserved');
       expect(listing?.order?.buyer_id.toString()).toBe(buyerId);
 
-      const channel = await MarketplaceListingChannel.findById(channelId);
-      expect(channel?.last_offer?.status).toBe('accepted');
+      const dbOffer = await Offer.findById(offer._id);
+      expect(dbOffer?.state).toBe('ACCEPTED');
 
       expect(emitSpy).toHaveBeenCalledWith('offer:accepted', expect.objectContaining({
-        orderId,
         amount: 14000
       }));
     });

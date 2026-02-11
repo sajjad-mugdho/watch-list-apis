@@ -13,15 +13,8 @@ import { Request, Response, NextFunction } from "express";
 import { User, IUser } from "../models/User";
 import logger from "../utils/logger";
 
-// Extend Express Request to include user
-declare global {
-  namespace Express {
-    interface Request {
-      user?: IUser;
-      dialistUserId?: string; // MongoDB _id as string
-    }
-  }
-}
+// Express augmentation moved to src/types/express.d.ts
+
 
 /**
  * Attaches the current authenticated user to the request.
@@ -40,7 +33,7 @@ export const attachUser = async (
       return;
     }
 
-    const user = await User.findOne({ external_id: auth.userId });
+    const user = await User.findOne({ external_id: auth.userId }).select("+external_id");
 
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });

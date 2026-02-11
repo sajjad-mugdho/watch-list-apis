@@ -8,6 +8,7 @@
 import mongoose, { Schema, Document, Types } from "mongoose";
 
 export type AuditAction =
+  // Payment/Order actions
   | "REFUND_REQUESTED"
   | "REFUND_APPROVED"
   | "REFUND_DENIED"
@@ -24,7 +25,20 @@ export type AuditAction =
   | "DISPUTE_CREATED"
   | "DISPUTE_UPDATED"
   | "ORDER_CANCELLED"
-  | "ORDER_STATUS_CHANGED";
+  | "ORDER_STATUS_CHANGED"
+  // Offer actions
+  | "OFFER_CREATED"
+  | "OFFER_COUNTERED"
+  | "OFFER_ACCEPTED"
+  | "OFFER_DECLINED"
+  | "OFFER_EXPIRED"
+  // Vouch actions
+  | "VOUCH_CREATED"
+  | "VOUCH_WEIGHT_CALCULATED"
+  // Reference check actions
+  | "REFERENCE_CHECK_CREATED"
+  | "REFERENCE_CHECK_COMPLETED"
+  | "REFERENCE_CHECK_RESPONSE_ADDED";
 
 export type ActorRole = "buyer" | "seller" | "admin" | "system";
 
@@ -40,8 +54,11 @@ export interface IAuditLog extends Document {
   actor_email?: string | null;
 
   // What was affected
-  order_id: Types.ObjectId;
+  order_id?: Types.ObjectId | null;
   listing_id?: Types.ObjectId | null;
+  offer_id?: Types.ObjectId | null;
+  vouch_id?: Types.ObjectId | null;
+  reference_check_id?: Types.ObjectId | null;
 
   // Additional context
   amount?: number | null; // For refunds, captures, etc.
@@ -90,6 +107,19 @@ const AuditLogSchema = new Schema<IAuditLog>(
         "DISPUTE_UPDATED",
         "ORDER_CANCELLED",
         "ORDER_STATUS_CHANGED",
+        // Offer actions
+        "OFFER_CREATED",
+        "OFFER_COUNTERED",
+        "OFFER_ACCEPTED",
+        "OFFER_DECLINED",
+        "OFFER_EXPIRED",
+        // Vouch actions
+        "VOUCH_CREATED",
+        "VOUCH_WEIGHT_CALCULATED",
+        // Reference check actions
+        "REFERENCE_CHECK_CREATED",
+        "REFERENCE_CHECK_COMPLETED",
+        "REFERENCE_CHECK_RESPONSE_ADDED",
       ],
       required: true,
       index: true,
@@ -112,13 +142,31 @@ const AuditLogSchema = new Schema<IAuditLog>(
     order_id: {
       type: Schema.Types.ObjectId,
       ref: "Order",
-      required: true,
+      default: null,
       index: true,
     },
     listing_id: {
       type: Schema.Types.ObjectId,
       ref: "MarketplaceListing",
       default: null,
+    },
+    offer_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Offer",
+      default: null,
+      index: true,
+    },
+    vouch_id: {
+      type: Schema.Types.ObjectId,
+      ref: "Vouch",
+      default: null,
+      index: true,
+    },
+    reference_check_id: {
+      type: Schema.Types.ObjectId,
+      ref: "ReferenceCheck",
+      default: null,
+      index: true,
     },
 
     amount: { type: Number, default: null },
