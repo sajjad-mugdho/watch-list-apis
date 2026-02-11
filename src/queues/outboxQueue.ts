@@ -10,6 +10,7 @@ import { config } from "../config";
 
 export interface OutboxJobData {
   batchSize?: number;
+  type?: "publish" | "cleanup";
 }
 
 export const outboxQueue = new Queue<OutboxJobData>(

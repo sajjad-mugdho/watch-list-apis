@@ -187,6 +187,7 @@ export interface IUser extends Document {
   suspension_reason?: string | null;
   suspended_by?: Types.ObjectId | null;
   suspension_expires_at?: Date | null;
+  adminOverride?: boolean;
   isAdmin?: boolean;
 
   // Virtuals

@@ -90,15 +90,6 @@ function emitOutboxEvent(event: IEventOutbox): void {
       });
       break;
 
-    // Vouch events — emit as notification trigger
-    case "VOUCH_ADDED":
-      events.emit("notification:created", {
-        notificationId: payload.vouchId || "",
-        userId: payload.vouchForUserId || "",
-        type: "vouch_added",
-      });
-      break;
-
     // Order events
     case "ORDER_CREATED":
       events.emit("order:created", {
@@ -127,6 +118,13 @@ function emitOutboxEvent(event: IEventOutbox): void {
 
     // Vouch events
     case "VOUCH_ADDED":
+      // 1. Emit notification trigger
+      events.emit("notification:created", {
+        notificationId: payload.vouchId || "",
+        userId: payload.vouchForUserId || "",
+        type: "vouch_added",
+      });
+      // 2. Emit business event
       events.emit("vouch:added", {
         vouchId: payload.vouchId || "",
         voucherId: payload.voucherId || "",
@@ -212,11 +210,12 @@ async function processOutboxBatch(batchSize: number): Promise<{
     try {
       // Skip events that have exceeded max attempts
       if (event.attempts >= MAX_ATTEMPTS) {
-        logger.warn("[OutboxPublisher] Event exceeded max attempts, skipping", {
+        logger.warn("[OutboxPublisher] Event exceeded max attempts, marking as dead letter", {
           eventId: event._id?.toString(),
           eventType: event.event_type,
           attempts: event.attempts,
         });
+        await EventOutbox.markAsDeadLetter(event._id!);
         continue;
       }
 
@@ -268,7 +267,7 @@ export function startOutboxPublisher(): void {
 
   // Schedule the recurring job every 5 seconds
   outboxQueue.add(
-    {},
+    { type: "publish", batchSize: DEFAULT_BATCH_SIZE },
     {
       repeat: {
         every: 5000, // Every 5 seconds
@@ -279,7 +278,7 @@ export function startOutboxPublisher(): void {
 
   // Schedule weekly cleanup of old published events (Sunday at 3 AM)
   outboxQueue.add(
-    { batchSize: 0 }, // Special marker for cleanup job
+    { type: "cleanup" },
     {
       repeat: {
         cron: "0 3 * * 0", // Sunday 3 AM
@@ -290,7 +289,7 @@ export function startOutboxPublisher(): void {
 
   // Add cleanup processor
   outboxQueue.on("completed", async (job) => {
-    if (job.data?.batchSize === 0 && job.opts?.jobId === "outbox-cleanup-weekly") {
+    if (job.data?.type === "cleanup" && job.opts?.jobId === "outbox-cleanup-weekly") {
       try {
         const deletedCount = await EventOutbox.cleanupOldEvents(7);
         logger.info("[OutboxPublisher] Weekly cleanup completed", {

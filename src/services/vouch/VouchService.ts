@@ -76,7 +76,6 @@ export class VouchService {
     }
 
     // 3. Verify vouchForUserId is a party in the reference check
-    // 3. Verify vouchForUserId is a party in the reference check
     const requesterId = (refCheck as any).requester_id?.toString();
     const targetId = (refCheck as any).target_id?.toString();
     if (vouchForUserId !== requesterId && vouchForUserId !== targetId) {

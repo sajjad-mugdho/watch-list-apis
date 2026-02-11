@@ -82,6 +82,7 @@ export interface IEventOutbox extends Document {
   // Retry tracking
   attempts: number;
   last_error?: string;
+  dead_letter?: boolean;
 
   // Timestamps
   createdAt: Date;
@@ -98,6 +99,8 @@ export interface IEventOutboxModel extends Model<IEventOutbox> {
   ): Promise<void>;
 
   cleanupOldEvents(olderThanDays?: number): Promise<number>;
+
+  markAsDeadLetter(eventId: string | Types.ObjectId): Promise<void>;
 }
 
 // ----------------------------------------------------------
@@ -147,6 +150,11 @@ const EventOutboxSchema = new Schema<IEventOutbox>(
     last_error: {
       type: String,
     },
+    dead_letter: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false },
@@ -173,7 +181,7 @@ EventOutboxSchema.index({ published: 1, published_at: 1 });
 // Static Methods
 // ----------------------------------------------------------
 EventOutboxSchema.statics.findUnpublished = function (limit = 100) {
-  return this.find({ published: false })
+  return this.find({ published: false, dead_letter: { $ne: true } })
     .sort({ createdAt: 1 })
     .limit(limit)
     .lean();
@@ -204,6 +212,12 @@ EventOutboxSchema.statics.markAsFailed = async function (
       $set: { last_error: error },
     }
   );
+};
+
+EventOutboxSchema.statics.markAsDeadLetter = async function (
+  eventId: string | Types.ObjectId
+): Promise<void> {
+  await this.updateOne({ _id: eventId }, { $set: { dead_letter: true } });
 };
 
 EventOutboxSchema.statics.cleanupOldEvents = async function (

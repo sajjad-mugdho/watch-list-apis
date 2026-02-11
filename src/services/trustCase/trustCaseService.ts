@@ -181,32 +181,44 @@ export class TrustCaseService {
     assigneeId: string,
     assignedById: string
   ): Promise<ITrustCase> {
-    const trustCase = await TrustCase.findById(caseId);
-    if (!trustCase) throw new Error("Trust case not found");
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (trustCase.status === "RESOLVED" || trustCase.status === "CLOSED") {
-      throw new Error("Cannot assign a resolved or closed case");
+    try {
+      const trustCase = await TrustCase.findById(caseId).session(session);
+      if (!trustCase) throw new Error("Trust case not found");
+
+      if (trustCase.status === "RESOLVED" || trustCase.status === "CLOSED") {
+        throw new Error("Cannot assign a resolved or closed case");
+      }
+
+      trustCase.assigned_to = new Types.ObjectId(assigneeId);
+      if (trustCase.status === "OPEN") {
+        trustCase.status = "INVESTIGATING";
+      }
+
+      trustCase.notes.push({
+        author_id: new Types.ObjectId(assignedById),
+        content: `Case assigned to admin ${assigneeId}`,
+        created_at: new Date(),
+      });
+
+      await trustCase.save({ session });
+
+      await session.commitTransaction();
+
+      logger.info("[TrustCaseService] Case assigned", {
+        caseId,
+        assigneeId,
+      });
+
+      return trustCase;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
-
-    trustCase.assigned_to = new Types.ObjectId(assigneeId);
-    if (trustCase.status === "OPEN") {
-      trustCase.status = "INVESTIGATING";
-    }
-
-    trustCase.notes.push({
-      author_id: new Types.ObjectId(assignedById),
-      content: `Case assigned to admin ${assigneeId}`,
-      created_at: new Date(),
-    } as any);
-
-    await trustCase.save();
-
-    logger.info("[TrustCaseService] Case assigned", {
-      caseId,
-      assigneeId,
-    });
-
-    return trustCase;
   }
 
   /**
@@ -237,7 +249,7 @@ export class TrustCaseService {
         author_id: new Types.ObjectId(escalatedById),
         content: `Case escalated: ${reason}`,
         created_at: new Date(),
-      } as any);
+      });
 
       await trustCase.save({ session });
 
@@ -285,7 +297,7 @@ export class TrustCaseService {
       author_id: new Types.ObjectId(authorId),
       content,
       created_at: new Date(),
-    } as any);
+    });
 
     await trustCase.save();
 
@@ -322,7 +334,7 @@ export class TrustCaseService {
         author_id: new Types.ObjectId(resolvedById),
         content: `Case resolved: ${resolution}`,
         created_at: new Date(),
-      } as any);
+      });
 
       await trustCase.save({ session });
 
@@ -378,7 +390,7 @@ export class TrustCaseService {
         author_id: new Types.ObjectId(closedById),
         content: "Case closed",
         created_at: new Date(),
-      } as any);
+      });
 
       await trustCase.save({ session });
 
@@ -424,13 +436,13 @@ export class TrustCaseService {
       if (!user) throw new Error("User not found");
 
       // Set suspension fields on user
-      (user as any).suspended_at = new Date();
-      (user as any).suspension_reason = reason;
-      (user as any).suspended_by = new Types.ObjectId(suspendedById);
-      (user as any).suspension_expires_at = new Date(
+      user.suspended_at = new Date();
+      user.suspension_reason = reason;
+      user.suspended_by = new Types.ObjectId(suspendedById);
+      user.suspension_expires_at = new Date(
         Date.now() + durationDays * 24 * 60 * 60 * 1000
       );
-      (user as any).adminOverride = true;
+      user.adminOverride = true; // Mark as admin action to skip user logic filters
       await user.save({ session });
 
       // Record on trust case
@@ -445,7 +457,7 @@ export class TrustCaseService {
         author_id: new Types.ObjectId(suspendedById),
         content: `User ${userId} suspended for ${durationDays} days: ${reason}`,
         created_at: new Date(),
-      } as any);
+      });
 
       await trustCase.save({ session });
 
@@ -589,7 +601,7 @@ export class TrustCaseService {
       params;
 
     const evidence: any = {
-      chat_history: [],
+      chat_history: [], // TODO: Implement automated message gathering from GetStream
       offer_history: [],
       vouches: [],
       order_snapshot: null,

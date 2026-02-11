@@ -118,18 +118,7 @@ export class OfferService {
       thumbnail: (listing as any).thumbnail || (listing as any).images?.[0],
     };
 
-    // 5. Transactional create: Offer + OfferRevision + EventOutbox
-    await Promise.all([
-      Offer.init(),
-      OfferRevision.init(),
-      EventOutbox.init(),
-      ReservationTerms.init(),
-      MarketplaceListingChannel.init(),
-      NetworkListingChannel.init(),
-      MarketplaceListing.init(),
-      NetworkListing.init(),
-      Order.init()
-    ]);
+    // 5. Transactional create: Offer + OfferRevision + EventOutbox (Models initialized at bootstrap)
 
     const session = await mongoose.startSession();
     session.startTransaction();

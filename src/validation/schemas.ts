@@ -72,14 +72,16 @@ export const ValidatedUserClaimsSchema = z
       .nullable(),
     networks_accessed: z.boolean().nullable(),
     // Can be undefined in DB
-    display_avatar: z.string().optional(),
+    display_avatar: z.string().nullable().optional(),
     location_country: z
       .string()
       .min(2, "location_country must be 2+ chars")
+      .nullable()
       .optional(),
     location_region: z
       .string()
       .min(2, "location_region must be 2+ chars")
+      .nullable()
       .optional(),
     onboarding_state: z
       .enum([
