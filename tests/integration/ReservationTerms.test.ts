@@ -8,6 +8,7 @@ describe('Reservation Terms Integration', () => {
     let regularUser: any;
 
     beforeEach(async () => {
+        await User.deleteMany({});
         // Create Admin User
         adminUser = await User.create({
             clerk_id: 'admin_clerk_rev',

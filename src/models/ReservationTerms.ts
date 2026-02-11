@@ -27,6 +27,7 @@ export interface IReservationTerms extends Document {
 
   // Timestamps
   createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface IReservationTermsModel extends Model<IReservationTerms> {
@@ -79,7 +80,7 @@ const ReservationTermsSchema = new Schema<IReservationTerms>(
     },
   },
   {
-    timestamps: { createdAt: true, updatedAt: false },
+    timestamps: true,
   }
 );
 

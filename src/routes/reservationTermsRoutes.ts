@@ -11,7 +11,10 @@ import { Router, Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { ReservationTerms } from "../models/ReservationTerms";
 import { User } from "../models/User";
-import { requirePlatformAuth } from "../middleware/authentication";
+import {
+  requirePlatformAuth,
+  requireAdmin,
+} from "../middleware/authentication";
 import { validateRequest } from "../middleware/validation";
 import logger from "../utils/logger";
 import mongoose from "mongoose";
@@ -230,6 +233,7 @@ router.get(
 router.post(
   "/",
   requirePlatformAuth(),
+  requireAdmin(),
   validateRequest(createTermsSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const isTest = process.env.NODE_ENV === "test";
@@ -238,27 +242,17 @@ router.post(
 
     try {
       const auth = (req as any).auth;
-      if (!auth?.userId) {
-        res.status(401).json({ error: { message: "Unauthorized" } });
-        return;
-      }
-
       const user = await User.findOne({ external_id: auth.userId });
       if (!user) {
+        if (session) await session.abortTransaction();
         res.status(404).json({ error: { message: "User not found" } });
-        return;
-      }
-
-      // Admin check
-      if (!user.isAdmin) {
-        res.status(403).json({ error: { message: "Forbidden: Admin access required" } });
         return;
       }
 
       const { version, content, effective_date, set_as_current } = req.body;
 
       const options = session ? { session } : {};
-      
+
       if (set_as_current) {
         await ReservationTerms.updateMany(
           { is_current: true },
@@ -327,20 +321,9 @@ router.post(
 router.post(
   "/:version/archive",
   requirePlatformAuth(),
+  requireAdmin(),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const auth = (req as any).auth;
-      if (!auth?.userId) {
-        res.status(401).json({ error: { message: "Unauthorized" } });
-        return;
-      }
-
-      const user = await User.findOne({ external_id: auth.userId });
-      if (!user || !user.isAdmin) {
-        res.status(403).json({ error: { message: "Forbidden: Admin access required" } });
-        return;
-      }
-
       const { version } = req.params;
       const terms = await ReservationTerms.getByVersion(version);
 
@@ -389,29 +372,22 @@ router.post(
 router.post(
   "/:version/set-current",
   requirePlatformAuth(),
+  requireAdmin(),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const isTest = process.env.NODE_ENV === "test";
+    const session = isTest ? null : await mongoose.startSession();
+    if (session) session.startTransaction();
 
     try {
-      const auth = (req as any).auth;
-      if (!auth?.userId) {
-        res.status(401).json({ error: { message: "Unauthorized" } });
-        return;
-      }
-
-      const user = await User.findOne({ external_id: auth.userId });
-      if (!user || !user.isAdmin) {
-        res.status(403).json({ error: { message: "Forbidden: Admin access required" } });
-        return;
-      }
-
       const { version } = req.params;
-      
+
       // READ INSIDE TRANSACTION to prevent race conditions
-      const terms = await ReservationTerms.findOne({ version }, null, { session });
+      const terms = await (session
+        ? ReservationTerms.findOne({ version }).session(session)
+        : ReservationTerms.findOne({ version }));
 
       if (!terms) {
+        if (session) await session.abortTransaction();
         res
           .status(404)
           .json({ error: { message: `Terms version "${version}" not found` } });
@@ -419,6 +395,7 @@ router.post(
       }
 
       if (terms.is_archived) {
+        if (session) await session.abortTransaction();
         res.status(400).json({
           error: { message: "Cannot set archived terms as current" },
         });
@@ -429,14 +406,14 @@ router.post(
       await ReservationTerms.updateMany(
         { is_current: true },
         { $set: { is_current: false } },
-        { session }
+        session ? { session } : {}
       );
 
       // Set this as current
       terms.is_current = true;
-      await terms.save({ session });
+      await (session ? terms.save({ session }) : terms.save());
 
-      await session.commitTransaction();
+      if (session) await session.commitTransaction();
 
       logger.info("[ReservationTerms] Terms set as current", { version });
 
@@ -445,11 +422,11 @@ router.post(
         message: `Version "${version}" is now the current terms`,
       });
     } catch (error) {
-      await session.abortTransaction();
+      if (session) await session.abortTransaction();
       logger.error("[ReservationTerms] Failed to set current terms", { error });
       next(error);
     } finally {
-      session.endSession();
+      if (session) session.endSession();
     }
   }
 );

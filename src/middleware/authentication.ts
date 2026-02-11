@@ -35,7 +35,7 @@ export function requirePlatformAuth() {
         req.headers["x-refresh-session"] === "true";
 
       if (forceRefresh) {
-        console.log(`[auth] x-refresh-session header detected for user ${auth.userId}, forcing DB lookup`);
+        logger.info(`[auth] x-refresh-session header detected for user ${auth.userId}, forcing DB lookup`);
         const user_claims = await fetchAndSyncLocalUser({ external_id: auth?.userId });
         (req as any).user = { userId: auth.userId, ...user_claims };
         return next();
@@ -51,7 +51,7 @@ export function requirePlatformAuth() {
         (req as any).dialistUserId = claimsResult.data.dialist_id;
         return next();
       } else {
-        console.warn(`[auth] Missing/invalid claims for user ${auth.userId}, falling back to database`);
+        logger.warn(`[auth] Missing/invalid claims for user ${auth.userId}, falling back to database`);
         const user_claims = await fetchAndSyncLocalUser({ external_id: auth?.userId });
         (req as any).user = { userId: auth.userId, ...user_claims };
         (req as any).dialistUserId = user_claims.dialist_id;
@@ -59,7 +59,7 @@ export function requirePlatformAuth() {
       }
     } catch (err) {
       if (err instanceof AppError) return next(err);
-      console.error("requireAuth error:", err);
+      logger.error("requireAuth error:", { err });
       return next(new DatabaseError("Unexpected error in auth middleware", { original: err, path: req.path }));
     }
   };
@@ -84,46 +84,47 @@ export function requireCompletedOnboarding() {
       return next();
     } catch (err) {
       if (err instanceof AppError) return next(err);
-      console.error("requireCompletedOnboarding error:", err);
+      logger.error("requireCompletedOnboarding error:", { err });
       return next(new DatabaseError("Unexpected error in onboarding check middleware", { original: err, path: req.path }));
     }
   };
 }
 
 /**
- * Middleware to require admin role
+ * requireAdmin() - Middleware to require admin role
  * Must be used AFTER requirePlatformAuth()
  */
-export const requireAdmin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
-      res.status(401).json({ error: { message: "Unauthorized" } });
-      return;
+export function requireAdmin() {
+  return async function adminMiddleware(
+    req: Request,
+    _res: Response,
+    next: NextFunction
+  ): Promise<void> {
+    try {
+      const auth = (req as any).auth;
+      if (!auth?.userId) {
+        return next(new AuthenticationError("Unauthorized"));
+      }
+
+      const user = await User.findOne({ external_id: auth.userId }).select(
+        "+isAdmin +external_id"
+      );
+
+      if (!user || !user.isAdmin) {
+        logger.warn(`Unauthorized admin access attempt by user ${auth.userId}`);
+        return next(
+          new AuthorizationError("Forbidden: Admin access required", {
+            context: { code: "INSUFFICIENT_PERMISSIONS" },
+          })
+        );
+      }
+
+      next();
+    } catch (error) {
+      logger.error("Error in requireAdmin middleware", { error });
+      next(error);
     }
-
-    const user = await User.findOne({ external_id: auth.userId }).select("+isAdmin +external_id");
-
-    if (!user || !user.isAdmin) {
-      logger.warn(`Unauthorized admin access attempt by user ${auth.userId}`);
-      res.status(403).json({
-        error: {
-          message: "Forbidden: Admin access required",
-          code: "INSUFFICIENT_PERMISSIONS",
-        },
-      });
-      return;
-    }
-
-    next();
-  } catch (error) {
-    logger.error("Error in requireAdmin middleware", { error });
-    next(error);
-  }
-};
+  };
+}
 
 export const requireAuth = requirePlatformAuth;

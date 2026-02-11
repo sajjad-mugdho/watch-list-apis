@@ -13,7 +13,7 @@
 All 8 identified gaps have been **fully implemented**. The codebase now compiles cleanly with `tsc --noEmit` producing zero errors.
 
 **Key deliverables:**
-- OfferService rewritten to use first-class `Offer` + `OfferRevision` models (transactional, outbox-backed)
+- `OfferService` rewritten to use first-class `Offer` + `OfferRevision` models (transactional, outbox-backed)
 - Outbox publisher worker implemented (Bull repeatable job, 5-second polling)
 - Trust & Safety: full `TrustCaseService` + admin routes + user suspension fields & middleware
 - Reservation Terms: full CRUD routes mounted
@@ -21,7 +21,7 @@ All 8 identified gaps have been **fully implemented**. The codebase now compiles
 - Vouch event handlers wired
 - Idempotency middleware created
 - Offer migration script created
-- All route files and jobs updated to match new OfferService API
+- All route files and jobs updated to match new `OfferService` API
 
 **SQS Verdict:** SQS is currently used **only for GetStream webhook ingestion** (`SqsWebhookConsumer.ts`). Keep it for that. Use **Bull + Redis** for everything else (outbox, notifications, offer expiry).
 
@@ -35,10 +35,10 @@ All 8 identified gaps have been **fully implemented**. The codebase now compiles
 |-------|--------|----------|
 | **Model: `Offer.ts`** | ✅ | State machine, optimistic concurrency, unique partial index, listing_snapshot, `findExpiredOffers` static |
 | **Model: `OfferRevision.ts`** | ✅ | Immutable, `revision_number` unique per offer, `reservation_terms_id` |
-| **Service: `OfferService.ts`** | ✅ **Rewritten** | ~760 lines. `sendOffer`, `counterOffer`, `acceptOffer`, `declineOffer`, `expireOffer` all use Offer + OfferRevision models with MongoDB transactions. EventOutbox writes in same transaction. Backward-compat dual-write to channel.last_offer |
-| **Routes** | ✅ **Updated** | `marketplaceOffers.ts` and `networksOffers.ts` updated to call `declineOffer`, `counterOffer` with new params |
-| **Migration script** | ✅ **Created** | `scripts/migrations/extract-offers.ts` — dry-run by default, extracts embedded offers to standalone collections |
-| **Expiry job** | ✅ **Updated** | `offerExpiryJob.ts` now calls `offerService.getExpiredOffers()` + `offerService.expireOffer(id)` |
+| **Service: `OfferService.ts`** | ✅ **Rewritten** | ~760 lines. `sendOffer`, `counterOffer`, `acceptOffer`, `declineOffer`, `expireOffer` all use `Offer` + `OfferRevision` models with MongoDB transactions. `EventOutbox` writes in same transaction. Backward-compat dual-write to `channel.last_offer` |
+| **Routes** | ✅ **Updated** | [marketplaceOffers.ts](file:///home/sajjad-mugdho/Downloads/dialist-api-main/src/routes/offers/marketplaceOffers.ts) and [networksOffers.ts](file:///home/sajjad-mugdho/Downloads/dialist-api-main/src/routes/offers/networksOffers.ts) updated to call `declineOffer`, `counterOffer` with new params |
+| **Migration script** | ✅ **Created** | [extract-offers.ts](file:///home/sajjad-mugdho/Downloads/dialist-api-main/scripts/migrations/extract-offers.ts) — dry-run by default, extracts embedded offers to standalone collections |
+| **Expiry job** | ✅ **Updated** | [offerExpiryJob.ts](file:///home/sajjad-mugdho/Downloads/dialist-api-main/src/jobs/offerExpiryJob.ts) now calls `OfferService.getExpiredOffers()` + `offerService.expireOffer(id)` |
 | **Expiry processor** | ✅ **Updated** | `offerExpiryProcessor.ts` uses new Offer model |
 
 ---

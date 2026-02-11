@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-
-
+import mongoose from "mongoose";
 import { randomUUID } from "crypto";
 import { apiLogger } from "../utils/logger";
 
@@ -131,7 +130,6 @@ export const rateLimit = (
       clientId,
       count: clientData.count,
       limit: RATE_LIMIT_MAX,
-      userId: (req as any).user?.dialist_id,
     });
 
     res.status(429).json({
@@ -193,10 +191,12 @@ export const createRateLimiter = (config: RateLimitConfig) => {
     const key = `${keyPrefix}:${keyIdentifier}`;
     const now = Date.now();
 
-    // Clean up expired entries
-    for (const [k, value] of endpointRateLimits.entries()) {
-      if (value.resetTime < now - windowMs) {
-        endpointRateLimits.delete(k);
+    // Probabilistic cleanup (every ~100 requests) to avoid linear scan on hot path
+    if (Math.random() < 0.01) {
+      for (const [k, value] of endpointRateLimits.entries()) {
+        if (value.resetTime < now - windowMs) {
+          endpointRateLimits.delete(k);
+        }
       }
     }
 
@@ -350,8 +350,6 @@ export const readinessCheck = async (
 
   try {
     // Check MongoDB connection
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const mongoose = require("mongoose");
     const dbState = mongoose.connection.readyState;
     // 0 = disconnected, 1 = connected, 2 = connecting, 3 = disconnecting
 

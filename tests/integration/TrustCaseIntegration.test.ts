@@ -9,10 +9,12 @@ describe('Trust Case Integration', () => {
     let reportedUser: any;
 
     beforeEach(async () => {
+        await User.deleteMany({});
         // Create Admin User
         adminUser = await User.create({
             clerk_id: 'admin_clerk_tc',
             external_id: 'admin_clerk_tc',
+            display_name: 'Admin TC',
             email: 'admin_tc@test.com',
             first_name: 'Admin',
             last_name: 'TC',
@@ -27,6 +29,7 @@ describe('Trust Case Integration', () => {
         regularUser = await User.create({
             clerk_id: 'user_clerk_tc',
             external_id: 'user_clerk_tc',
+            display_name: 'Regular TC',
             email: 'user_tc@test.com',
             first_name: 'Regular',
             last_name: 'TC',
@@ -38,6 +41,7 @@ describe('Trust Case Integration', () => {
         reportedUser = await User.create({
             clerk_id: 'reported_clerk_tc',
             external_id: 'reported_clerk_tc',
+            display_name: 'Reported TC',
             email: 'reported_tc@test.com',
             first_name: 'Reported',
             last_name: 'TC',

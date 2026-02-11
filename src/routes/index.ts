@@ -98,6 +98,6 @@ router.use("/v1/conversations", requirePlatformAuth(), conversationRoutes);
 router.use("/v1/reservation-terms", reservationTermsRoutes);
 
 // Admin routes - Trust & Safety
-router.use("/v1/admin/trust-cases", requirePlatformAuth(), requireAdmin, trustCaseRoutes);
+router.use("/v1/admin/trust-cases", requirePlatformAuth(), requireAdmin(), trustCaseRoutes);
 
 export { router as apiRoutes };
