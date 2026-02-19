@@ -334,7 +334,7 @@ export const user_get = async (
  * Get marketplace user offers
  * GET /api/v1/marketplace/user/offers
  */
-export const marketplace_user_offers_get = async (
+export const marketplace_user_offers_get_handler = async (
   req: Request<{}, {}, {}, { type?: "sent" | "received"; status?: string; limit?: number; offset?: number }>,
   res: Response<ApiResponse<any>>,
   next: NextFunction
@@ -352,7 +352,7 @@ export const marketplace_user_offers_get = async (
     // Dynamic import to avoid circular dependencies if any
     const { Offer } = await import("../models/Offer");
 
-    const query: any = {};
+    const query: any = { platform: "marketplace" };
     
     if (type === "sent") {
       query.buyer_id = userId;
@@ -361,7 +361,7 @@ export const marketplace_user_offers_get = async (
     }
 
     if (status !== "all") {
-      query["last_offer.status"] = status;
+      query.state = status;
     }
 
     const offers = await Offer.find(query)
@@ -384,6 +384,10 @@ export const marketplace_user_offers_get = async (
 
     res.json(response);
   } catch (error) {
-    next(new DatabaseError("Failed to fetch user offers", error));
+    if (error instanceof MissingUserContextError) {
+      next(error);
+    } else {
+      next(new DatabaseError("Failed to fetch user offers", error));
+    }
   }
 };

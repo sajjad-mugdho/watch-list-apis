@@ -331,9 +331,10 @@ export const markAsRead = (_platform: Platform) => async (req: Request, res: Res
       return;
     }
 
-    await ChatMessage.findByIdAndUpdate(id, {
-      $addToSet: { read_by: { user_id: user._id, read_at: new Date() } },
-    });
+    await ChatMessage.updateOne(
+      { _id: id, "read_by.user_id": { $ne: user._id } },
+      { $push: { read_by: { user_id: user._id, read_at: new Date() } } }
+    );
 
     res.json({ message: "Marked as read" });
   } catch (error) {
@@ -358,7 +359,7 @@ export const markAllAsRead = (_platform: Platform) => async (req: Request, res: 
 
     await ChatMessage.updateMany(
       { stream_channel_id: channelId, "read_by.user_id": { $ne: user._id } },
-      { $addToSet: { read_by: { user_id: user._id, read_at: new Date() } } }
+      { $push: { read_by: { user_id: user._id, read_at: new Date() } } }
     );
 
     res.json({ message: "All messages marked as read" });
@@ -396,9 +397,10 @@ export const reactToMessage = (_platform: Platform) => async (req: Request, res:
     }
 
     await Promise.all([
-      ChatMessage.findByIdAndUpdate(id, {
-        $addToSet: { reactions: { user_id: user._id, type, created_at: new Date() } },
-      }),
+      ChatMessage.updateOne(
+        { _id: id, "reactions.user_id": { $ne: user._id }, "reactions.type": type },
+        { $push: { reactions: { user_id: user._id, type, created_at: new Date() } } }
+      ),
       (async () => {
         if (message.stream_message_id) {
           try {
@@ -429,11 +431,32 @@ export const archiveChannel = (_platform: Platform) => async (req: Request, res:
 
     const { channelId } = req.params;
 
+    const user = await User.findOne({ external_id: auth.userId });
+    if (!user) {
+      res.status(404).json({ error: { message: "User not found" } });
+      return;
+    }
+
+    // Verify channel membership before allowing archive (hide)
+    let channel_exists: boolean = false;
+    const q = { getstream_channel_id: channelId, $or: [{ buyer_id: user._id }, { seller_id: user._id }] };
+    
+    // Check both collections
+    const [m_channel, n_channel] = await Promise.all([
+      MarketplaceListingChannel.exists(q),
+      NetworkListingChannel.exists(q)
+    ]);
+    
+    if (!m_channel && !n_channel) {
+      res.status(403).json({ error: { message: "Not a member of this channel" } });
+      return;
+    }
+
     await chatService.ensureConnected();
     const client = chatService.getClient();
-    const channel = client.channel("messaging", channelId);
+    const streamChannel = client.channel("messaging", channelId);
 
-    await channel.hide(auth.userId, false);
+    await streamChannel.hide(auth.userId, false);
 
     res.json({ message: "Channel archived" });
   } catch (error) {

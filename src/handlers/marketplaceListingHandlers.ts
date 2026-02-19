@@ -174,9 +174,6 @@ export const marketplace_listing_create = async (
     }
 
     const user = req.user;
-    
-    logger.error("DEBUG: createListing user:", { user: JSON.stringify(user, null, 2) });
-    logger.error("DEBUG: Querying MerchantOnboarding with:", { dialist_user_id: user.dialist_id, state: "APPROVED" });
 
     // ✅ Check if user is an approved merchant (query MerchantOnboarding collection)
     const merchantOnboarding = await MerchantOnboarding.findOne({

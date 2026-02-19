@@ -132,7 +132,7 @@ export const getFinixDebugPayloads = async (
         identity_id: base.identity_id,
         card_number: "4895142232120006",
         exp_month: "12",
-        exp_year: "2025",
+        exp_year: "2030",
         cvv: "123",
         name: "Test Buyer",
         postal_code: "94114",
@@ -225,6 +225,12 @@ export const forceOrderPaid = async (
     const { id } = req.params;
     const order = await Order.findById(id);
     if (!order) throw new NotFoundError("Order not found");
+
+    const caller_id = req.user?.dialist_id;
+    if (!caller_id)
+      throw new AuthorizationError("Unauthenticated user", { route: req.path });
+    if (order.buyer_id.toString() !== caller_id)
+      throw new AuthorizationError("Not authorized to modify this order", { order_id: id });
 
     if (order.status === "paid") {
       res.json({ success: true, message: "Already paid" });

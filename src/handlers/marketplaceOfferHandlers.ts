@@ -150,9 +150,7 @@ export const marketplace_offer_send = async (
         logger.error("Failed to create marketplace Stream Chat channel", {
           error: chatError,
         });
-        // Fallback or fail? We proceed, but logging is important.
-        // If chat fails, we might still want the offer, but getstreamChannelId will be empty?
-        // OfferService allows optional getstreamChannelId.
+        throw new DatabaseError("Failed to create Stream Chat channel for offer", chatError);
       }
 
       channel = await MarketplaceListingChannel.create({
@@ -186,7 +184,7 @@ export const marketplace_offer_send = async (
         offer_history: [],
         last_offer: null, // Will be populated by OfferService
         getstream_channel_id: getstreamChannelId,
-        order: null,
+        order_id: null,
       });
       
       channelId = (channel._id as any).toString();

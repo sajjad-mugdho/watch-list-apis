@@ -28,11 +28,21 @@ export const getConversations = (platform: Platform) => async (req: Request, res
       { limit, offset }
     );
 
+    const { MarketplaceListingChannel, NetworkListingChannel } = await import("../models/Listings");
+    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
+    
+    const total = await ChannelModel.countDocuments({
+      $or: [
+        { buyer_id: user._id },
+        { seller_id: user._id },
+      ],
+    });
+
     res.json({
       data: conversations,
       limit,
       offset,
-      total: conversations.length,
+      total,
     });
   } catch (error) {
     logger.error("[ConversationHandlers] Failed to get conversations", { error });

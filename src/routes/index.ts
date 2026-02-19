@@ -98,7 +98,7 @@ router.use("/v1/marketplace", requirePlatformAuth(), marketplaceRoutes);
 router.use("/v1/feeds", requirePlatformAuth(), networksOnly, feedRoutes);
 
 // Analytics and tracking
-router.use("/v1/analytics", requirePlatformAuth(), analyticsRoutes);
+router.use("/v1/analytics", requirePlatformAuth(), requireAdmin(), analyticsRoutes);
 
 // Notification routes
 router.use("/v1/notifications", requirePlatformAuth(), notificationRoutes);

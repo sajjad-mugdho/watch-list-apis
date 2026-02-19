@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   marketplace_user_get,
   marketplace_user_inventory_get,
-  marketplace_user_offers_get,
+  marketplace_user_offers_get_handler,
 } from "../../handlers/userHandlers";
 import { getUserInventorySchema } from "../../validation/schemas";
 import { validateRequest } from "../../middleware/validation";
@@ -16,6 +16,6 @@ router.get(
   marketplace_user_inventory_get
 );
 
-router.get("/offers", marketplace_user_offers_get);
+router.get("/offers", marketplace_user_offers_get_handler);
 
 export { router as marketplaceUser };

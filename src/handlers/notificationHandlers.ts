@@ -13,14 +13,13 @@ export const getNotifications = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const auth = (req as any).auth;
+  if (!auth?.userId) {
+    res.status(401).json({ error: { message: "Unauthorized" } });
+    return;
+  }
+
   try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
-      throw new MissingUserContextError({
-        route: req.path,
-        note: "req.auth missing in getNotifications",
-      });
-    }
 
     const limit = parseInt(req.query.limit as string) || 20;
     const offset = parseInt(req.query.offset as string) || 0;
@@ -32,16 +31,22 @@ export const getNotifications = async (
       return;
     }
 
-    const notifications = await Notification.find({ user_id: user._id })
+    const platform = req.headers["x-platform"] as string;
+    const query: any = { user_id: user._id };
+    if (platform === "marketplace" || platform === "networks") {
+      query.$or = [{ platform }, { platform: { $exists: false } }]; // Fallback for old records
+    }
+
+    const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
       .skip(offset)
       .limit(limit)
       .lean();
 
-    const total = await Notification.countDocuments({ user_id: user._id });
+    const total = await Notification.countDocuments(query);
     const unread_count = await Notification.countDocuments({
-      user_id: user._id,
-      read: false,
+      ...query,
+      is_read: false,
     });
 
     const response: ApiResponse<any> = {
@@ -70,14 +75,13 @@ export const markAllRead = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
+  const auth = (req as any).auth;
+  if (!auth?.userId) {
+    res.status(401).json({ error: { message: "Unauthorized" } });
+    return;
+  }
+
   try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
-      throw new MissingUserContextError({
-        route: req.path,
-        note: "req.auth missing in markAllRead",
-      });
-    }
 
     const user = await User.findOne({ external_id: auth.userId });
     if (!user) {
@@ -85,9 +89,15 @@ export const markAllRead = async (
       return;
     }
 
+    const platform = req.headers["x-platform"] as string;
+    const query: any = { user_id: user._id, is_read: false };
+    if (platform === "marketplace" || platform === "networks") {
+      query.$or = [{ platform }, { platform: { $exists: false } }];
+    }
+
     await Notification.updateMany(
-      { user_id: user._id, read: false },
-      { $set: { read: true, read_at: new Date() } }
+      query,
+      { $set: { is_read: true, read_at: new Date() } }
     );
 
     res.json({ message: "All notifications marked as read" });

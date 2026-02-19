@@ -278,8 +278,12 @@ export async function getOrCreateUser(externalId: string): Promise<IUser> {
       const clerkUser = await clerkClient.users.getUser(externalId);
       
       const email = clerkUser.emailAddresses[0]?.emailAddress;
-      const firstName = clerkUser.firstName || "";
-      const lastName = clerkUser.lastName || "";
+      const firstName = clerkUser.firstName || "User";
+      const lastName = clerkUser.lastName || "Unknown";
+
+      if (!email) {
+        throw new Error(`Clerk user ${externalId} has no email address`);
+      }
       
       user = new User({
         external_id: externalId,
@@ -289,7 +293,7 @@ export async function getOrCreateUser(externalId: string): Promise<IUser> {
         display_name: `${firstName} ${lastName}`.trim(),
         avatar: clerkUser.imageUrl,
         onboarding: {
-          status: "pending",
+          status: "incomplete",
           steps: {
             location: {},
             display_name: { confirmed: false, user_provided: false },
