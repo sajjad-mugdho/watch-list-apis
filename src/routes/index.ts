@@ -17,7 +17,8 @@ import { subscriptionRoutes } from "./subscriptionRoutes";
 import { getstreamWebhookRoutes } from "./getstreamWebhookRoutes";
 import { userSubRoutes } from "./user"; // Consolidated user routes
 import { reviewRoutes } from "./reviewRoutes";
-import { conversationRoutes } from "./conversationRoutes";
+import { notificationRoutes } from "./notificationRoutes";
+import { analyticsRoutes } from "./analyticsRoutes";
 
 import { trustCaseRoutes } from "./admin/trustCaseRoutes";
 import * as orderHandlers from "../handlers/orderHandlers";
@@ -62,12 +63,17 @@ router.use("/v1/debug", debugRoutes);
 // platform-agnostic top level resources
 router.use("/v1/watches", watchesRoutes);
 router.use("/v1/onboarding", requirePlatformAuth(), onboardingRoutes);
+
+// Current User Resources (scoped to the authenticated user)
+// /api/v1/user/* -> "My Content"
 router.use("/v1/user", requirePlatformAuth(), userSubRoutes); // Consolidated!
 
 // Reviews (platform-agnostic, works for both networks and marketplace)
 router.use("/v1/reviews", requirePlatformAuth(), reviewRoutes);
 
 // Social/follow features - mounted on /users/:id
+// Public User Resources (scoped to a specific user ID)
+// /api/v1/users/:id/* -> "Their Content"
 // Marketplace does NOT support follow functionality - Networks only
 router.use("/v1/users", requirePlatformAuth(), networksOnly, followRoutes);
 
@@ -91,8 +97,11 @@ router.use("/v1/marketplace", requirePlatformAuth(), marketplaceRoutes);
 // Feeds - Networks only (no follow-based timeline for Marketplace)
 router.use("/v1/feeds", requirePlatformAuth(), networksOnly, feedRoutes);
 
-// Conversations - enriched channel data with business context
-router.use("/v1/conversations", requirePlatformAuth(), conversationRoutes);
+// Analytics and tracking
+router.use("/v1/analytics", requirePlatformAuth(), analyticsRoutes);
+
+// Notification routes
+router.use("/v1/notifications", requirePlatformAuth(), notificationRoutes);
 
 // Reservation Terms - versioned legal terms
 router.use("/v1/reservation-terms", reservationTermsRoutes);

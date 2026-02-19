@@ -523,6 +523,11 @@ userSchema.statics.getMarketplaceProfile = async function (
     location, // computed by virtual based on granularity
     display_name: doc.display_name,
     avatar: (doc as any).avatar,
+    stats: {
+      avg_rating: doc.stats?.avg_rating || 0,
+      rating_count: doc.stats?.rating_count || 0,
+      follower_count: doc.stats?.follower_count || 0,
+    },
   };
 };
 userSchema.statics.getNetworksProfile = async function (

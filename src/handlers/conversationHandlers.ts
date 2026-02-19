@@ -1,0 +1,311 @@
+import { Request, Response, NextFunction } from "express";
+import { channelContextService } from "../services/ChannelContextService";
+import { User } from "../models/User";
+import logger from "../utils/logger";
+
+type Platform = "marketplace" | "networks";
+
+export const getConversations = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const auth = (req as any).auth;
+    if (!auth?.userId) {
+      res.status(401).json({ error: { message: "Unauthorized" } });
+      return;
+    }
+
+    const user = await User.findOne({ external_id: auth.userId });
+    if (!user) {
+      res.status(404).json({ error: { message: "User not found" } });
+      return;
+    }
+
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const offset = parseInt(req.query.offset as string) || 0;
+
+    const conversations = await channelContextService.getConversationsForUser(
+      user._id.toString(),
+      platform,
+      { limit, offset }
+    );
+
+    res.json({
+      data: conversations,
+      limit,
+      offset,
+      total: conversations.length,
+    });
+  } catch (error) {
+    logger.error("[ConversationHandlers] Failed to get conversations", { error });
+    next(error);
+  }
+};
+
+export const searchConversations = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const auth = (req as any).auth;
+    if (!auth?.userId) {
+      res.status(401).json({ error: { message: "Unauthorized" } });
+      return;
+    }
+
+    const user = await User.findOne({ external_id: auth.userId });
+    if (!user) {
+      res.status(404).json({ error: { message: "User not found" } });
+      return;
+    }
+
+    const q = req.query.q as string;
+
+    const conversations = await channelContextService.searchConversations(
+      user._id.toString(),
+      q,
+      platform
+    );
+
+    res.json({
+      data: conversations,
+      query: q,
+      total: conversations.length,
+    });
+  } catch (error) {
+    logger.error("[ConversationHandlers] Search failed", { error });
+    next(error);
+  }
+};
+
+export const getConversationContext = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const auth = (req as any).auth;
+    if (!auth?.userId) {
+      res.status(401).json({ error: { message: "Unauthorized" } });
+      return;
+    }
+
+    const user = await User.findOne({ external_id: auth.userId });
+    if (!user) {
+      res.status(404).json({ error: { message: "User not found" } });
+      return;
+    }
+
+    const { id } = req.params;
+
+    const context = await channelContextService.getChannelContext(id, platform);
+
+    if (!context) {
+      res.status(404).json({ error: { message: "Conversation not found" } });
+      return;
+    }
+
+    const isParty = context.parties.some((p) => p.id === user._id.toString());
+    if (!isParty) {
+      res.status(403).json({ error: { message: "Not authorized" } });
+      return;
+    }
+
+    res.json({ data: context });
+  } catch (error) {
+    logger.error("[ConversationHandlers] Failed to get conversation", { error });
+    next(error);
+  }
+};
+
+export const getConversationMedia = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  try {
+    const auth = (req as any).auth;
+    if (!auth?.userId) {
+      res.status(401).json({ error: { message: "Unauthorized" } });
+      return;
+    }
+
+    const user = await User.findOne({ external_id: auth.userId });
+    if (!user) {
+      res.status(404).json({ error: { message: "User not found" } });
+      return;
+    }
+
+    const { id } = req.params;
+    const type = (req.query.type as "image" | "video" | "file" | "all") || "all";
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const nextToken = req.query.next as string;
+
+    const context = await channelContextService.getChannelContext(id, platform);
+
+    if (!context) {
+      res.status(404).json({ error: { message: "Conversation not found" } });
+      return;
+    }
+
+    const isParty = context.parties.some((p) => p.id === user._id.toString());
+    if (!isParty) {
+      res.status(403).json({ error: { message: "Not authorized" } });
+      return;
+    }
+
+    const mediaResponse = await channelContextService.getSharedMedia(
+      context.getstreamChannelId,
+      { type, limit, next: nextToken }
+    );
+
+    res.json(mediaResponse);
+  } catch (error) {
+    logger.error("[ConversationHandlers] Failed to get shared media", { error });
+    next(error);
+  }
+};
+/**
+ * Conversation Routes
+ *
+ * API endpoints for enriched conversation/channel data.
+ * These routes combine GetStream channels with MongoDB business context.
+ *
+ * Routes: /api/v1/conversations/*
+ */
+
+/**
+ * @swagger
+ * /api/v1/conversations:
+ *   get:
+ *     summary: Get user's conversations with enriched context
+ *     description: Returns channels enriched with listing, offer, and order data
+ *     tags: [Conversations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: platform
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [marketplace, networks]
+ *       - in: query
+ *         name: platform
+ *         schema:
+ *           type: string
+ *           enum: [marketplace, networks]
+ *           default: marketplace
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: offset
+ *         schema:
+ *           type: integer
+ *           default: 0
+ *     responses:
+ *       200:
+ *         description: Conversations retrieved successfully
+ */
+
+/**
+ * @swagger
+ * /api/v1/conversations/search:
+ *   get:
+ *     summary: Search conversations
+ *     description: Search by party name or listing details
+ *     tags: [Conversations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: platform
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [marketplace, networks]
+ *       - in: query
+ *         name: q
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: platform
+ *         schema:
+ *           type: string
+ *           enum: [marketplace, networks]
+ *           default: marketplace
+ *     responses:
+ *       200:
+ *         description: Search results retrieved
+ */
+
+/**
+ * @swagger
+ * /api/v1/conversations/{id}:
+ *   get:
+ *     summary: Get full context for a specific conversation
+ *     description: Returns complete channel, listing, offer, and order context
+ *     tags: [Conversations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: platform
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [marketplace, networks]
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: platform
+ *         schema:
+ *           type: string
+ *           enum: [marketplace, networks]
+ *           default: marketplace
+ *     responses:
+ *       200:
+ *         description: Conversation context retrieved
+ */
+
+/**
+ * @swagger
+ * /api/v1/conversations/{id}/media:
+ *   get:
+ *     summary: Get shared media for a conversation
+ *     description: Returns documents, images, and videos shared in the chat
+ *     tags: [Conversations]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: platform
+ *         required: true
+ *         schema:
+ *           type: string
+ *           enum: [marketplace, networks]
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: platform
+ *         schema:
+ *           type: string
+ *           enum: [marketplace, networks]
+ *           default: marketplace
+ *       - in: query
+ *         name: type
+ *         schema:
+ *           type: string
+ *           enum: [image, video, file, all]
+ *           default: all
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
+ *       - in: query
+ *         name: next
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Shared media retrieved successfully
+ */
+

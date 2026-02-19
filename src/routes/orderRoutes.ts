@@ -38,6 +38,7 @@ router.post(
 // Debug endpoint - showcases the Finix payloads that would be sent without calling Finix
 // Accessible only in non-production environments
 router.get("/:id/finix-debug", debugHandlers.getFinixDebugPayloads);
+router.post("/:id/finix-debug/force-paid", debugHandlers.forceOrderPaid);
 
 /**
  * POST-PURCHASE

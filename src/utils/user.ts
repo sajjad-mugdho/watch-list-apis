@@ -1,4 +1,4 @@
-import { IUser } from "../models/User";
+import { IUser, User } from "../models/User";
 import { ValidatedUserClaims } from "../types/auth";
 import { config } from "../config";
 import { clerkClient } from "@clerk/express";
@@ -264,4 +264,48 @@ export async function fetchAndSyncLocalUser(input: {
   });
 
   return claims;
+}
+
+/**
+ * Get user by external ID, creating them from Clerk data if they don't exist.
+ * Returns the full User document.
+ */
+export async function getOrCreateUser(externalId: string): Promise<IUser> {
+  let user = await User.findOne({ external_id: externalId });
+
+  if (!user) {
+    try {
+      const clerkUser = await clerkClient.users.getUser(externalId);
+      
+      const email = clerkUser.emailAddresses[0]?.emailAddress;
+      const firstName = clerkUser.firstName || "";
+      const lastName = clerkUser.lastName || "";
+      
+      user = new User({
+        external_id: externalId,
+        email: email,
+        first_name: firstName,
+        last_name: lastName,
+        display_name: `${firstName} ${lastName}`.trim(),
+        avatar: clerkUser.imageUrl,
+        onboarding: {
+          status: "pending",
+          steps: {
+            location: {},
+            display_name: { confirmed: false, user_provided: false },
+            avatar: { confirmed: false, user_provided: false },
+            acknowledgements: { tos: false, privacy: false, rules: false }
+          }
+        }
+      });
+      
+      await user.save();
+      userLogger.info("Auto-provisioned new user from Clerk", { userId: user._id, externalId });
+    } catch (error) {
+      userLogger.error("Failed to auto-provision user", { externalId, error });
+      throw error;
+    }
+  }
+  
+  return user;
 }

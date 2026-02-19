@@ -25,6 +25,7 @@ async function seedMockUsers() {
     
     // Default values based on mock data
     const userData = {
+      _id: claims.dialist_id, // FORCE THE ID
       external_id: mock.id,
       email: email,
       display_name: claims.display_name || mock.name,
@@ -38,18 +39,20 @@ async function seedMockUsers() {
       marketplace_published: !!claims.onboarding_state && claims.onboarding_state === 'APPROVED',
       networks_accessed: !!claims.networks_accessed,
       
-      // Default empty arrays/objects if needed
+      // Default empty arrays/objects
       saved_listings: [],
       recent_searches: []
     };
 
     try {
-      // Upsert user
-      const result = await User.findOneAndUpdate(
-        { external_id: mock.id },
-        { $set: userData },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
-      );
+      // First delete any existing user with this external_id to avoid _id conflicts if they differ
+      await User.deleteOne({ external_id: mock.id });
+      
+      // Also delete any existing user with this _id to avoid collision (though unlikely if unique)
+      await User.deleteOne({ _id: claims.dialist_id });
+
+      // Create fresh
+      const result = await User.create(userData);
       console.log(`✅ Seeded user: ${mock.name} (${mock.id}) -> ${result._id}`);
     } catch (err) {
       console.error(`❌ Failed to seed user ${mock.name}:`, err);

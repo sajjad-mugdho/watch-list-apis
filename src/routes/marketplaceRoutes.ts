@@ -7,6 +7,10 @@ import { marketplaceMerchantRoutes } from "./merchant/marketplaceMerchant";
 import { marketplaceChannelRoutes } from "./channels/marketplaceChannels";
 import { orderRoutes } from "./orderRoutes";
 import { refundRequestRoutes } from "./refundRequestRoutes";
+import { marketplaceConversationRoutes } from "./conversations/marketplaceConversationRoutes";
+import { marketplaceChatRoutes } from "./chat/marketplaceChatRoutes";
+import { marketplaceMessageRoutes } from "./messages/marketplaceMessageRoutes";
+
 const router: Router = Router();
 
 router
@@ -17,6 +21,9 @@ router
   .use("/users", marketplacePublicUsers)
   .use("/merchant", marketplaceMerchantRoutes)
   .use("/orders", orderRoutes)
-  .use("/refund-requests", refundRequestRoutes);
+  .use("/refund-requests", refundRequestRoutes)
+  .use("/conversations", marketplaceConversationRoutes)
+  .use("/chat", marketplaceChatRoutes)
+  .use("/messages", marketplaceMessageRoutes);
 
 export { router as marketplaceRoutes };

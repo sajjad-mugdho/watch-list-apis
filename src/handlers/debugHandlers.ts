@@ -200,7 +200,45 @@ export const getFinixDebugPayloads = async (
       };
     }
 
+
     res.json({ success: true, data: { payloads } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Force order paid (dev only)
+ * POST /api/v1/marketplace/orders/:id/finix-debug/force-paid
+ */
+export const forceOrderPaid = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (config.nodeEnv === "production") {
+      throw new ValidationError(
+        "Finix debug endpoint is not allowed in production"
+      );
+    }
+    const { id } = req.params;
+    const order = await Order.findById(id);
+    if (!order) throw new NotFoundError("Order not found");
+
+    if (order.status === "paid") {
+      res.json({ success: true, message: "Already paid" });
+      return;
+    }
+
+    order.status = "paid";
+    order.finix_payment_instrument_id = "PI_mock_instrument_id";
+    order.finix_authorization_id = "TR_mock_auth_id";
+    order.finix_transaction_id = "TR_mock_txn_id";
+    order.paid_at = new Date();
+    await order.save();
+    
+    res.json({ success: true, message: "Order forced to paid" });
   } catch (err) {
     next(err);
   }

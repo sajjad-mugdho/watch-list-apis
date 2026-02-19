@@ -329,3 +329,61 @@ export const user_get = async (
     }
   }
 };
+
+/**
+ * Get marketplace user offers
+ * GET /api/v1/marketplace/user/offers
+ */
+export const marketplace_user_offers_get = async (
+  req: Request<{}, {}, {}, { type?: "sent" | "received"; status?: string; limit?: number; offset?: number }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (!req.user)
+      throw new MissingUserContextError({
+        route: req.path,
+        note: "req.user missing in marketplace_user_offers_get",
+      });
+
+    const { type = "sent", status = "all", limit = 50, offset = 0 } = req.query;
+    const userId = new mongoose.Types.ObjectId(req.user.dialist_id);
+
+    // Dynamic import to avoid circular dependencies if any
+    const { Offer } = await import("../models/Offer");
+
+    const query: any = {};
+    
+    if (type === "sent") {
+      query.buyer_id = userId;
+    } else {
+      query.seller_id = userId;
+    }
+
+    if (status !== "all") {
+      query["last_offer.status"] = status;
+    }
+
+    const offers = await Offer.find(query)
+      .sort({ updatedAt: -1 })
+      .skip(Number(offset))
+      .limit(Number(limit))
+      .lean();
+
+    const total = await Offer.countDocuments(query);
+
+    const response: ApiResponse<any> = {
+      data: offers,
+      _metadata: {
+        total,
+        limit: Number(limit),
+        offset: Number(offset),
+      },
+      requestId: req.headers["x-request-id"] as string,
+    };
+
+    res.json(response);
+  } catch (error) {
+    next(new DatabaseError("Failed to fetch user offers", error));
+  }
+};

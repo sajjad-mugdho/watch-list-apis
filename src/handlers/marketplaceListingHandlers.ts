@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import mongoose from "mongoose";
 import { ApiResponse } from "../types";
 import {
   AuthorizationError,
@@ -173,10 +174,13 @@ export const marketplace_listing_create = async (
     }
 
     const user = req.user;
+    
+    logger.error("DEBUG: createListing user:", { user: JSON.stringify(user, null, 2) });
+    logger.error("DEBUG: Querying MerchantOnboarding with:", { dialist_user_id: user.dialist_id, state: "APPROVED" });
 
     // ✅ Check if user is an approved merchant (query MerchantOnboarding collection)
     const merchantOnboarding = await MerchantOnboarding.findOne({
-      dialist_user_id: user.dialist_id,
+      dialist_user_id: new mongoose.Types.ObjectId(user.dialist_id),
       onboarding_state: "APPROVED",
     });
 
