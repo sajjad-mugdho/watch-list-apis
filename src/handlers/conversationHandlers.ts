@@ -3,8 +3,8 @@ import { channelContextService } from "../services/ChannelContextService";
 import { User } from "../models/User";
 import logger from "../utils/logger";
 
-import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
-import { NetworkListingChannel } from "../models/ListingChannel";
+// import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
+// import { NetworkListingChannel } from "../models/ListingChannel";
 import { Platform } from "../types/platform";
 
 export const getConversations = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {

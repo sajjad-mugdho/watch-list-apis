@@ -262,7 +262,7 @@ export const forceOrderPaid = async (
       
       await session.commitTransaction();
     } catch (error) {
-      await session.abortTransaction();
+      if (session.inTransaction()) await session.abortTransaction();
       throw error;
     } finally {
       session.endSession();

@@ -12,6 +12,7 @@
  */
 
 import mongoose, { Types } from "mongoose";
+import { NotFoundError, ValidationError } from "../../utils/errors";
 import { 
   Platform,
   channelRepository,
@@ -95,8 +96,8 @@ export class OfferService {
     } = params;
 
     const useExternalSession = !!session;
-    const internalSession = useExternalSession ? session : await mongoose.startSession();
-    if (!useExternalSession) internalSession.startTransaction();
+    const txnSession = useExternalSession ? session : await mongoose.startSession();
+    if (!useExternalSession) txnSession.startTransaction();
 
     let offer: any;
     let revision: any;
@@ -106,11 +107,11 @@ export class OfferService {
     try {
       // 1. Get the listing to validate + snapshot (inside transaction)
       const ListingModel = platform === "networks" ? NetworkListing : MarketplaceListing;
-      const listing = await (ListingModel as any).findById(listingId).session(internalSession);
+      const listing = await (ListingModel as any).findById(listingId).session(txnSession);
       
-      if (!listing) throw new Error("Listing not found");
-      if (listing.status !== "active") throw new Error("Listing is not active");
-      if (listing.price && amount >= listing.price) throw new Error("Offer must be below asking price");
+      if (!listing) throw new NotFoundError("Listing");
+      if (listing.status !== "active") throw new ValidationError("Listing is not active");
+      if (listing.price && amount >= listing.price) throw new ValidationError("Offer must be below asking price");
 
       listingSnapshot = {
         brand: (listing as any).brand || "",
@@ -126,10 +127,10 @@ export class OfferService {
         listing_id: new Types.ObjectId(listingId),
         buyer_id: new Types.ObjectId(senderId),
         state: { $in: ["CREATED", "COUNTERED"] },
-      }).session(internalSession);
+      }).session(txnSession);
 
       if (existingOffer) {
-        throw new Error(
+        throw new ValidationError(
           "An active offer already exists. Accept, counter, or wait for expiry."
         );
       }
@@ -150,7 +151,7 @@ export class OfferService {
         expires_at: expiresAt,
         listing_snapshot: listingSnapshot,
       });
-      await offer.save({ session: internalSession });
+      await offer.save({ session: txnSession });
 
       // Get current terms
       // Note: ReservationTerms.getCurrent() doesn't seem to support session in its static method if not modified
@@ -166,11 +167,11 @@ export class OfferService {
         created_by: new Types.ObjectId(senderId),
         revision_number: 1,
       });
-      await revision.save({ session: internalSession });
+      await revision.save({ session: txnSession });
 
       // Link revision to offer
       offer.active_revision_id = revision._id;
-      await offer.save({ session: internalSession });
+      await offer.save({ session: txnSession });
 
       // Write to outbox
       const outboxEntry = new EventOutbox({
@@ -191,16 +192,16 @@ export class OfferService {
         },
         published: false,
       });
-      await outboxEntry.save({ session: internalSession });
+      await outboxEntry.save({ session: txnSession });
 
-      if (!useExternalSession) await internalSession.commitTransaction();
+      if (!useExternalSession) await txnSession.commitTransaction();
     } catch (error) {
-      if (!useExternalSession && internalSession.inTransaction()) {
-        await internalSession.abortTransaction();
+      if (!useExternalSession && txnSession.inTransaction()) {
+        await txnSession.abortTransaction();
       }
       throw error;
     } finally {
-      if (!useExternalSession) internalSession.endSession();
+      if (!useExternalSession) txnSession.endSession();
     }
 
     // --- Post-Transaction Side Effects ---

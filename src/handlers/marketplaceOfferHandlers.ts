@@ -184,7 +184,7 @@ export const marketplace_offer_send = async (
             inquiry: null,
             offer_history: [],
             last_offer: null,
-            getstream_channel_id: getstreamChannelId || "",
+            getstream_channel_id: getstreamChannelId ?? null,
             order_id: null,
           }], { session });
           channelId = (channel._id as any).toString();
@@ -257,12 +257,7 @@ export const marketplace_offer_send = async (
     if (err instanceof AppError) {
       next(err);
     } else {
-      // Check for service errors that strictly map to 400
-      if (err instanceof Error && (err.message.includes("active offer") || err.message.includes("below asking price"))) {
-        next(new ValidationError(err.message));
-      } else {
-        next(new DatabaseError("Failed to send offer", err));
-      }
+      next(new DatabaseError("Failed to send offer", err));
     }
   }
 };
@@ -840,53 +835,64 @@ export const marketplace_offer_checkout = async (
 
     const fraud_session_id = `fs_${crypto.randomBytes(16).toString("hex")}`;
 
-    const order = await Order.create({
-      listing_type: "MarketplaceListing",
-      listing_id: listing._id,
-      listing_snapshot: (listing as any).listing_snapshot || {
-        brand: listing.brand,
-        model: listing.model,
-        reference: listing.reference,
-        condition: listing.condition,
-        price: listing.price,
-        images: listing.images || [],
-        thumbnail: listing.thumbnail || listing.images?.[0],
-      },
-      from_offer_id: channel._id as any,
-      buyer_id: channel.buyer_id,
-      seller_id: channel.seller_id,
-      amount: lastOffer.amount,
-      currency: "USD",
-      status: "reserved",
-      reserved_at: now,
-      reservation_expires_at,
-      finix_buyer_identity_id: null,
-      finix_payment_instrument_id: null,
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Update listing reservation fields
-    listing.status = "reserved";
-    listing.reserved_by_user_id = channel.buyer_id as any;
-    listing.reserved_until = reservation_expires_at;
-    listing.order = {
-      channel_id: channel._id as any,
-      buyer_id: channel.buyer_id,
-      buyer_name: channel.buyer_snapshot?.name,
-      reserved_at: now,
-    } as any;
-
-    await listing.save();
-
-    const response: ApiResponse<any> = {
-      data: {
-        order_id: order._id.toString(),
+    try {
+      const [order] = await Order.create([{
+        listing_type: "MarketplaceListing",
+        listing_id: listing._id,
+        listing_snapshot: (listing as any).listing_snapshot || {
+          brand: listing.brand,
+          model: listing.model,
+          reference: listing.reference,
+          condition: listing.condition,
+          price: listing.price,
+          images: listing.images || [],
+          thumbnail: listing.thumbnail || listing.images?.[0],
+        },
+        from_offer_id: channel._id as any,
+        buyer_id: channel.buyer_id,
+        seller_id: channel.seller_id,
+        amount: lastOffer.amount,
+        currency: "USD",
+        status: "reserved",
+        reserved_at: now,
         reservation_expires_at,
-        fraud_session_id,
-      },
-      requestId: req.headers["x-request-id"] as string,
-    };
+        finix_buyer_identity_id: null,
+        finix_payment_instrument_id: null,
+      }], { session });
 
-    res.status(201).json(response);
+      // Update listing reservation fields
+      listing.status = "reserved";
+      listing.reserved_by_user_id = channel.buyer_id as any;
+      listing.reserved_until = reservation_expires_at;
+      listing.order = {
+        channel_id: channel._id as any,
+        buyer_id: channel.buyer_id,
+        buyer_name: channel.buyer_snapshot?.name,
+        reserved_at: now,
+      } as any;
+
+      await listing.save({ session });
+      await session.commitTransaction();
+
+      const response: ApiResponse<any> = {
+        data: {
+          order_id: order._id.toString(),
+          reservation_expires_at,
+          fraud_session_id,
+        },
+        requestId: req.headers["x-request-id"] as string,
+      };
+
+      res.status(201).json(response);
+    } catch (err) {
+      if (session.inTransaction()) await session.abortTransaction();
+      throw err;
+    } finally {
+      session.endSession();
+    }
   } catch (err) {
     logger.error("Error creating order from offer checkout:", { error: err });
     if (err instanceof AppError) next(err);

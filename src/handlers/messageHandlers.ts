@@ -490,11 +490,17 @@ export const archiveChannel = (platform: Platform) => async (req: Request, res: 
       return;
     }
 
-    await chatService.ensureConnected();
-    const client = chatService.getClient();
-    const streamChannel = client.channel("messaging", channelId);
+    try {
+      await chatService.ensureConnected();
+      const client = chatService.getClient();
+      const streamChannel = client.channel("messaging", channelId);
 
-    await streamChannel.hide(auth.userId, false);
+      await streamChannel.hide(auth.userId, false);
+    } catch (chatError: any) {
+      logger.warn("Failed to archive channel in GetStream", { error: chatError, channelId });
+      res.status(503).json({ error: { message: "Could not archive channel at this time" } });
+      return;
+    }
 
     res.json({ message: "Channel archived" });
   } catch (error) {
@@ -521,8 +527,8 @@ export const archiveChannel = (platform: Platform) => async (req: Request, res: 
  *   post:
  *     summary: Send a message through backend
  *     description: |
- *       Stores message in MongoDB and delivers via GetStream IN PARALLEL.
- *       Zero latency gap - both operations happen simultaneously.
+ *       Stores message in MongoDB first via ChatMessage.create,
+ *       and then delivers via GetStream sendMessage.
  *     tags: [Messages]
  *     security:
  *       - bearerAuth: []
