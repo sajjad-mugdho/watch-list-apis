@@ -8,7 +8,7 @@ import { chatService } from "../services/ChatService";
 import { Notification } from "../models/Notification";
 import logger from "../utils/logger";
 
-type Platform = "marketplace" | "networks";
+import { Platform } from "../types/platform";
 
 const MESSAGE_TYPES = [
   "regular",
@@ -128,7 +128,10 @@ export const sendMessage = (platform: Platform) => async (req: Request, res: Res
     }
     
     try {
-      const recipientId = user._id.toString() === channel.buyer_id.toString() ? channel.seller_id : channel.buyer_id;
+      const recipientId = channel.buyer_id && user._id.toString() === channel.buyer_id.toString()
+        ? channel.seller_id
+        : (channel.buyer_id ?? channel.seller_id);
+      if (!recipientId) throw new Error("Channel has no valid recipient");
       await Notification.create({
         user_id: recipientId,
         type: type === "inquiry" ? "new_inquiry" : "new_message",
@@ -212,7 +215,7 @@ export const getChannelMessages = (platform: Platform) => async (req: Request, r
       data: messages.reverse(),
       total,
       limit,
-      has_more: messages.length === limit,
+      has_more,
     });
   } catch (error) {
     next(error);
@@ -437,7 +440,7 @@ export const reactToMessage = (platform: Platform) => async (req: Request, res: 
 
     await Promise.all([
       ChatMessage.updateOne(
-        { _id: id, "reactions.user_id": { $ne: user._id }, "reactions.type": type },
+        { _id: id, reactions: { $not: { $elemMatch: { user_id: user._id, type } } } },
         { $push: { reactions: { user_id: user._id, type, created_at: new Date() } } }
       ),
       (async () => {
@@ -508,8 +511,8 @@ export const archiveChannel = (platform: Platform) => async (req: Request, res: 
  * - Moderation capabilities
  * - Analytics
  *
- * Architecture: Parallel execution ensures instant GetStream delivery
- * while simultaneously storing in MongoDB.
+ * Architecture: Message persistence to MongoDB via ChatMessage.create happens first,
+ * and then GetStream delivery via sendMessage is performed.
  */
 
 /**

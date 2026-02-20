@@ -108,79 +108,98 @@ export const marketplace_offer_send = async (
     validateOfferEligibility(listing, buyerId, amount);
 
     let channelId: string;
-    let getstreamChannelId: string = "";
+    let getstreamChannelId: string | undefined;
+
+    // Pre-transaction check and Stream channel creation
+    let existingChannel = await MarketplaceListingChannel.findOne({
+      listing_id: listingId,
+      buyer_id: buyerId
+    });
+
+    if (existingChannel) {
+      if (existingChannel.status === "closed") throw new ValidationError("Channel is closed");
+      if (existingChannel.hasActiveOffer()) throw new ValidationError("An active offer already exists on this channel");
+      channelId = (existingChannel._id as any).toString();
+      getstreamChannelId = existingChannel.getstream_channel_id ?? undefined;
+    } else {
+      try {
+        const sellerIdStr = listing.dialist_id.toString();
+        const result = await chatService.getOrCreateChannel(buyerId, sellerIdStr, {
+          listing_id: listingId,
+          listing_title: `${listing.brand} ${listing.model}`,
+          listing_price: listing.price,
+          ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
+        });
+        getstreamChannelId = result.channelId;
+      } catch (chatError) {
+        logger.error("Failed to create marketplace Stream Chat channel", { error: chatError });
+        throw new DatabaseError("Failed to create Stream Chat channel for offer", chatError);
+      }
+    }
 
     const session = await mongoose.startSession();
     session.startTransaction();
 
     try {
-      // 1. Check for or create Channel (OfferService needs a channelId)
-      let channel = await MarketplaceListingChannel.findByListingAndBuyer(listingId, buyerId);
+      // Re-read with session for transaction safety
+      let channel = await MarketplaceListingChannel.findOne({
+        listing_id: listingId,
+        buyer_id: buyerId
+      }).session(session);
 
       if (channel) {
-        if (channel.status === "closed") {
-          throw new ValidationError("Channel is closed");
-        }
-        
-        if (channel.hasActiveOffer()) {
-           throw new ValidationError("An active offer already exists on this channel");
-        }
-
+        if (channel.status === "closed") throw new ValidationError("Channel is closed");
+        if (channel.hasActiveOffer()) throw new ValidationError("An active offer already exists on this channel");
         channelId = (channel._id as any).toString();
-        getstreamChannelId = channel.getstream_channel_id || "";
+        getstreamChannelId = channel.getstream_channel_id ?? undefined;
       } else {
-        // Create Stream Chat channel ID move inside transaction try/catch but chatService call is not transactional
         try {
-          const sellerIdStr = listing.dialist_id.toString();
-          const result = await chatService.getOrCreateChannel(buyerId, sellerIdStr, {
-            listing_id: listingId,
-            listing_title: `${listing.brand} ${listing.model}`,
-            listing_price: listing.price,
-            ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
-          });
-          getstreamChannelId = result.channelId;
-        } catch (chatError) {
-          logger.error("Failed to create marketplace Stream Chat channel", {
-            error: chatError,
-          });
-          throw new DatabaseError("Failed to create Stream Chat channel for offer", chatError);
+          [channel] = await MarketplaceListingChannel.create([{
+            listing_id: listingId as any,
+            buyer_id: buyerId as any,
+            seller_id: listing.dialist_id,
+            status: "open",
+            created_from: "offer",
+            last_event_type: "offer",
+            buyer_snapshot: {
+              _id: buyerId as any,
+              name: req.user.display_name,
+              avatar: req.user.display_avatar,
+            },
+            seller_snapshot: {
+              _id: listing.author._id,
+              name: listing.author.name,
+              avatar: listing.author.avatar,
+            },
+            listing_snapshot: {
+              brand: listing.brand,
+              model: listing.model,
+              reference: listing.reference,
+              price: listing.price,
+              condition: listing.condition,
+              contents: listing.contents,
+              thumbnail: listing.thumbnail,
+              year: listing.year,
+            },
+            inquiry: null,
+            offer_history: [],
+            last_offer: null,
+            getstream_channel_id: getstreamChannelId || "",
+            order_id: null,
+          }], { session });
+          channelId = (channel._id as any).toString();
+        } catch (createError: any) {
+          if (createError.code === 11000) {
+            channel = await MarketplaceListingChannel.findOne({ listing_id: listingId, buyer_id: buyerId }).session(session);
+            if (!channel) throw createError;
+            if (channel.status === "closed") throw new ValidationError("Channel is closed");
+            if (channel.hasActiveOffer()) throw new ValidationError("An active offer already exists on this channel");
+            channelId = (channel._id as any).toString();
+            getstreamChannelId = channel.getstream_channel_id ?? undefined;
+          } else {
+            throw createError;
+          }
         }
-
-        [channel] = await MarketplaceListingChannel.create([{
-          listing_id: listingId as any,
-          buyer_id: buyerId as any,
-          seller_id: listing.dialist_id,
-          status: "open",
-          created_from: "offer",
-          last_event_type: "offer",
-          buyer_snapshot: {
-            _id: buyerId as any,
-            name: req.user.display_name,
-            avatar: req.user.display_avatar,
-          },
-          seller_snapshot: {
-            _id: listing.author._id,
-            name: listing.author.name,
-            avatar: listing.author.avatar,
-          },
-          listing_snapshot: {
-            brand: listing.brand,
-            model: listing.model,
-            reference: listing.reference,
-            price: listing.price,
-            condition: listing.condition,
-            contents: listing.contents,
-            thumbnail: listing.thumbnail,
-            year: listing.year,
-          },
-          inquiry: null,
-          offer_history: [],
-          last_offer: null,
-          getstream_channel_id: getstreamChannelId,
-          order_id: null,
-        }], { session });
-        
-        channelId = (channel._id as any).toString();
       }
 
       // 2. Use OfferService to create the offer
@@ -192,12 +211,12 @@ export const marketplace_offer_send = async (
         amount,
         ...(message ? { note: message } : {}),
         platform: "marketplace",
-        getstreamChannelId,
+        ...(getstreamChannelId ? { getstreamChannelId } : {}),
       }, session);
 
       await session.commitTransaction();
     } catch (error) {
-      await session.abortTransaction();
+      if (session.inTransaction()) await session.abortTransaction();
       throw error;
     } finally {
       session.endSession();
@@ -359,7 +378,7 @@ export const marketplace_offer_counter = async (
 
     res.status(201).json(response);
   } catch (err) {
-    console.error("Error countering marketplace offer:", err);
+    logger.error("Error countering marketplace offer:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -515,8 +534,8 @@ export const marketplace_offer_accept = async (
 
     res.json(response);
   } catch (err) {
-    await session.abortTransaction();
-    console.error("Error accepting marketplace offer:", err);
+    if (session.inTransaction()) await session.abortTransaction();
+    logger.error("Error accepting marketplace offer:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -611,7 +630,7 @@ export const marketplace_offer_reject = async (
 
     res.json(response);
   } catch (err) {
-    console.error("Error rejecting marketplace offer:", err);
+    logger.error("Error rejecting marketplace offer:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -722,7 +741,7 @@ export const marketplace_user_offers_get = async (
 
     res.json(response);
   } catch (err) {
-    console.error("Error fetching marketplace user channels:", err);
+    logger.error("Error fetching marketplace user channels:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -770,7 +789,7 @@ export const marketplace_listing_offers_get = async (
 
     res.json(response);
   } catch (err) {
-    console.error("Error fetching marketplace listing channels:", err);
+    logger.error("Error fetching marketplace listing channels:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -869,7 +888,7 @@ export const marketplace_offer_checkout = async (
 
     res.status(201).json(response);
   } catch (err) {
-    console.error("Error creating order from offer checkout:", err);
+    logger.error("Error creating order from offer checkout:", { error: err });
     if (err instanceof AppError) next(err);
     else next(new DatabaseError("Failed to create order from offer", err));
   }

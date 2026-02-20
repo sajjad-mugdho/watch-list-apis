@@ -3,7 +3,9 @@ import { channelContextService } from "../services/ChannelContextService";
 import { User } from "../models/User";
 import logger from "../utils/logger";
 
-type Platform = "marketplace" | "networks";
+import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
+import { NetworkListingChannel } from "../models/ListingChannel";
+import { Platform } from "../types/platform";
 
 export const getConversations = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
@@ -19,8 +21,10 @@ export const getConversations = (platform: Platform) => async (req: Request, res
       return;
     }
 
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-    const offset = parseInt(req.query.offset as string) || 0;
+    const parsedLimit = parseInt(req.query.limit as string);
+    const limit = Math.min(!isNaN(parsedLimit) ? Math.max(1, parsedLimit) : 20, 100);
+    const parsedOffset = parseInt(req.query.offset as string);
+    const offset = !isNaN(parsedOffset) ? Math.max(0, parsedOffset) : 0;
 
     const conversations = await channelContextService.getConversationsForUser(
       user._id.toString(),
@@ -28,16 +32,7 @@ export const getConversations = (platform: Platform) => async (req: Request, res
       { limit, offset }
     );
 
-    const { MarketplaceListingChannel } = await import("../models/MarketplaceListingChannel");
-    const { NetworkListingChannel } = await import("../models/ListingChannel");
-    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
-    
-    const total = await ChannelModel.countDocuments({
-      $or: [
-        { buyer_id: user._id },
-        { seller_id: user._id },
-      ],
-    });
+    const total = (conversations as any).total ?? (conversations as any).data?.length ?? (Array.isArray(conversations) ? conversations.length : 0) ?? 0;
 
     res.json({
       data: conversations,
@@ -66,6 +61,11 @@ export const searchConversations = (platform: Platform) => async (req: Request, 
     }
 
     const q = req.query.q as string;
+    
+    if (!q || !q.trim()) {
+      res.status(400).json({ error: { message: "Query parameter 'q' is required and must not be empty" } });
+      return;
+    }
 
     const conversations = await channelContextService.searchConversations(
       user._id.toString(),
@@ -135,7 +135,9 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
     }
 
     const { id } = req.params;
-    const type = (req.query.type as "image" | "video" | "file" | "all") || "all";
+    const VALID_MEDIA_TYPES = ["image", "video", "file", "all"] as const;
+    const rawType = req.query.type as string;
+    const type = (VALID_MEDIA_TYPES.includes(rawType as any) ? rawType : "all") as "image" | "video" | "file" | "all";
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
     const nextToken = req.query.next as string;
 

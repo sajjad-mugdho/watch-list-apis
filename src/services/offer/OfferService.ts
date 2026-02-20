@@ -94,41 +94,34 @@ export class OfferService {
       getstreamChannelId,
     } = params;
 
-    // 1. Get the listing to validate + snapshot
-    const ListingModel = platform === "networks" ? NetworkListing : MarketplaceListing;
-    const listing = await (ListingModel as any).findById(listingId).session(session);
-    
-    if (!listing) {
-      throw new Error("Listing not found");
-    }
-    if (listing.status !== "active") {
-      throw new Error("Listing is not active");
-    }
-
-    if (listing.price && amount >= listing.price) {
-      throw new Error("Offer must be below asking price");
-    }
-
-    const listingSnapshot = {
-      brand: (listing as any).brand || "",
-      model: (listing as any).model || "",
-      reference: (listing as any).reference || "",
-      price: listing.price,
-      condition: (listing as any).condition,
-      thumbnail: (listing as any).thumbnail || (listing as any).images?.[0],
-    };
-
-    // 5. Transactional create: Offer + OfferRevision + EventOutbox (Models initialized at bootstrap)
-
     const useExternalSession = !!session;
     const internalSession = useExternalSession ? session : await mongoose.startSession();
     if (!useExternalSession) internalSession.startTransaction();
 
     let offer: any;
     let revision: any;
+    let listingSnapshot: any;
+    let getstreamChannelIdToUse: string = getstreamChannelId || "";
 
     try {
-      // 2. Check for existing active offer (match unique index) - moved inside transaction
+      // 1. Get the listing to validate + snapshot (inside transaction)
+      const ListingModel = platform === "networks" ? NetworkListing : MarketplaceListing;
+      const listing = await (ListingModel as any).findById(listingId).session(internalSession);
+      
+      if (!listing) throw new Error("Listing not found");
+      if (listing.status !== "active") throw new Error("Listing is not active");
+      if (listing.price && amount >= listing.price) throw new Error("Offer must be below asking price");
+
+      listingSnapshot = {
+        brand: (listing as any).brand || "",
+        model: (listing as any).model || "",
+        reference: (listing as any).reference || "",
+        price: listing.price,
+        condition: (listing as any).condition,
+        thumbnail: (listing as any).thumbnail || (listing as any).images?.[0],
+      };
+
+      // 2. Check for existing active offer (match unique index) - inside transaction
       const existingOffer = await (Offer as any).findOne({
         listing_id: new Types.ObjectId(listingId),
         buyer_id: new Types.ObjectId(senderId),
@@ -152,7 +145,7 @@ export class OfferService {
         buyer_id: new Types.ObjectId(senderId),
         seller_id: new Types.ObjectId(receiverId),
         platform,
-        getstream_channel_id: getstreamChannelId || "",
+        getstream_channel_id: getstreamChannelIdToUse,
         state: "CREATED",
         expires_at: expiresAt,
         listing_snapshot: listingSnapshot,
@@ -200,17 +193,6 @@ export class OfferService {
       });
       await outboxEntry.save({ session: internalSession });
 
-      // Also update channel for backward compatibility
-      await this.updateChannelLastOffer(channelId, platform, {
-        _id: offer._id,
-        sender_id: senderId,
-        amount,
-        status: "sent",
-        offer_type: "initial",
-        createdAt: new Date(),
-        expiresAt,
-      }, internalSession);
-
       if (!useExternalSession) await internalSession.commitTransaction();
     } catch (error) {
       if (!useExternalSession && internalSession.inTransaction()) {
@@ -222,6 +204,18 @@ export class OfferService {
     }
 
     // --- Post-Transaction Side Effects ---
+    
+    // Also update channel for backward compatibility
+    await this.updateChannelLastOffer(channelId, platform, {
+      _id: offer._id,
+      sender_id: senderId,
+      amount,
+      status: "sent",
+      offer_type: "initial",
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + expiresInHours * 60 * 60 * 1000),
+    });
+
     // 5. Send system message (Legacy parity)
     if (getstreamChannelId) {
       try {

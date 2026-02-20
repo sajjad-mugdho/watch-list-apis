@@ -240,21 +240,32 @@ export const forceOrderPaid = async (
       return;
     }
 
-    order.status = "paid";
-    order.finix_payment_instrument_id = "PI_mock_instrument_id";
-    order.finix_authorization_id = "AU_mock_auth_id";
-    order.finix_transaction_id = "TR_mock_txn_id";
-    order.paid_at = new Date();
-    await order.save();
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      order.status = "paid";
+      order.finix_payment_instrument_id = "PI_mock_instrument_id";
+      order.finix_authorization_id = "AU_mock_auth_id";
+      order.finix_transaction_id = "TR_mock_txn_id";
+      order.paid_at = new Date();
+      await order.save({ session });
 
-    // Sync listing status
-    const listing = await MarketplaceListing.findById(order.listing_id);
-    if (listing) {
-      listing.status = "sold";
-      listing.reserved_by_user_id = null;
-      listing.reserved_by_order_id = null;
-      listing.reserved_until = null;
-      await listing.save();
+      // Sync listing status
+      const listing = await MarketplaceListing.findById(order.listing_id).session(session);
+      if (listing) {
+        listing.status = "sold";
+        (listing as any).reserved_by_user_id = null;
+        (listing as any).reserved_by_order_id = null;
+        (listing as any).reserved_until = null;
+        await listing.save({ session });
+      }
+      
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
     
     res.json({ success: true, message: "Order forced to paid" });
