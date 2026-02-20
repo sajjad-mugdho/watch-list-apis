@@ -249,6 +249,13 @@ export const updateMessage = (_platform: Platform) => async (req: Request, res: 
       return;
     }
 
+    // Membership check: Ensure message belongs to a channel the user is still in
+    const channelContext = await channelContextService.getChannelContext(message.stream_channel_id, _platform);
+    if (!channelContext || !channelContext.parties.some(p => p.clerk_id === auth.userId)) {
+      res.status(403).json({ error: { message: "Not authorized - you are no longer a member of this channel" } });
+      return;
+    }
+
     if (!message.original_text) {
       message.original_text = message.text;
     }
@@ -296,6 +303,13 @@ export const deleteMessage = (_platform: Platform) => async (req: Request, res: 
 
     if (message.sender_clerk_id !== auth.userId) {
       res.status(403).json({ error: { message: "Not authorized to delete this message" } });
+      return;
+    }
+
+    // Membership check: Ensure message belongs to a channel the user is still in
+    const channelContext = await channelContextService.getChannelContext(message.stream_channel_id, _platform);
+    if (!channelContext || !channelContext.parties.some(p => p.clerk_id === auth.userId)) {
+      res.status(403).json({ error: { message: "Not authorized - you are no longer a member of this channel" } });
       return;
     }
 

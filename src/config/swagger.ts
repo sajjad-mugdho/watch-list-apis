@@ -2485,6 +2485,10 @@ Use this to test API endpoints without real authentication.
         name: "Marketplace - Offers",
         description: "Offers and counter-offers for marketplace listings.",
       },
+      {
+        name: "Analytics",
+        description: "In-depth messaging and listing performance analytics.",
+      },
     ],
   },
   apis: ["./src/routes/**/*.ts", "./src/handlers/**/*.ts"], // This will be ignored since we're defining everything inline

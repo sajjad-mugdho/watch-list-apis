@@ -138,7 +138,8 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
     const VALID_MEDIA_TYPES = ["image", "video", "file", "all"] as const;
     const rawType = req.query.type as string;
     const type = (VALID_MEDIA_TYPES.includes(rawType as any) ? rawType : "all") as "image" | "video" | "file" | "all";
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const parsedMediaLimit = parseInt(req.query.limit as string, 10);
+    const limit = Math.min(!isNaN(parsedMediaLimit) ? Math.max(1, parsedMediaLimit) : 20, 100);
     const nextToken = req.query.next as string;
 
     const context = await channelContextService.getChannelContext(id, platform);
@@ -176,7 +177,7 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
 
 /**
  * @swagger
- * /api/v1/conversations:
+ * /api/v1/{platform}/conversations:
  *   get:
  *     summary: Get user's conversations with enriched context
  *     description: Returns channels enriched with listing, offer, and order data
@@ -190,12 +191,6 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
  *         schema:
  *           type: string
  *           enum: [marketplace, networks]
- *       - in: query
- *         name: platform
- *         schema:
- *           type: string
- *           enum: [marketplace, networks]
- *           default: marketplace
  *       - in: query
  *         name: limit
  *         schema:
@@ -213,7 +208,7 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
 
 /**
  * @swagger
- * /api/v1/conversations/search:
+ * /api/v1/{platform}/conversations/search:
  *   get:
  *     summary: Search conversations
  *     description: Search by party name or listing details
@@ -232,12 +227,6 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: platform
- *         schema:
- *           type: string
- *           enum: [marketplace, networks]
- *           default: marketplace
  *     responses:
  *       200:
  *         description: Search results retrieved
@@ -245,7 +234,7 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
 
 /**
  * @swagger
- * /api/v1/conversations/{id}:
+ * /api/v1/{platform}/conversations/{id}:
  *   get:
  *     summary: Get full context for a specific conversation
  *     description: Returns complete channel, listing, offer, and order context
@@ -264,12 +253,6 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: platform
- *         schema:
- *           type: string
- *           enum: [marketplace, networks]
- *           default: marketplace
  *     responses:
  *       200:
  *         description: Conversation context retrieved
@@ -277,7 +260,7 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
 
 /**
  * @swagger
- * /api/v1/conversations/{id}/media:
+ * /api/v1/{platform}/conversations/{id}/media:
  *   get:
  *     summary: Get shared media for a conversation
  *     description: Returns documents, images, and videos shared in the chat
@@ -296,12 +279,6 @@ export const getConversationMedia = (platform: Platform) => async (req: Request,
  *         required: true
  *         schema:
  *           type: string
- *       - in: query
- *         name: platform
- *         schema:
- *           type: string
- *           enum: [marketplace, networks]
- *           default: marketplace
  *       - in: query
  *         name: type
  *         schema:

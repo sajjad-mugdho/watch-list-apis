@@ -673,7 +673,7 @@ export const marketplace_offer_get = async (
 
     res.json(response);
   } catch (err) {
-    console.error("Error fetching marketplace channel:", err);
+    logger.error("Error fetching marketplace channel:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -815,6 +815,11 @@ export const marketplace_offer_checkout = async (
     const channel = await MarketplaceListingChannel.findById(channelId);
     if (!channel) throw new NotFoundError("Channel");
 
+    // Idempotency: prevent duplicate checkout
+    if (channel.order_id) {
+      throw new ValidationError("An order has already been created for this channel");
+    }
+
     // Only buyer can checkout
     if (String(channel.buyer_id) !== String(buyerId)) {
       throw new AuthorizationError("Only buyer can checkout this offer", {});
@@ -861,6 +866,7 @@ export const marketplace_offer_checkout = async (
         reservation_expires_at,
         finix_buyer_identity_id: null,
         finix_payment_instrument_id: null,
+        fraud_session_id, // Persist fraud session ID
       }], { session });
 
       // Update listing reservation fields
@@ -875,6 +881,14 @@ export const marketplace_offer_checkout = async (
       } as any;
 
       await listing.save({ session });
+
+      // Link Order back to channel so re-checkout is rejected
+      await MarketplaceListingChannel.updateOne(
+        { _id: channel._id },
+        { $set: { order_id: order._id } },
+        { session }
+      );
+
       await session.commitTransaction();
 
       const response: ApiResponse<any> = {
