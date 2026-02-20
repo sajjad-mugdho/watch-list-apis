@@ -223,6 +223,9 @@ export const forceOrderPaid = async (
       );
     }
     const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ValidationError("Invalid order ID format");
+    }
     const order = await Order.findById(id);
     if (!order) throw new NotFoundError("Order not found");
 
@@ -239,10 +242,20 @@ export const forceOrderPaid = async (
 
     order.status = "paid";
     order.finix_payment_instrument_id = "PI_mock_instrument_id";
-    order.finix_authorization_id = "TR_mock_auth_id";
+    order.finix_authorization_id = "AU_mock_auth_id";
     order.finix_transaction_id = "TR_mock_txn_id";
     order.paid_at = new Date();
     await order.save();
+
+    // Sync listing status
+    const listing = await MarketplaceListing.findById(order.listing_id);
+    if (listing) {
+      listing.status = "sold";
+      listing.reserved_by_user_id = null;
+      listing.reserved_by_order_id = null;
+      listing.reserved_until = null;
+      await listing.save();
+    }
     
     res.json({ success: true, message: "Order forced to paid" });
   } catch (err) {

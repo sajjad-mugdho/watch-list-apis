@@ -330,12 +330,14 @@ export const user_get = async (
   }
 };
 
+import { Offer } from "../models/Offer";
+
 /**
  * Get marketplace user offers
  * GET /api/v1/marketplace/user/offers
  */
 export const marketplace_user_offers_get_handler = async (
-  req: Request<{}, {}, {}, { type?: "sent" | "received"; status?: string; limit?: number; offset?: number }>,
+  req: Request<{}, {}, {}, { type?: string; status?: string; limit?: string; offset?: string }>,
   res: Response<ApiResponse<any>>,
   next: NextFunction
 ): Promise<void> => {
@@ -346,11 +348,13 @@ export const marketplace_user_offers_get_handler = async (
         note: "req.user missing in marketplace_user_offers_get",
       });
 
-    const { type = "sent", status = "all", limit = 50, offset = 0 } = req.query;
-    const userId = new mongoose.Types.ObjectId(req.user.dialist_id);
+    const type = (req.query.type === "sent" || req.query.type === "received") ? req.query.type : "sent";
+    const status = req.query.status ?? "all";
+    const MAX_LIMIT = 100;
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string, 10) || 50, 1), MAX_LIMIT);
+    const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
 
-    // Dynamic import to avoid circular dependencies if any
-    const { Offer } = await import("../models/Offer");
+    const userId = new mongoose.Types.ObjectId(req.user.dialist_id);
 
     const query: any = { platform: "marketplace" };
     
@@ -366,8 +370,8 @@ export const marketplace_user_offers_get_handler = async (
 
     const offers = await Offer.find(query)
       .sort({ updatedAt: -1 })
-      .skip(Number(offset))
-      .limit(Number(limit))
+      .skip(offset)
+      .limit(limit)
       .lean();
 
     const total = await Offer.countDocuments(query);
@@ -376,10 +380,10 @@ export const marketplace_user_offers_get_handler = async (
       data: offers,
       _metadata: {
         total,
-        limit: Number(limit),
-        offset: Number(offset),
+        limit,
+        offset,
       },
-      requestId: req.headers["x-request-id"] as string,
+      requestId: (req.headers["x-request-id"] as string) ?? "",
     };
 
     res.json(response);

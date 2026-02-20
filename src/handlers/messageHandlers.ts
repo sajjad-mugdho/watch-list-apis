@@ -26,9 +26,11 @@ const MESSAGE_TYPES = [
 
 type MessageType = (typeof MESSAGE_TYPES)[number];
 
+const getAuth = (req: Request) => (req as any).auth as { userId: string } | undefined;
+
 export const sendMessage = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const auth = (req as any).auth;
+    const auth = getAuth(req);
     if (!auth?.userId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
@@ -105,10 +107,9 @@ export const sendMessage = (platform: Platform) => async (req: Request, res: Res
         parent_id: parent_id || undefined,
         attachments: attachments || undefined,
       };
-      if (custom_data) {
-        msgPayload.db_message_id = messageId.toString();
-        msgPayload.message_type = type;
-      }
+      msgPayload.db_message_id = messageId.toString();
+      msgPayload.message_type = type;
+      
       streamResponse = await streamChannel.sendMessage(msgPayload);
       
       dbMessage.stream_message_id = streamResponse.message?.id;
@@ -132,7 +133,7 @@ export const sendMessage = (platform: Platform) => async (req: Request, res: Res
         user_id: recipientId,
         type: type === "inquiry" ? "new_inquiry" : "new_message",
         title: type === "inquiry" ? "New Inquiry" : "New Message",
-        body: type === "inquiry" ? `New inquiry for ${channel.listing_snapshot.brand} ${channel.listing_snapshot.model}` : `${user.display_name}: ${text.substring(0, 50)}${text.length > 50 ? "..." : ""}`,
+        body: type === "inquiry" ? `New inquiry for ${channel.listing_snapshot?.brand || "Watch"} ${channel.listing_snapshot?.model || ""}` : `${user.display_name}: ${text.substring(0, 50)}${text.length > 50 ? "..." : ""}`,
         data: { message_id: messageId.toString(), channel_id: channel_id, type: type },
         action_url: `/chat/${channel_id}`,
       });
@@ -158,7 +159,7 @@ export const sendMessage = (platform: Platform) => async (req: Request, res: Res
 
 export const getChannelMessages = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const auth = (req as any).auth;
+    const auth = getAuth(req);
     if (!auth?.userId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
@@ -196,12 +197,16 @@ export const getChannelMessages = (platform: Platform) => async (req: Request, r
       }
     }
 
-    const messages = await ChatMessage.find(query)
-      .sort({ createdAt: -1 })
-      .limit(limit)
-      .populate("sender_id", "display_name avatar first_name last_name");
+    const [messages, total] = await Promise.all([
+      ChatMessage.find(query)
+        .sort({ createdAt: -1 })
+        .limit(limit + 1) // limit + 1 to detect has_more precisely
+        .populate("sender_id", "display_name avatar first_name last_name"),
+      ChatMessage.countDocuments({ stream_channel_id: channelId, is_deleted: { $ne: true } })
+    ]);
 
-    const total = await ChatMessage.countDocuments({ stream_channel_id: channelId, is_deleted: { $ne: true } });
+    const has_more = messages.length > limit;
+    if (has_more) messages.pop(); // Remove the extra message if present
 
     res.json({
       data: messages.reverse(),
@@ -216,7 +221,7 @@ export const getChannelMessages = (platform: Platform) => async (req: Request, r
 
 export const updateMessage = (_platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const auth = (req as any).auth;
+    const auth = getAuth(req);
     if (!auth?.userId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
@@ -272,7 +277,7 @@ export const updateMessage = (_platform: Platform) => async (req: Request, res: 
 
 export const deleteMessage = (_platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const auth = (req as any).auth;
+    const auth = getAuth(req);
     if (!auth?.userId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
@@ -316,9 +321,9 @@ export const deleteMessage = (_platform: Platform) => async (req: Request, res: 
   }
 };
 
-export const markAsRead = (_platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const markAsRead = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const auth = (req as any).auth;
+    const auth = getAuth(req);
     if (!auth?.userId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
@@ -328,6 +333,22 @@ export const markAsRead = (_platform: Platform) => async (req: Request, res: Res
     const user = await User.findOne({ external_id: auth.userId });
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });
+      return;
+    }
+
+    // Verify channel membership before marking as read
+    const message = await ChatMessage.findById(id).select("stream_channel_id");
+    if (!message) {
+       res.status(404).json({ error: { message: "Message not found" } });
+       return;
+    }
+    const channel_id = message.stream_channel_id;
+
+    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
+    const isMember = await ChannelModel.exists({ getstream_channel_id: channel_id, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
+    
+    if (!isMember) {
+      res.status(403).json({ error: { message: "Not a member of this channel" } });
       return;
     }
 
@@ -342,9 +363,9 @@ export const markAsRead = (_platform: Platform) => async (req: Request, res: Res
   }
 };
 
-export const markAllAsRead = (_platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const markAllAsRead = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const auth = (req as any).auth;
+    const auth = getAuth(req);
     if (!auth?.userId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
@@ -354,6 +375,15 @@ export const markAllAsRead = (_platform: Platform) => async (req: Request, res: 
     const user = await User.findOne({ external_id: auth.userId });
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });
+      return;
+    }
+
+    // Membership check for markAllAsRead
+    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
+    const isMember = await ChannelModel.exists({ getstream_channel_id: channelId, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
+    
+    if (!isMember) {
+      res.status(403).json({ error: { message: "Not a member of this channel" } });
       return;
     }
 
@@ -368,9 +398,9 @@ export const markAllAsRead = (_platform: Platform) => async (req: Request, res: 
   }
 };
 
-export const reactToMessage = (_platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const reactToMessage = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const auth = (req as any).auth;
+    const auth = getAuth(req);
     if (!auth?.userId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
@@ -393,6 +423,15 @@ export const reactToMessage = (_platform: Platform) => async (req: Request, res:
     const message = await ChatMessage.findById(id);
     if (!message) {
       res.status(404).json({ error: { message: "Message not found" } });
+      return;
+    }
+
+    // Membership check for reactions
+    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
+    const isMember = await ChannelModel.exists({ getstream_channel_id: message.stream_channel_id, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
+    
+    if (!isMember) {
+      res.status(403).json({ error: { message: "Not a member of this channel" } });
       return;
     }
 
@@ -421,9 +460,9 @@ export const reactToMessage = (_platform: Platform) => async (req: Request, res:
   }
 };
 
-export const archiveChannel = (_platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const archiveChannel = (platform: Platform) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const auth = (req as any).auth;
+    const auth = getAuth(req);
     if (!auth?.userId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
@@ -438,16 +477,12 @@ export const archiveChannel = (_platform: Platform) => async (req: Request, res:
     }
 
     // Verify channel membership before allowing archive (hide)
-    let channel_exists: boolean = false;
+    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
     const q = { getstream_channel_id: channelId, $or: [{ buyer_id: user._id }, { seller_id: user._id }] };
     
-    // Check both collections
-    const [m_channel, n_channel] = await Promise.all([
-      MarketplaceListingChannel.exists(q),
-      NetworkListingChannel.exists(q)
-    ]);
+    const channel_exists = await ChannelModel.exists(q);
     
-    if (!m_channel && !n_channel) {
+    if (!channel_exists) {
       res.status(403).json({ error: { message: "Not a member of this channel" } });
       return;
     }

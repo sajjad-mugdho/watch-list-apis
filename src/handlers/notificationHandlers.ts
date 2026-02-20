@@ -1,8 +1,17 @@
 import { Request, Response, NextFunction } from "express";
 import { Notification } from "../models/Notification";
 import { ApiResponse } from "../types";
-import { DatabaseError, MissingUserContextError } from "../utils/errors";
+import { DatabaseError } from "../utils/errors";
 import { User } from "../models/User";
+
+/**
+ * Shared helper to apply platform filtering to notification queries
+ */
+const applyPlatformFilter = (query: any, platform?: string) => {
+  if (platform === "marketplace" || platform === "networks") {
+    query.$or = [{ platform }, { platform: { $exists: false } }];
+  }
+};
 
 /**
  * Get user notifications
@@ -20,9 +29,9 @@ export const getNotifications = async (
   }
 
   try {
-
-    const limit = parseInt(req.query.limit as string) || 20;
-    const offset = parseInt(req.query.offset as string) || 0;
+    const MAX_LIMIT = 100;
+    const limit = Math.min(Math.max(parseInt(req.query.limit as string, 10) || 20, 1), MAX_LIMIT);
+    const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
 
     // Get internal user ID
     const user = await User.findOne({ external_id: auth.userId });
@@ -31,11 +40,9 @@ export const getNotifications = async (
       return;
     }
 
-    const platform = req.headers["x-platform"] as string;
+    const platform = req.headers["x-platform"] as string | undefined;
     const query: any = { user_id: user._id };
-    if (platform === "marketplace" || platform === "networks") {
-      query.$or = [{ platform }, { platform: { $exists: false } }]; // Fallback for old records
-    }
+    applyPlatformFilter(query, platform);
 
     const notifications = await Notification.find(query)
       .sort({ createdAt: -1 })
@@ -43,13 +50,12 @@ export const getNotifications = async (
       .limit(limit)
       .lean();
 
-    const total = await Notification.countDocuments(query);
-    const unread_count = await Notification.countDocuments({
-      ...query,
-      is_read: false,
-    });
+    const [total, unread_count] = await Promise.all([
+      Notification.countDocuments(query),
+      Notification.countDocuments({ ...query, is_read: false }),
+    ]);
 
-    const response: ApiResponse<any> = {
+    const response: ApiResponse<typeof notifications> = {
       data: notifications,
       _metadata: {
         total,
@@ -57,7 +63,7 @@ export const getNotifications = async (
         offset,
         unread_count,
       },
-      requestId: req.headers["x-request-id"] as string,
+      requestId: (req.headers["x-request-id"] as string) ?? "",
     };
 
     res.json(response);
@@ -89,18 +95,21 @@ export const markAllRead = async (
       return;
     }
 
-    const platform = req.headers["x-platform"] as string;
+    const platform = req.headers["x-platform"] as string | undefined;
     const query: any = { user_id: user._id, is_read: false };
-    if (platform === "marketplace" || platform === "networks") {
-      query.$or = [{ platform }, { platform: { $exists: false } }];
-    }
+    applyPlatformFilter(query, platform);
 
     await Notification.updateMany(
       query,
       { $set: { is_read: true, read_at: new Date() } }
     );
 
-    res.json({ message: "All notifications marked as read" });
+    const response: ApiResponse<null> = {
+      data: null,
+      message: "All notifications marked as read",
+      requestId: (req.headers["x-request-id"] as string) ?? "",
+    };
+    res.json(response);
   } catch (error) {
     next(new DatabaseError("Failed to mark notifications read", error));
   }

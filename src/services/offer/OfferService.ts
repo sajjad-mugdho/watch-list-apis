@@ -80,7 +80,7 @@ export class OfferService {
    * Send an initial offer on a listing channel.
    * Creates Offer + first OfferRevision + EventOutbox entry in a transaction.
    */
-  async sendOffer(params: SendOfferParams): Promise<SendOfferResponse> {
+  async sendOffer(params: SendOfferParams, session?: mongoose.ClientSession): Promise<SendOfferResponse> {
     const {
       channelId,
       listingId,
@@ -96,7 +96,7 @@ export class OfferService {
 
     // 1. Get the listing to validate + snapshot
     const ListingModel = platform === "networks" ? NetworkListing : MarketplaceListing;
-    const listing = await (ListingModel as any).findById(listingId);
+    const listing = await (ListingModel as any).findById(listingId).session(session);
     
     if (!listing) {
       throw new Error("Listing not found");
@@ -120,8 +120,9 @@ export class OfferService {
 
     // 5. Transactional create: Offer + OfferRevision + EventOutbox (Models initialized at bootstrap)
 
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const useExternalSession = !!session;
+    const internalSession = useExternalSession ? session : await mongoose.startSession();
+    if (!useExternalSession) internalSession.startTransaction();
 
     let offer: any;
     let revision: any;
@@ -132,7 +133,7 @@ export class OfferService {
         listing_id: new Types.ObjectId(listingId),
         buyer_id: new Types.ObjectId(senderId),
         state: { $in: ["CREATED", "COUNTERED"] },
-      }).session(session);
+      }).session(internalSession);
 
       if (existingOffer) {
         throw new Error(
@@ -156,9 +157,10 @@ export class OfferService {
         expires_at: expiresAt,
         listing_snapshot: listingSnapshot,
       });
-      await offer.save({ session });
+      await offer.save({ session: internalSession });
 
       // Get current terms
+      // Note: ReservationTerms.getCurrent() doesn't seem to support session in its static method if not modified
       const currentTerms = await ReservationTerms.getCurrent();
 
       // Create revision
@@ -171,11 +173,11 @@ export class OfferService {
         created_by: new Types.ObjectId(senderId),
         revision_number: 1,
       });
-      await revision.save({ session });
+      await revision.save({ session: internalSession });
 
       // Link revision to offer
       offer.active_revision_id = revision._id;
-      await offer.save({ session });
+      await offer.save({ session: internalSession });
 
       // Write to outbox
       const outboxEntry = new EventOutbox({
@@ -196,7 +198,7 @@ export class OfferService {
         },
         published: false,
       });
-      await outboxEntry.save({ session });
+      await outboxEntry.save({ session: internalSession });
 
       // Also update channel for backward compatibility
       await this.updateChannelLastOffer(channelId, platform, {
@@ -207,16 +209,16 @@ export class OfferService {
         offer_type: "initial",
         createdAt: new Date(),
         expiresAt,
-      }, session);
+      }, internalSession);
 
-      await session.commitTransaction();
+      if (!useExternalSession) await internalSession.commitTransaction();
     } catch (error) {
-      if (session.inTransaction()) {
-        await session.abortTransaction();
+      if (!useExternalSession && internalSession.inTransaction()) {
+        await internalSession.abortTransaction();
       }
       throw error;
     } finally {
-      session.endSession();
+      if (!useExternalSession) internalSession.endSession();
     }
 
     // --- Post-Transaction Side Effects ---

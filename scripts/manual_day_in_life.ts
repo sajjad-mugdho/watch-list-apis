@@ -18,12 +18,14 @@ if (!SELLER_TOKEN || !BUYER_TOKEN) {
 // Configuration for Axios
 const sellerClient = axios.create({
   baseURL: API_URL,
-  headers: { Authorization: `Bearer ${SELLER_TOKEN}` }
+  headers: { Authorization: `Bearer ${SELLER_TOKEN}` },
+  timeout: 30000 // 30s timeout
 });
 
 const buyerClient = axios.create({
   baseURL: API_URL,
-  headers: { Authorization: `Bearer ${BUYER_TOKEN}` }
+  headers: { Authorization: `Bearer ${BUYER_TOKEN}` },
+  timeout: 30000 // 30s timeout
 });
 
 async function runTest() {

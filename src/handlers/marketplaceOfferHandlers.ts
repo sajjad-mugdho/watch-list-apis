@@ -85,10 +85,6 @@ function validateCounterAmount(
  * Send initial offer on a marketplace listing
  * POST /api/v1/marketplace/listings/:id/offers
  */
-/**
- * Send initial offer on a marketplace listing
- * POST /api/v1/marketplace/listings/:id/offers
- */
 export const marketplace_offer_send = async (
   req: Request<SendOfferInput["params"], {}, SendOfferInput["body"]>,
   res: Response<ApiResponse<IMarketplaceListingChannel>>,
@@ -114,97 +110,100 @@ export const marketplace_offer_send = async (
     let channelId: string;
     let getstreamChannelId: string = "";
 
-    // 1. Check for or create Channel (OfferService needs a channelId)
-    // Check for existing channel
-    let channel =
-      await MarketplaceListingChannel.findByListingAndBuyer(listingId, buyerId);
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    if (channel) {
-      if (channel.status === "closed") {
-        throw new ValidationError("Channel is closed");
-      }
-      
-      // OfferService checks for active offers, but we check here too for clarity
-      if (channel.hasActiveOffer()) {
-         throw new ValidationError("An active offer already exists on this channel");
+    try {
+      // 1. Check for or create Channel (OfferService needs a channelId)
+      let channel = await MarketplaceListingChannel.findByListingAndBuyer(listingId, buyerId);
+
+      if (channel) {
+        if (channel.status === "closed") {
+          throw new ValidationError("Channel is closed");
+        }
+        
+        if (channel.hasActiveOffer()) {
+           throw new ValidationError("An active offer already exists on this channel");
+        }
+
+        channelId = (channel._id as any).toString();
+        getstreamChannelId = channel.getstream_channel_id || "";
+      } else {
+        // Create Stream Chat channel ID move inside transaction try/catch but chatService call is not transactional
+        try {
+          const sellerIdStr = listing.dialist_id.toString();
+          const result = await chatService.getOrCreateChannel(buyerId, sellerIdStr, {
+            listing_id: listingId,
+            listing_title: `${listing.brand} ${listing.model}`,
+            listing_price: listing.price,
+            ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
+          });
+          getstreamChannelId = result.channelId;
+        } catch (chatError) {
+          logger.error("Failed to create marketplace Stream Chat channel", {
+            error: chatError,
+          });
+          throw new DatabaseError("Failed to create Stream Chat channel for offer", chatError);
+        }
+
+        [channel] = await MarketplaceListingChannel.create([{
+          listing_id: listingId as any,
+          buyer_id: buyerId as any,
+          seller_id: listing.dialist_id,
+          status: "open",
+          created_from: "offer",
+          last_event_type: "offer",
+          buyer_snapshot: {
+            _id: buyerId as any,
+            name: req.user.display_name,
+            avatar: req.user.display_avatar,
+          },
+          seller_snapshot: {
+            _id: listing.author._id,
+            name: listing.author.name,
+            avatar: listing.author.avatar,
+          },
+          listing_snapshot: {
+            brand: listing.brand,
+            model: listing.model,
+            reference: listing.reference,
+            price: listing.price,
+            condition: listing.condition,
+            contents: listing.contents,
+            thumbnail: listing.thumbnail,
+            year: listing.year,
+          },
+          inquiry: null,
+          offer_history: [],
+          last_offer: null,
+          getstream_channel_id: getstreamChannelId,
+          order_id: null,
+        }], { session });
+        
+        channelId = (channel._id as any).toString();
       }
 
-      channelId = (channel._id as any).toString();
-      getstreamChannelId = channel.getstream_channel_id || "";
-    } else {
-      // Create new channel
-      // We create it first because OfferService expects a channelId
-      // And we need to set up the Stream Channel
-      
-      // Create Stream Chat channel ID first
-      try {
-        const sellerIdStr = listing.dialist_id.toString();
-        const result = await chatService.getOrCreateChannel(buyerId, sellerIdStr, {
-          listing_id: listingId,
-          listing_title: `${listing.brand} ${listing.model}`,
-          listing_price: listing.price,
-          ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
-        });
-        getstreamChannelId = result.channelId;
-      } catch (chatError) {
-        logger.error("Failed to create marketplace Stream Chat channel", {
-          error: chatError,
-        });
-        throw new DatabaseError("Failed to create Stream Chat channel for offer", chatError);
-      }
+      // 2. Use OfferService to create the offer
+      await offerService.sendOffer({
+        channelId,
+        listingId,
+        senderId: buyerId,
+        receiverId: listing.dialist_id.toString(),
+        amount,
+        ...(message ? { note: message } : {}),
+        platform: "marketplace",
+        getstreamChannelId,
+      }, session);
 
-      channel = await MarketplaceListingChannel.create({
-        listing_id: listingId as any,
-        buyer_id: buyerId as any,
-        seller_id: listing.dialist_id,
-        status: "open",
-        created_from: "offer",
-        last_event_type: "offer",
-        buyer_snapshot: {
-          _id: buyerId as any,
-          name: req.user.display_name,
-          avatar: req.user.display_avatar,
-        },
-        seller_snapshot: {
-          _id: listing.author._id,
-          name: listing.author.name,
-          avatar: listing.author.avatar,
-        },
-        listing_snapshot: {
-          brand: listing.brand,
-          model: listing.model,
-          reference: listing.reference,
-          price: listing.price,
-          condition: listing.condition,
-          contents: listing.contents,
-          thumbnail: listing.thumbnail,
-          year: listing.year,
-        },
-        inquiry: null,
-        offer_history: [],
-        last_offer: null, // Will be populated by OfferService
-        getstream_channel_id: getstreamChannelId,
-        order_id: null,
-      });
-      
-      channelId = (channel._id as any).toString();
-      logger.info("Created new marketplace channel for offer", { channelId });
+      await session.commitTransaction();
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
     }
 
-    // 2. Use OfferService to create the offer
-    // This handles: Offer doc, Revision doc, Outbox, Channel update (compat), Stream system msg
-    await offerService.sendOffer({
-      channelId,
-      listingId,
-      senderId: buyerId,
-      receiverId: listing.dialist_id.toString(),
-      amount,
-      ...(message ? { note: message } : {}),
-      platform: "marketplace",
-      getstreamChannelId,
-    });
-
-    // 3. Create Notification (Retaining legacy behavior as Service doesn't seem to do in-app notifs yet)
+    // 3. Create Notification (Retaining legacy behavior)
     try {
       await Notification.create({
         user_id: listing.dialist_id,
@@ -223,18 +222,19 @@ export const marketplace_offer_send = async (
     }
 
     // 4. Return updated channel
-    // OfferService updates the channel document in DB, so we should re-fetch it 
-    // to return the correct 'last_offer' state to the client
     const updatedChannel = await MarketplaceListingChannel.findById(channelId);
+    if (!updatedChannel) {
+      throw new NotFoundError("Channel after update");
+    }
 
     const response: ApiResponse<IMarketplaceListingChannel> = {
-      data: updatedChannel?.toJSON() as any,
+      data: updatedChannel.toJSON() as any,
       requestId: req.headers["x-request-id"] as string,
     };
 
     res.status(201).json(response);
   } catch (err) {
-    console.error("Error sending marketplace offer:", err);
+    logger.error("Error sending marketplace offer:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {

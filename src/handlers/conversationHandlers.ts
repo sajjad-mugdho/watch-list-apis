@@ -28,7 +28,8 @@ export const getConversations = (platform: Platform) => async (req: Request, res
       { limit, offset }
     );
 
-    const { MarketplaceListingChannel, NetworkListingChannel } = await import("../models/Listings");
+    const { MarketplaceListingChannel } = await import("../models/MarketplaceListingChannel");
+    const { NetworkListingChannel } = await import("../models/ListingChannel");
     const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
     
     const total = await ChannelModel.countDocuments({
