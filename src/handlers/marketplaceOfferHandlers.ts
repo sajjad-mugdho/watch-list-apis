@@ -24,6 +24,7 @@ import {
 import crypto from "crypto";
 import { Order } from "../models/Order";
 import { chatService } from "../services/ChatService";
+import { offerService } from "../services";
 import { Notification } from "../models/Notification";
 import logger from "../utils/logger";
 
@@ -103,155 +104,125 @@ export const marketplace_offer_send = async (
     const listing = await MarketplaceListing.findById(listingId);
     if (!listing) throw new NotFoundError("Listing");
 
+    // Perform validation (duplicate validation here to catch early 400s before service)
     validateOfferEligibility(listing, buyerId, amount);
 
-    // Check for existing channel
-    const existingChannel =
-      await MarketplaceListingChannel.findByListingAndBuyer(listingId, buyerId);
+    let channelId: string;
+    let getstreamChannelId: string | undefined;
 
-    if (existingChannel) {
-      if (existingChannel.status === "closed") {
-        throw new ValidationError("Channel is closed");
-      }
-
-      if (existingChannel.hasActiveOffer()) {
-        throw new ValidationError(
-          "An active offer already exists on this channel"
-        );
-      }
-
-      existingChannel.supersedeLastOffer();
-
-      existingChannel.last_offer = {
-        sender_id: buyerId as any,
-        amount,
-        message: message || null,
-        offer_type: "initial",
-        status: "sent",
-        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      };
-      existingChannel.last_event_type = "offer";
-
-      await existingChannel.save();
-
-      // Send system message to Stream Chat channel if it exists
-      if (existingChannel.getstream_channel_id) {
-        try {
-          await chatService.sendSystemMessage(
-            existingChannel.getstream_channel_id,
-            { type: "offer", amount, offer_id: (existingChannel._id as any).toString() },
-            buyerId
-          );
-        } catch (chatError) {
-          logger.warn("Failed to send marketplace offer message to Stream", { chatError });
-        }
-      }
-
-      // Create in-app notification for seller
-      try {
-        await Notification.create({
-          user_id: listing.dialist_id,
-          type: "offer_received",
-          title: "New Offer Received",
-          body: `You received an offer of $${amount.toLocaleString()} for ${listing.brand} ${listing.model}`,
-          data: {
-            listing_id: listingId,
-            channel_id: (existingChannel._id as any).toString(),
-            amount,
-          },
-          action_url: `/marketplace/offers/${(existingChannel._id as any).toString()}`,
-        });
-      } catch (notifError) {
-        logger.warn("Failed to create marketplace offer notification", { notifError });
-      }
-
-      const response: ApiResponse<IMarketplaceListingChannel> = {
-        data: existingChannel.toJSON() as any,
-        requestId: req.headers["x-request-id"] as string,
-      };
-
-      res.status(201).json(response);
-      return;
-    }
-
-    // Create new channel with initial offer
-    const channel = await MarketplaceListingChannel.create({
-      listing_id: listingId as any,
-      buyer_id: buyerId as any,
-      seller_id: listing.dialist_id,
-      status: "open",
-      created_from: "offer",
-      last_event_type: "offer",
-      buyer_snapshot: {
-        _id: buyerId as any,
-        name: req.user.display_name,
-        avatar: req.user.display_avatar,
-      },
-      seller_snapshot: {
-        _id: listing.author._id,
-        name: listing.author.name,
-        avatar: listing.author.avatar,
-      },
-      listing_snapshot: {
-        brand: listing.brand,
-        model: listing.model,
-        reference: listing.reference,
-        price: listing.price,
-        condition: listing.condition,
-        contents: listing.contents,
-        thumbnail: listing.thumbnail,
-        year: listing.year,
-      },
-      inquiry: null,
-      offer_history: [],
-      last_offer: {
-        sender_id: buyerId as any,
-        amount,
-        message: message || null,
-        offer_type: "initial",
-        status: "sent",
-        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      },
-      order: null,
+    // Pre-transaction check and Stream channel creation
+    let existingChannel = await MarketplaceListingChannel.findOne({
+      listing_id: listingId,
+      buyer_id: buyerId
     });
 
-    // Create Stream Chat channel for this listing conversation
-    try {
-      const sellerIdStr = listing.dialist_id.toString();
-      const { channelId: getstreamChannelId } =
-        await chatService.getOrCreateChannel(buyerId, sellerIdStr, {
+    if (existingChannel) {
+      if (existingChannel.status === "closed") throw new ValidationError("Channel is closed");
+      if (existingChannel.hasActiveOffer()) throw new ValidationError("An active offer already exists on this channel");
+      channelId = (existingChannel._id as any).toString();
+      getstreamChannelId = existingChannel.getstream_channel_id ?? undefined;
+    } else {
+      try {
+        const sellerIdStr = listing.dialist_id.toString();
+        const result = await chatService.getOrCreateChannel(buyerId, sellerIdStr, {
           listing_id: listingId,
           listing_title: `${listing.brand} ${listing.model}`,
           listing_price: listing.price,
           ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
         });
-
-      // Store the Stream channel ID in our channel document
-      channel.getstream_channel_id = getstreamChannelId;
-      await channel.save();
-
-      // Send initial offer as system message
-      await chatService.sendSystemMessage(
-        getstreamChannelId,
-        { type: "offer", amount, offer_id: (channel._id as any).toString() },
-        buyerId
-      );
-
-      logger.info("Stream Chat channel created for marketplace offer", {
-        channelId: channel._id,
-        getstreamChannelId,
-        listingId,
-      });
-    } catch (chatError) {
-      logger.error("Failed to create marketplace Stream Chat channel", {
-        channelId: channel._id,
-        error: chatError,
-      });
+        getstreamChannelId = result.channelId;
+      } catch (chatError) {
+        logger.error("Failed to create marketplace Stream Chat channel", { error: chatError });
+        throw new DatabaseError("Failed to create Stream Chat channel for offer", chatError);
+      }
     }
 
-    // Create in-app notification for seller
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // Re-read with session for transaction safety
+      let channel = await MarketplaceListingChannel.findOne({
+        listing_id: listingId,
+        buyer_id: buyerId
+      }).session(session);
+
+      if (channel) {
+        if (channel.status === "closed") throw new ValidationError("Channel is closed");
+        if (channel.hasActiveOffer()) throw new ValidationError("An active offer already exists on this channel");
+        channelId = (channel._id as any).toString();
+        getstreamChannelId = channel.getstream_channel_id ?? undefined;
+      } else {
+        try {
+          [channel] = await MarketplaceListingChannel.create([{
+            listing_id: listingId as any,
+            buyer_id: buyerId as any,
+            seller_id: listing.dialist_id,
+            status: "open",
+            created_from: "offer",
+            last_event_type: "offer",
+            buyer_snapshot: {
+              _id: buyerId as any,
+              name: req.user.display_name,
+              avatar: req.user.display_avatar,
+            },
+            seller_snapshot: {
+              _id: listing.author._id,
+              name: listing.author.name,
+              avatar: listing.author.avatar,
+            },
+            listing_snapshot: {
+              brand: listing.brand,
+              model: listing.model,
+              reference: listing.reference,
+              price: listing.price,
+              condition: listing.condition,
+              contents: listing.contents,
+              thumbnail: listing.thumbnail,
+              year: listing.year,
+            },
+            inquiry: null,
+            offer_history: [],
+            last_offer: null,
+            getstream_channel_id: getstreamChannelId ?? null,
+            order_id: null,
+          }], { session });
+          channelId = (channel._id as any).toString();
+        } catch (createError: any) {
+          if (createError.code === 11000) {
+            channel = await MarketplaceListingChannel.findOne({ listing_id: listingId, buyer_id: buyerId }).session(session);
+            if (!channel) throw createError;
+            if (channel.status === "closed") throw new ValidationError("Channel is closed");
+            if (channel.hasActiveOffer()) throw new ValidationError("An active offer already exists on this channel");
+            channelId = (channel._id as any).toString();
+            getstreamChannelId = channel.getstream_channel_id ?? undefined;
+          } else {
+            throw createError;
+          }
+        }
+      }
+
+      // 2. Use OfferService to create the offer
+      await offerService.sendOffer({
+        channelId,
+        listingId,
+        senderId: buyerId,
+        receiverId: listing.dialist_id.toString(),
+        amount,
+        ...(message ? { note: message } : {}),
+        platform: "marketplace",
+        ...(getstreamChannelId ? { getstreamChannelId } : {}),
+      }, session);
+
+      await session.commitTransaction();
+    } catch (error) {
+      if (session.inTransaction()) await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+
+    // 3. Create Notification (Retaining legacy behavior)
     try {
       await Notification.create({
         user_id: listing.dialist_id,
@@ -260,23 +231,29 @@ export const marketplace_offer_send = async (
         body: `You received an offer of $${amount.toLocaleString()} for ${listing.brand} ${listing.model}`,
         data: {
           listing_id: listingId,
-          channel_id: (channel._id as any).toString(),
+          channel_id: channelId,
           amount,
         },
-        action_url: `/marketplace/offers/${(channel._id as any).toString()}`,
+        action_url: `/marketplace/offers/${channelId}`,
       });
     } catch (notifError) {
       logger.warn("Failed to create marketplace offer notification", { notifError });
     }
 
+    // 4. Return updated channel
+    const updatedChannel = await MarketplaceListingChannel.findById(channelId);
+    if (!updatedChannel) {
+      throw new NotFoundError("Channel after update");
+    }
+
     const response: ApiResponse<IMarketplaceListingChannel> = {
-      data: channel.toJSON() as any,
+      data: updatedChannel.toJSON() as any,
       requestId: req.headers["x-request-id"] as string,
     };
 
     res.status(201).json(response);
   } catch (err) {
-    console.error("Error sending marketplace offer:", err);
+    logger.error("Error sending marketplace offer:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -396,7 +373,7 @@ export const marketplace_offer_counter = async (
 
     res.status(201).json(response);
   } catch (err) {
-    console.error("Error countering marketplace offer:", err);
+    logger.error("Error countering marketplace offer:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -552,8 +529,8 @@ export const marketplace_offer_accept = async (
 
     res.json(response);
   } catch (err) {
-    await session.abortTransaction();
-    console.error("Error accepting marketplace offer:", err);
+    if (session.inTransaction()) await session.abortTransaction();
+    logger.error("Error accepting marketplace offer:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -648,7 +625,7 @@ export const marketplace_offer_reject = async (
 
     res.json(response);
   } catch (err) {
-    console.error("Error rejecting marketplace offer:", err);
+    logger.error("Error rejecting marketplace offer:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -696,7 +673,7 @@ export const marketplace_offer_get = async (
 
     res.json(response);
   } catch (err) {
-    console.error("Error fetching marketplace channel:", err);
+    logger.error("Error fetching marketplace channel:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -759,7 +736,7 @@ export const marketplace_user_offers_get = async (
 
     res.json(response);
   } catch (err) {
-    console.error("Error fetching marketplace user channels:", err);
+    logger.error("Error fetching marketplace user channels:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -807,7 +784,7 @@ export const marketplace_listing_offers_get = async (
 
     res.json(response);
   } catch (err) {
-    console.error("Error fetching marketplace listing channels:", err);
+    logger.error("Error fetching marketplace listing channels:", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -838,6 +815,11 @@ export const marketplace_offer_checkout = async (
     const channel = await MarketplaceListingChannel.findById(channelId);
     if (!channel) throw new NotFoundError("Channel");
 
+    // Idempotency: prevent duplicate checkout
+    if (channel.order_id) {
+      throw new ValidationError("An order has already been created for this channel");
+    }
+
     // Only buyer can checkout
     if (String(channel.buyer_id) !== String(buyerId)) {
       throw new AuthorizationError("Only buyer can checkout this offer", {});
@@ -858,55 +840,75 @@ export const marketplace_offer_checkout = async (
 
     const fraud_session_id = `fs_${crypto.randomBytes(16).toString("hex")}`;
 
-    const order = await Order.create({
-      listing_type: "MarketplaceListing",
-      listing_id: listing._id,
-      listing_snapshot: (listing as any).listing_snapshot || {
-        brand: listing.brand,
-        model: listing.model,
-        reference: listing.reference,
-        condition: listing.condition,
-        price: listing.price,
-        images: listing.images || [],
-        thumbnail: listing.thumbnail || listing.images?.[0],
-      },
-      from_offer_id: channel._id as any,
-      buyer_id: channel.buyer_id,
-      seller_id: channel.seller_id,
-      amount: lastOffer.amount,
-      currency: "USD",
-      status: "reserved",
-      reserved_at: now,
-      reservation_expires_at,
-      finix_buyer_identity_id: null,
-      finix_payment_instrument_id: null,
-    });
+    const session = await mongoose.startSession();
+    session.startTransaction();
 
-    // Update listing reservation fields
-    listing.status = "reserved";
-    listing.reserved_by_user_id = channel.buyer_id as any;
-    listing.reserved_until = reservation_expires_at;
-    listing.order = {
-      channel_id: channel._id as any,
-      buyer_id: channel.buyer_id,
-      buyer_name: channel.buyer_snapshot?.name,
-      reserved_at: now,
-    } as any;
-
-    await listing.save();
-
-    const response: ApiResponse<any> = {
-      data: {
-        order_id: order._id.toString(),
+    try {
+      const [order] = await Order.create([{
+        listing_type: "MarketplaceListing",
+        listing_id: listing._id,
+        listing_snapshot: (listing as any).listing_snapshot || {
+          brand: listing.brand,
+          model: listing.model,
+          reference: listing.reference,
+          condition: listing.condition,
+          price: listing.price,
+          images: listing.images || [],
+          thumbnail: listing.thumbnail || listing.images?.[0],
+        },
+        from_offer_id: channel._id as any,
+        buyer_id: channel.buyer_id,
+        seller_id: channel.seller_id,
+        amount: lastOffer.amount,
+        currency: "USD",
+        status: "reserved",
+        reserved_at: now,
         reservation_expires_at,
-        fraud_session_id,
-      },
-      requestId: req.headers["x-request-id"] as string,
-    };
+        finix_buyer_identity_id: null,
+        finix_payment_instrument_id: null,
+        fraud_session_id, // Persist fraud session ID
+      }], { session });
 
-    res.status(201).json(response);
+      // Update listing reservation fields
+      listing.status = "reserved";
+      listing.reserved_by_user_id = channel.buyer_id as any;
+      listing.reserved_until = reservation_expires_at;
+      listing.order = {
+        channel_id: channel._id as any,
+        buyer_id: channel.buyer_id,
+        buyer_name: channel.buyer_snapshot?.name,
+        reserved_at: now,
+      } as any;
+
+      await listing.save({ session });
+
+      // Link Order back to channel so re-checkout is rejected
+      await MarketplaceListingChannel.updateOne(
+        { _id: channel._id },
+        { $set: { order_id: order._id } },
+        { session }
+      );
+
+      await session.commitTransaction();
+
+      const response: ApiResponse<any> = {
+        data: {
+          order_id: order._id.toString(),
+          reservation_expires_at,
+          fraud_session_id,
+        },
+        requestId: req.headers["x-request-id"] as string,
+      };
+
+      res.status(201).json(response);
+    } catch (err) {
+      if (session.inTransaction()) await session.abortTransaction();
+      throw err;
+    } finally {
+      session.endSession();
+    }
   } catch (err) {
-    console.error("Error creating order from offer checkout:", err);
+    logger.error("Error creating order from offer checkout:", { error: err });
     if (err instanceof AppError) next(err);
     else next(new DatabaseError("Failed to create order from offer", err));
   }

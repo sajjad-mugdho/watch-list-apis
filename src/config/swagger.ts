@@ -2485,6 +2485,10 @@ Use this to test API endpoints without real authentication.
         name: "Marketplace - Offers",
         description: "Offers and counter-offers for marketplace listings.",
       },
+      {
+        name: "Analytics",
+        description: "In-depth messaging and listing performance analytics.",
+      },
     ],
   },
   apis: ["./src/routes/**/*.ts", "./src/handlers/**/*.ts"], // This will be ignored since we're defining everything inline
@@ -2519,16 +2523,41 @@ swaggerSpec.paths = {
                 },
                 system: {
                   platform: "linux",
-                  nodeVersion: "v18.17.0",
-                  pid: 12345,
+                  nodeVersion: "v20.0.0",
+                  pid: 1234,
                 },
-                requestId: "req-123",
+                requestId: "req_xyz789",
               },
             },
           },
         },
       },
     },
+  },
+  "/api/ready": {
+    get: {
+      tags: ["Health"],
+      summary: "Kubernetes readiness check",
+      description: "Verifies API and database are fully ready to accept traffic",
+      responses: {
+        200: {
+          description: "API is ready",
+          content: {
+            "application/json": {
+              example: {
+                status: "ready",
+                timestamp: "2024-01-01T12:00:00.000Z",
+                checks: {
+                  database: { status: "healthy", state: "connected" }
+                },
+                requestId: "req_xyz789"
+              }
+            }
+          }
+        },
+        503: { description: "API not ready" }
+      }
+    }
   },
   // --- Webhooks ---
   "/api/v1/webhooks/getstream": {
@@ -3065,6 +3094,50 @@ swaggerSpec.paths = {
         }
       },
       responses: { 200: { description: "User suspended" } }
+    }
+  },
+  "/api/v1/analytics/messages": {
+    get: {
+      tags: ["Analytics"],
+      summary: "Get message analytics",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "startDate", in: "query", schema: { type: "string", format: "date" } },
+        { name: "endDate", in: "query", schema: { type: "string", format: "date" } },
+        { name: "listingId", in: "query", schema: { type: "string" } },
+        { name: "userId", in: "query", schema: { type: "string" } }
+      ],
+      responses: {
+        200: {
+          description: "Analytics data",
+          content: {
+            "application/json": {
+              example: {
+                total_messages: 1500,
+                unique_users: 45,
+                messages_by_type: [{ _id: "regular", count: 1200 }, { _id: "offer", count: 300 }]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "/api/v1/analytics/listing/{listingId}/messages": {
+    get: {
+      tags: ["Analytics"],
+      summary: "Get messages for a specific listing",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "listingId", in: "path", required: true, schema: { type: "string" } },
+        { name: "limit", in: "query", schema: { type: "integer", default: 100 } }
+      ],
+      responses: {
+        200: {
+          description: "List of messages",
+          content: { "application/json": { schema: { type: "object", properties: { data: { type: "array", items: { $ref: "#/components/schemas/ChatMessage" } } } } } }
+        }
+      }
     }
   },
   "/api/v1/user/favorites": {
@@ -4911,80 +4984,6 @@ swaggerSpec.paths = {
         },
         404: {
           description: "Watch not in list",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/me": {
-    get: {
-      tags: ["Auth"],
-      summary: "Get current user state (canonical bootstrap endpoint)",
-      description: `Returns DB-backed user state for authenticated user. This is the canonical endpoint for client bootstrap and should be called immediately after Clerk authentication.
-        
-**Use cases:**
-- Client bootstrap after authentication (web + mobile)
-- Verify onboarding status before showing UI
-- Get fresh merchant status after Finix approval
-
-**Source of Truth:** Always returns DB state, not session claims. Session claims may be stale after onboarding completion or merchant approval.
-
-**Headers:**
-- \`x-refresh-session: 1\` - Force DB lookup (skips session claims cache)`,
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "x-refresh-session",
-          in: "header",
-          required: false,
-          schema: {
-            type: "string",
-            enum: ["1", "true"],
-          },
-          description: "Force DB lookup and skip session claims cache",
-        },
-      ],
-      responses: {
-        200: {
-          description: "User state retrieved successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        $ref: "#/components/schemas/ValidatedUserClaims",
-                      },
-                    },
-                  },
-                ],
-              },
-              example: {
-                data: {
-                  userId: "user_abc123",
-                  dialist_id: "677a2222222222222222bbb2",
-                  onboarding_status: "completed",
-                  display_name: "John Buyer",
-                  location_country: "US",
-                  isMerchant: false,
-                  networks_accessed: false,
-                },
-                requestId: "req_xyz789",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized - no valid Clerk session",
           content: {
             "application/json": {
               schema: {
@@ -9076,143 +9075,6 @@ Once approved:
       },
     },
   },
-  "/api/v1/isos": {
-    post: {
-      tags: ["ISO"],
-      summary: "Create ISO",
-      description: "Create In Search Of request (max 10 active per user)",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["title"],
-              properties: {
-                title: { type: "string", maxLength: 200 },
-                description: { type: "string" },
-                criteria: { type: "object" },
-                urgency: { type: "string", enum: ["low", "medium", "high", "urgent"] },
-                is_public: { type: "boolean" },
-                expires_at: { type: "string", format: "date-time" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "ISO created" },
-        400: { description: "Max active ISOs reached" },
-        401: { description: "Unauthorized" },
-      },
-    },
-    get: {
-      tags: ["ISO"],
-      summary: "Get public ISOs",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "query", name: "limit", schema: { type: "integer", default: 20 } },
-        { in: "query", name: "offset", schema: { type: "integer", default: 0 } },
-      ],
-      responses: {
-        200: { description: "ISOs retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/isos/my": {
-    get: {
-      tags: ["ISO"],
-      summary: "Get my ISOs",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "query", name: "status", schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "User's ISOs retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/isos/{id}": {
-    get: {
-      tags: ["ISO"],
-      summary: "Get ISO by ID",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "ISO retrieved" },
-        401: { description: "Unauthorized" },
-        403: { description: "Access denied" },
-        404: { description: "ISO not found" },
-      },
-    },
-    put: {
-      tags: ["ISO"],
-      summary: "Update ISO",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                title: { type: "string" },
-                description: { type: "string" },
-                criteria: { type: "object" },
-                urgency: { type: "string" },
-                is_public: { type: "boolean" },
-                status: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "ISO updated" },
-        401: { description: "Unauthorized" },
-        403: { description: "Not authorized" },
-        404: { description: "ISO not found" },
-      },
-    },
-    delete: {
-      tags: ["ISO"],
-      summary: "Delete ISO",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "ISO deleted" },
-        401: { description: "Unauthorized" },
-        403: { description: "Not authorized" },
-        404: { description: "ISO not found" },
-      },
-    },
-  },
-  "/api/v1/isos/{id}/fulfill": {
-    post: {
-      tags: ["ISO"],
-      summary: "Mark ISO as fulfilled",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "ISO fulfilled" },
-        400: { description: "ISO not active" },
-        401: { description: "Unauthorized" },
-        403: { description: "Not authorized" },
-        404: { description: "ISO not found" },
-      },
-    },
-  },
   "/api/v1/reference-checks": {
     post: {
       tags: ["ReferenceCheck"],
@@ -9334,249 +9196,6 @@ Once approved:
       },
     },
   },
-  "/api/v1/subscriptions/current": {
-    get: {
-      tags: ["Subscription"],
-      summary: "Get current subscription",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Subscription retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/subscriptions/tiers": {
-    get: {
-      tags: ["Subscription"],
-      summary: "Get available tiers",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Tiers retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/subscriptions/upgrade": {
-    post: {
-      tags: ["Subscription"],
-      summary: "Upgrade subscription",
-      description: "Upgrades the user's subscription tier. Processes payments via Finix.",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["tier"],
-              properties: {
-                tier: { type: "string", enum: ["basic", "premium", "enterprise"] },
-                billing_cycle: { type: "string", enum: ["monthly", "yearly"] },
-                payment_instrument_id: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Subscription upgraded" },
-        400: { description: "Invalid tier or not upgrade" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/subscriptions/cancel": {
-    post: {
-      tags: ["Subscription"],
-      summary: "Cancel subscription",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Subscription cancelled" },
-        400: { description: "Free tier or already cancelled" },
-        401: { description: "Unauthorized" },
-        404: { description: "No subscription" },
-      },
-    },
-  },
-  "/api/v1/subscriptions/reactivate": {
-    post: {
-      tags: ["Subscription"],
-      summary: "Reactivate subscription",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Subscription reactivated" },
-        400: { description: "Not set to cancel or expired" },
-        401: { description: "Unauthorized" },
-        404: { description: "No subscription" },
-      },
-    },
-  },
-  "/api/v1/subscriptions/payment-method": {
-    put: {
-      tags: ["Subscription"],
-      summary: "Update payment method",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["payment_instrument_id"],
-              properties: {
-                payment_instrument_id: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Payment method updated" },
-        400: { description: "Missing payment_instrument_id" },
-        401: { description: "Unauthorized" },
-        404: { description: "No subscription" },
-      },
-    },
-  },
-  "/api/v1/favorites": {
-    post: {
-      tags: ["Favorites"],
-      summary: "Add favorite",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["item_type", "item_id"],
-              properties: {
-                item_type: { type: "string", enum: ["listing", "watch", "user", "iso"] },
-                item_id: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Favorite added" },
-        400: { description: "Invalid or already favorited" },
-        401: { description: "Unauthorized" },
-      },
-    },
-    get: {
-      tags: ["Favorites"],
-      summary: "Get favorites",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "query", name: "type", schema: { type: "string" } },
-        { in: "query", name: "limit", schema: { type: "integer", default: 20 } },
-        { in: "query", name: "offset", schema: { type: "integer", default: 0 } },
-      ],
-      responses: {
-        200: { description: "Favorites retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/favorites/{type}/{id}": {
-    delete: {
-      tags: ["Favorites"],
-      summary: "Remove favorite",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "type", required: true, schema: { type: "string" } },
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "Favorite removed" },
-        400: { description: "Invalid type or ID" },
-        401: { description: "Unauthorized" },
-        404: { description: "Favorite not found" },
-      },
-    },
-  },
-  "/api/v1/favorites/check/{type}/{id}": {
-    get: {
-      tags: ["Favorites"],
-      summary: "Check if favorited",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "type", required: true, schema: { type: "string" } },
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "Check result" },
-        400: { description: "Invalid type or ID" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/favorites/searches/recent": {
-    get: {
-      tags: ["Favorites"],
-      summary: "Get recent searches",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "query", name: "limit", schema: { type: "integer", default: 10 } },
-      ],
-      responses: {
-        200: { description: "Recent searches retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-    post: {
-      tags: ["Favorites"],
-      summary: "Add recent search",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["query"],
-              properties: {
-                query: { type: "string" },
-                filters: { type: "object" },
-                result_count: { type: "integer" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Search added" },
-        400: { description: "Query required" },
-        401: { description: "Unauthorized" },
-      },
-    },
-    delete: {
-      tags: ["Favorites"],
-      summary: "Clear all recent searches",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Searches cleared" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/favorites/searches/recent/{id}": {
-    delete: {
-      tags: ["Favorites"],
-      summary: "Delete specific search",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "Search deleted" },
-        400: { description: "Invalid search ID" },
-        401: { description: "Unauthorized" },
-        404: { description: "Search not found" },
-      },
-    },
-  },
   "/api/v1/messages/send": {
     post: {
       tags: ["Messages"],
@@ -9612,41 +9231,6 @@ Once approved:
       ],
       responses: {
         200: { description: "Messages retrieved" },
-      },
-    },
-  },
-  "/api/v1/notifications": {
-    get: {
-      tags: ["Notifications"],
-      summary: "Get my notifications",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
-        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
-        { name: "unread_only", in: "query", schema: { type: "boolean", default: false } },
-      ],
-      responses: {
-        200: { description: "Notifications retrieved" },
-      },
-    },
-  },
-  "/api/v1/notifications/unread-count": {
-    get: {
-      tags: ["Notifications"],
-      summary: "Get unread count",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Count retrieved" },
-      },
-    },
-  },
-  "/api/v1/notifications/read-all": {
-    post: {
-      tags: ["Notifications"],
-      summary: "Mark all as read",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Marked all as read" },
       },
     },
   },
@@ -9768,24 +9352,6 @@ Once approved:
       requestBody: { content: { "application/json": { schema: { $ref: "#/components/schemas/SendMessageRequest" } } } },
       responses: { 201: { description: "Message sent" } }
     }
-  },
-  "/api/v1/notifications/{id}/read": {
-    post: {
-      tags: ["Notifications"],
-      summary: "Mark notification as read",
-      security: [{ bearerAuth: [] }],
-      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
-      responses: { 200: { description: "Marked as read" } },
-    },
-  },
-  "/api/v1/notifications/{id}": {
-    delete: {
-      tags: ["Notifications"],
-      summary: "Delete notification",
-      security: [{ bearerAuth: [] }],
-      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
-      responses: { 200: { description: "Notification deleted" } },
-    },
   },
 
   // ==========================================================================
@@ -10137,6 +9703,59 @@ Once approved:
       summary: "Get count of open tickets",
       security: [{ bearerAuth: [] }, { mockUser: [] }],
       responses: { 200: { description: "Open tickets count" } },
+    },
+  },
+  "/api/v1/user/notifications": {
+    get: {
+      tags: ["User - Notifications"],
+      summary: "Get my notifications",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { name: "limit", in: "query", schema: { type: "integer", default: 20 } },
+        { name: "offset", in: "query", schema: { type: "integer", default: 0 } },
+        { name: "unread_only", in: "query", schema: { type: "boolean", default: false } },
+      ],
+      responses: {
+        200: { description: "Notifications retrieved successfully" },
+      },
+    },
+  },
+  "/api/v1/user/notifications/unread-count": {
+    get: {
+      tags: ["User - Notifications"],
+      summary: "Get unread count",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: { description: "Count retrieved" },
+      },
+    },
+  },
+  "/api/v1/user/notifications/read-all": {
+    post: {
+      tags: ["User - Notifications"],
+      summary: "Mark all as read",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: { description: "Marked all as read" },
+      },
+    },
+  },
+  "/api/v1/user/notifications/{id}/read": {
+    post: {
+      tags: ["User - Notifications"],
+      summary: "Mark notification as read",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Marked as read" } },
+    },
+  },
+  "/api/v1/user/notifications/{id}": {
+    delete: {
+      tags: ["User - Notifications"],
+      summary: "Delete notification",
+      security: [{ bearerAuth: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Notification deleted" } },
     },
   },
 };

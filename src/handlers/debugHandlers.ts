@@ -132,7 +132,7 @@ export const getFinixDebugPayloads = async (
         identity_id: base.identity_id,
         card_number: "4895142232120006",
         exp_month: "12",
-        exp_year: "2025",
+        exp_year: "2030",
         cvv: "123",
         name: "Test Buyer",
         postal_code: "94114",
@@ -200,7 +200,75 @@ export const getFinixDebugPayloads = async (
       };
     }
 
+
     res.json({ success: true, data: { payloads } });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Force order paid (dev only)
+ * POST /api/v1/marketplace/orders/:id/finix-debug/force-paid
+ */
+export const forceOrderPaid = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
+  try {
+    if (config.nodeEnv === "production") {
+      throw new ValidationError(
+        "Finix debug endpoint is not allowed in production"
+      );
+    }
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ValidationError("Invalid order ID format");
+    }
+    const order = await Order.findById(id);
+    if (!order) throw new NotFoundError("Order not found");
+
+    const caller_id = req.user?.dialist_id;
+    if (!caller_id)
+      throw new AuthorizationError("Unauthenticated user", { route: req.path });
+    if (order.buyer_id.toString() !== caller_id)
+      throw new AuthorizationError("Not authorized to modify this order", { order_id: id });
+
+    if (order.status === "paid") {
+      res.json({ success: true, message: "Already paid" });
+      return;
+    }
+
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      order.status = "paid";
+      order.finix_payment_instrument_id = "PI_mock_instrument_id";
+      order.finix_authorization_id = "AU_mock_auth_id";
+      order.finix_transaction_id = "TR_mock_txn_id";
+      order.paid_at = new Date();
+      await order.save({ session });
+
+      // Sync listing status
+      const listing = await MarketplaceListing.findById(order.listing_id).session(session);
+      if (listing) {
+        listing.status = "sold";
+        (listing as any).reserved_by_user_id = null;
+        (listing as any).reserved_by_order_id = null;
+        (listing as any).reserved_until = null;
+        await listing.save({ session });
+      }
+      
+      await session.commitTransaction();
+    } catch (error) {
+      if (session.inTransaction()) await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+    
+    res.json({ success: true, message: "Order forced to paid" });
   } catch (err) {
     next(err);
   }

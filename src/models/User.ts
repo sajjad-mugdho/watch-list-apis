@@ -204,14 +204,19 @@ export interface IUser extends Document {
 export interface IUserModel extends Model<IUser> {
   getMarketplaceProfile(id: string): Promise<{
     _id: string;
-    name: string | null;
+    display_name: string | null;
     location: string;
     avatar?: string | undefined;
+    stats?: {
+      avg_rating: number;
+      rating_count: number;
+      follower_count: number;
+    };
   } | null>;
 
   getNetworksProfile(id: string): Promise<{
     _id: string;
-    name: string | null;
+    display_name: string | null;
     location: string;
     avatar?: string | undefined;
   } | null>;
@@ -512,6 +517,7 @@ userSchema.statics.getMarketplaceProfile = async function (
         "location.region",
         "location.city",
         "location.postal_code",
+        "stats",
       ].join(" ")
     )
     .lean({ virtuals: true });
@@ -523,6 +529,11 @@ userSchema.statics.getMarketplaceProfile = async function (
     location, // computed by virtual based on granularity
     display_name: doc.display_name,
     avatar: (doc as any).avatar,
+    stats: {
+      avg_rating: doc.stats?.avg_rating || 0,
+      rating_count: doc.stats?.rating_count || 0,
+      follower_count: doc.stats?.follower_count || 0,
+    },
   };
 };
 userSchema.statics.getNetworksProfile = async function (

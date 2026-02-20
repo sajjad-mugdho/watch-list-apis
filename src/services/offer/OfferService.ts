@@ -12,6 +12,7 @@
  */
 
 import mongoose, { Types } from "mongoose";
+import { NotFoundError, ValidationError } from "../../utils/errors";
 import { 
   Platform,
   channelRepository,
@@ -80,7 +81,7 @@ export class OfferService {
    * Send an initial offer on a listing channel.
    * Creates Offer + first OfferRevision + EventOutbox entry in a transaction.
    */
-  async sendOffer(params: SendOfferParams): Promise<SendOfferResponse> {
+  async sendOffer(params: SendOfferParams, session?: mongoose.ClientSession): Promise<SendOfferResponse> {
     const {
       channelId,
       listingId,
@@ -94,48 +95,42 @@ export class OfferService {
       getstreamChannelId,
     } = params;
 
-    // 1. Get the listing to validate + snapshot
-    const ListingModel = platform === "networks" ? NetworkListing : MarketplaceListing;
-    const listing = await (ListingModel as any).findById(listingId);
-    
-    if (!listing) {
-      throw new Error("Listing not found");
-    }
-    if (listing.status !== "active") {
-      throw new Error("Listing is not active");
-    }
-
-    if (listing.price && amount >= listing.price) {
-      throw new Error("Offer must be below asking price");
-    }
-
-    const listingSnapshot = {
-      brand: (listing as any).brand || "",
-      model: (listing as any).model || "",
-      reference: (listing as any).reference || "",
-      price: listing.price,
-      condition: (listing as any).condition,
-      thumbnail: (listing as any).thumbnail || (listing as any).images?.[0],
-    };
-
-    // 5. Transactional create: Offer + OfferRevision + EventOutbox (Models initialized at bootstrap)
-
-    const session = await mongoose.startSession();
-    session.startTransaction();
+    const useExternalSession = !!session;
+    const txnSession = useExternalSession ? session : await mongoose.startSession();
+    if (!useExternalSession) txnSession.startTransaction();
 
     let offer: any;
     let revision: any;
+    let listingSnapshot: any;
+    let getstreamChannelIdToUse: string = getstreamChannelId || "";
 
     try {
-      // 2. Check for existing active offer (match unique index) - moved inside transaction
+      // 1. Get the listing to validate + snapshot (inside transaction)
+      const ListingModel = platform === "networks" ? NetworkListing : MarketplaceListing;
+      const listing = await (ListingModel as any).findById(listingId).session(txnSession);
+      
+      if (!listing) throw new NotFoundError("Listing");
+      if (listing.status !== "active") throw new ValidationError("Listing is not active");
+      if (listing.price && amount >= listing.price) throw new ValidationError("Offer must be below asking price");
+
+      listingSnapshot = {
+        brand: (listing as any).brand || "",
+        model: (listing as any).model || "",
+        reference: (listing as any).reference || "",
+        price: listing.price,
+        condition: (listing as any).condition,
+        thumbnail: (listing as any).thumbnail || (listing as any).images?.[0],
+      };
+
+      // 2. Check for existing active offer (match unique index) - inside transaction
       const existingOffer = await (Offer as any).findOne({
         listing_id: new Types.ObjectId(listingId),
         buyer_id: new Types.ObjectId(senderId),
         state: { $in: ["CREATED", "COUNTERED"] },
-      }).session(session);
+      }).session(txnSession);
 
       if (existingOffer) {
-        throw new Error(
+        throw new ValidationError(
           "An active offer already exists. Accept, counter, or wait for expiry."
         );
       }
@@ -151,14 +146,15 @@ export class OfferService {
         buyer_id: new Types.ObjectId(senderId),
         seller_id: new Types.ObjectId(receiverId),
         platform,
-        getstream_channel_id: getstreamChannelId || "",
+        getstream_channel_id: getstreamChannelIdToUse,
         state: "CREATED",
         expires_at: expiresAt,
         listing_snapshot: listingSnapshot,
       });
-      await offer.save({ session });
+      await offer.save({ session: txnSession });
 
       // Get current terms
+      // Note: ReservationTerms.getCurrent() doesn't seem to support session in its static method if not modified
       const currentTerms = await ReservationTerms.getCurrent();
 
       // Create revision
@@ -171,11 +167,11 @@ export class OfferService {
         created_by: new Types.ObjectId(senderId),
         revision_number: 1,
       });
-      await revision.save({ session });
+      await revision.save({ session: txnSession });
 
       // Link revision to offer
       offer.active_revision_id = revision._id;
-      await offer.save({ session });
+      await offer.save({ session: txnSession });
 
       // Write to outbox
       const outboxEntry = new EventOutbox({
@@ -196,30 +192,31 @@ export class OfferService {
         },
         published: false,
       });
-      await outboxEntry.save({ session });
+      await outboxEntry.save({ session: txnSession });
 
-      // Also update channel for backward compatibility
-      await this.updateChannelLastOffer(channelId, platform, {
-        _id: offer._id,
-        sender_id: senderId,
-        amount,
-        status: "sent",
-        offer_type: "initial",
-        createdAt: new Date(),
-        expiresAt,
-      }, session);
-
-      await session.commitTransaction();
+      if (!useExternalSession) await txnSession.commitTransaction();
     } catch (error) {
-      if (session.inTransaction()) {
-        await session.abortTransaction();
+      if (!useExternalSession && txnSession.inTransaction()) {
+        await txnSession.abortTransaction();
       }
       throw error;
     } finally {
-      session.endSession();
+      if (!useExternalSession) txnSession.endSession();
     }
 
     // --- Post-Transaction Side Effects ---
+    
+    // Also update channel for backward compatibility
+    await this.updateChannelLastOffer(channelId, platform, {
+      _id: offer._id,
+      sender_id: senderId,
+      amount,
+      status: "sent",
+      offer_type: "initial",
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + expiresInHours * 60 * 60 * 1000),
+    });
+
     // 5. Send system message (Legacy parity)
     if (getstreamChannelId) {
       try {

@@ -16,6 +16,7 @@ import { Vouch, IVouch, ConnectionType } from "../../models/Vouch";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
 import { Friendship } from "../../models/Friendship";
 import { User } from "../../models/User";
+import { Follow } from "../../models/Follow";
 import { EventOutbox } from "../../models/EventOutbox";
 import logger from "../../utils/logger";
 
@@ -271,8 +272,13 @@ export class VouchService {
       return { type: "mutual" };
     }
 
-    // Check for follow (follow model would need to exist)
-    // For now, return null if no friendship
+    // Check for follow
+    // If voucher follows the user they are vouching for, that counts as a connection
+    const isFollowing = await Follow.isFollowing(userId, otherUserId);
+    if (isFollowing) {
+        return { type: "follow" };
+    }
+
     return null;
   }
 
