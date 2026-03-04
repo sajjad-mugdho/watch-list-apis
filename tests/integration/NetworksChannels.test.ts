@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { channelService } from '../../src/services/channel/ChannelService';
+import { networksChannelService } from '../../src/networks/services/NetworksChannelService';
 import { User } from '../../src/models/User';
 import { NetworkListing } from '../../src/models/Listings';
 import { NetworkListingChannel } from '../../src/models/ListingChannel';
@@ -74,20 +74,18 @@ describe('Networks Channels Integration', () => {
 
   it('should reuse channel for DIFFERENT listings between SAME users (Bidirectional)', async () => {
     // 1. User A inquires about User B's listing 1
-    const res1 = await channelService.createChannel({
+    const res1 = await networksChannelService.createChannel({
       buyerId: userA._id.toString(),
       sellerId: userB._id.toString(),
       listingId: listing1._id.toString(),
-      platform: 'networks',
       createdFrom: 'inquiry'
     });
 
     // 2. User A inquires about User B's listing 2 (should reuse SAME channel)
-    const res2 = await channelService.createChannel({
+    const res2 = await networksChannelService.createChannel({
       buyerId: userA._id.toString(),
       sellerId: userB._id.toString(),
       listingId: listing2._id.toString(),
-      platform: 'networks',
       createdFrom: 'inquiry'
     });
 
@@ -95,11 +93,10 @@ describe('Networks Channels Integration', () => {
 
     // 3. User B inquires about User A's listing (if it existed) - testing participant bidirectional lookup
     // We'll just trigger it with roles swapped
-    const res3 = await channelService.createChannel({
+    const res3 = await networksChannelService.createChannel({
       buyerId: userB._id.toString(),
       sellerId: userA._id.toString(),
       listingId: listing1._id.toString(), // Networks requires listingId but reuses based on users
-      platform: 'networks',
       createdFrom: 'inquiry'
     });
 

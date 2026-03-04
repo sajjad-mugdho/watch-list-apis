@@ -44,6 +44,7 @@ export interface IUserLocation {
   line1?: string | null; // Street address
   line2?: string | null; // Apt/Suite number
   time_zone?: string | null;
+  currency?: string | null;
 }
 
 export interface IUser extends Document {
@@ -114,6 +115,7 @@ export interface IUser extends Document {
         city?: string | null; // City name
         line1?: string | null; // Street address
         line2?: string | null; // Apt/Suite number
+        currency?: string | null;
         updated_at: Date | null;
       };
       business_info?: {
@@ -178,6 +180,16 @@ export interface IUser extends Document {
     review_count_as_seller: number;
   };
 
+  // Reputation (Batch 2)
+  rating_average: number;
+  rating_count: number;
+  reference_count: number;
+
+  // Status (Batch 2)
+  deactivated_at: Date | null;
+  full_name: string;
+  isActive: boolean;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -234,6 +246,7 @@ const OBLocationSchema = new Schema(
     city: { type: String, default: null },
     line1: { type: String, default: null }, // Street address
     line2: { type: String, default: null }, // Apt/Suite number
+    currency: { type: String, trim: true, default: null },
     updated_at: { type: Date, default: null },
   },
   { _id: false }
@@ -326,6 +339,7 @@ export const UserLocationSchema = new Schema<IUserLocation>(
     line1: { type: String, required: false, trim: true },
     line2: { type: String, required: false, trim: true },
     time_zone: { type: String, required: false, trim: true },
+    currency: { type: String, required: false, trim: true },
   },
   { _id: false, timestamps: true }
 );
@@ -433,6 +447,9 @@ const userSchema = new Schema<IUser>(
       review_count_as_seller: { type: Number, default: 0 },
     },
 
+    // Status (Batch 2)
+    deactivated_at: { type: Date, default: null },
+
     // ===== Trust & Safety: Suspension Fields =====
     suspended_at: { type: Date, default: null },
     suspension_reason: { type: String, default: null, trim: true },
@@ -490,6 +507,14 @@ userSchema.virtual("marketplace_display_location").get(function (this: any) {
 userSchema.virtual("networks_display_location").get(function (this: any) {
   const mode = this.networks_profile_config?.location ?? "country_region";
   return locationByGranularity(this.location, mode) || "Unknown";
+});
+
+userSchema.virtual("full_name").get(function (this: any) {
+  return [this.first_name, this.last_name].filter(Boolean).join(" ");
+});
+
+userSchema.virtual("isActive").get(function (this: any) {
+  return !this.deactivated_at && !this.suspended_at;
 });
 
 // ❌ REMOVED: isMerchant virtual - now query MerchantOnboarding collection directly

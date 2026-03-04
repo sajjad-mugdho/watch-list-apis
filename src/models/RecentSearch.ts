@@ -15,7 +15,7 @@ export const PLATFORM_VALUES = ["marketplace", "networks"] as const;
 export type Platform = (typeof PLATFORM_VALUES)[number];
 
 // Search context types 
-export const SEARCH_CONTEXT_VALUES = ["for-sale", "profiles", "wtb-iso"] as const;
+export const SEARCH_CONTEXT_VALUES = ["listing", "iso", "user"] as const;
 export type SearchContext = (typeof SEARCH_CONTEXT_VALUES)[number];
 
 // ----------------------------------------------------------
@@ -64,7 +64,7 @@ const RecentSearchSchema = new Schema<IRecentSearch>(
     context: {
       type: String,
       enum: SEARCH_CONTEXT_VALUES,
-      default: "for-sale",
+      default: "listing",
     },
     filters: {
       type: Schema.Types.Mixed,

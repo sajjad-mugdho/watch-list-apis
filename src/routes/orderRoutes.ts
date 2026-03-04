@@ -3,7 +3,7 @@ import {
   requirePlatformAuth,
 } from "../middleware/authentication";
 
-import * as orderHandlers from "../handlers/orderHandlers";
+import * as orderHandlers from "../marketplace/handlers/MarketplaceOrderHandlers";
 import * as debugHandlers from "../handlers/debugHandlers";
 import { validateRequest } from "../middleware/validation";
 import {

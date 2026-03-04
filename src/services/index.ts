@@ -6,10 +6,10 @@
  */
 
 // Channel service
-export { channelService, ChannelService } from './channel/ChannelService';
+export { channelService, ChannelService } from '../shared/services/channel/ChannelService';
 
 // Message service
-export { messageService, MessageService } from './message/MessageService';
+export { messageService, MessageService } from '../shared/services/message/MessageService';
 
 // Notification service
 export { notificationService, NotificationService } from './notification/NotificationService';

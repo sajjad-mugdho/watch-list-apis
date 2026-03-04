@@ -10,6 +10,7 @@ export interface ListingForValidation {
   thumbnail?: string | null;
   contents?: string | null;
   condition?: string | null;
+  reservation_terms?: string | null;
 }
 
 /**
@@ -39,6 +40,9 @@ export function validateListingCompleteness(
   }
   if (!listing.condition) {
     missing.push("condition");
+  }
+  if (!listing.reservation_terms || listing.reservation_terms.trim().length < 10) {
+    missing.push("reservation_terms (min 10 chars)");
   }
 
   return missing;

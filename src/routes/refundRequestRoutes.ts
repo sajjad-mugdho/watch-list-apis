@@ -4,7 +4,7 @@ import {
   requirePlatformAuth,
 } from "../middleware/authentication";
 
-import * as orderHandlers from "../handlers/orderHandlers";
+import * as orderHandlers from "../marketplace/handlers/MarketplaceOrderHandlers";
 
 const router = Router();
 

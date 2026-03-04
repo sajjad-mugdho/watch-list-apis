@@ -13,6 +13,8 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 
 export const REFERENCE_STATUS_VALUES = [
   "pending",
+  "active",
+  "suspended",
   "approved",
   "declined",
   "completed",
@@ -52,6 +54,10 @@ export interface IReferenceCheck extends Document {
 
   // Responses from network members
   responses: IReferenceResponse[];
+
+  // Dual confirmation
+  confirmed_by: Types.ObjectId[]; // IDs of users who confirmed completion
+  transaction_value?: number;
 
   // Summary (computed when completed)
   summary?: {
@@ -159,6 +165,14 @@ const ReferenceCheckSchema = new Schema<IReferenceCheck>(
     summary: {
       type: ReferenceSummarySchema,
       default: null,
+    },
+    confirmed_by: [{
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    }],
+    transaction_value: {
+      type: Number,
+      default: 0,
     },
     expires_at: {
       type: Date,

@@ -1,7 +1,7 @@
 // src/utils/listingStatusMachine.ts
 import { ValidationError } from "./errors";
 
-export type ListingStatus = "draft" | "active" | "reserved" | "sold";
+export type ListingStatus = "draft" | "active" | "reserved" | "sold" | "inactive";
 
 export interface StatusTransition {
   from: ListingStatus;
@@ -35,6 +35,24 @@ const VALID_TRANSITIONS: StatusTransition[] = [
     to: "sold",
     allowed: true,
     description: "Direct sale (no offer)",
+  },
+  {
+    from: "active",
+    to: "inactive",
+    allowed: true,
+    description: "Deactivate listing",
+  },
+  {
+    from: "inactive",
+    to: "active",
+    allowed: true,
+    description: "Reactivate listing",
+  },
+  {
+    from: "draft",
+    to: "inactive",
+    allowed: true,
+    description: "Archive draft",
   },
   // Invalid transitions (for error messages)
   {

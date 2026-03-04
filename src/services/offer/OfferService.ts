@@ -723,8 +723,8 @@ export class OfferService {
   /**
    * Get all expired offers (CREATED/COUNTERED and passed expires_at)
    */
-  async getExpiredOffers(): Promise<IOffer[]> {
-    return Offer.findExpiredOffers();
+  async getExpiredOffers(platform?: Platform): Promise<IOffer[]> {
+    return Offer.findExpiredOffers(platform);
   }
 
   /**

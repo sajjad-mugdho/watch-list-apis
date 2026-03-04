@@ -2692,9 +2692,9 @@ swaggerSpec.paths = {
     }
   },
   // --- Conversations ---
-  "/api/v1/conversations": {
+  "/api/v1/marketplace/conversations": {
     get: {
-      tags: ["Conversations"],
+      tags: ["Marketplace - Conversations"],
       summary: "Get user's conversations with enriched context",
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -2723,7 +2723,7 @@ swaggerSpec.paths = {
   },
   "/api/v1/conversations/search": {
     get: {
-      tags: ["Conversations"],
+      tags: ["Marketplace - Conversations"],
       summary: "Search conversations",
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -2750,7 +2750,7 @@ swaggerSpec.paths = {
   },
   "/api/v1/conversations/{id}": {
     get: {
-      tags: ["Conversations"],
+      tags: ["Marketplace - Conversations"],
       summary: "Get full context for a specific conversation",
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -2767,7 +2767,7 @@ swaggerSpec.paths = {
   },
   "/api/v1/conversations/{id}/media": {
     get: {
-      tags: ["Conversations"],
+      tags: ["Marketplace - Conversations"],
       summary: "Get shared media for a conversation",
       security: [{ bearerAuth: [] }],
       parameters: [
@@ -9196,9 +9196,9 @@ Once approved:
       },
     },
   },
-  "/api/v1/messages/send": {
+  "/api/v1/marketplace/messages/send": {
     post: {
-      tags: ["Messages"],
+      tags: ["Marketplace - Messages"],
       summary: "Send a message through backend",
       description: "Sends a message to a channel, stores it in MongoDB and delivers via GetStream simultaneously.",
       security: [{ bearerAuth: [] }],
@@ -9218,9 +9218,9 @@ Once approved:
       },
     },
   },
-  "/api/v1/messages/channel/{channelId}": {
+  "/api/v1/marketplace/messages/channel/{channelId}": {
     get: {
-      tags: ["Messages"],
+      tags: ["Marketplace - Messages"],
       summary: "Get messages for a channel",
       description: "Retrieves message history from backend database",
       security: [{ bearerAuth: [] }],
@@ -9236,7 +9236,7 @@ Once approved:
   },
   "/api/v1/messages/{id}": {
     put: {
-      tags: ["Messages"],
+      tags: ["Marketplace - Messages"],
       summary: "Edit a message",
       security: [{ bearerAuth: [] }],
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
@@ -9247,7 +9247,7 @@ Once approved:
       responses: { 200: { description: "Message updated" } },
     },
     delete: {
-      tags: ["Messages"],
+      tags: ["Marketplace - Messages"],
       summary: "Delete a message",
       security: [{ bearerAuth: [] }],
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
@@ -9256,7 +9256,7 @@ Once approved:
   },
   "/api/v1/messages/{id}/read": {
     post: {
-      tags: ["Messages"],
+      tags: ["Marketplace - Messages"],
       summary: "Mark message as read",
       security: [{ bearerAuth: [] }],
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
@@ -9265,7 +9265,7 @@ Once approved:
   },
   "/api/v1/messages/channel/{channelId}/read-all": {
     post: {
-      tags: ["Messages"],
+      tags: ["Marketplace - Messages"],
       summary: "Mark all messages in channel as read",
       security: [{ bearerAuth: [] }],
       parameters: [{ name: "channelId", in: "path", required: true, schema: { type: "string" } }],
@@ -9274,7 +9274,7 @@ Once approved:
   },
   "/api/v1/messages/{id}/react": {
     post: {
-      tags: ["Messages"],
+      tags: ["Marketplace - Messages"],
       summary: "Add/toggle reaction",
       security: [{ bearerAuth: [] }],
       parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
@@ -9758,4 +9758,375 @@ Once approved:
       responses: { 200: { description: "Notification deleted" } },
     },
   },
+
+  // --- Auto-Appended Networks Routes ---
+  "/api/v1/networks/reference-checks": {
+    get: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Get reference checks",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Success" } }
+    },
+    post: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Request a reference check",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/reference-checks/{id}": {
+    get: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Get specific reference check",
+      description: "Returns check details including timeRemaining, vouch_weight, and transaction_value",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    },
+    delete: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Delete reference check",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/reference-checks/{id}/respond": {
+    post: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Respond to reference check",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/reference-checks/{id}/complete": {
+    post: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Complete reference check",
+      description: "Requires dual-confirmation from both buyer and seller",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/reference-checks/{id}/suspend": {
+    post: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Suspend reference check",
+      description: "Admin/Moderator only",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/reference-checks/{id}/vouch": {
+    post: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Vouch for a transaction",
+      description: "Requires legal_consent_accepted: true. Increases trust weight.",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/reference-checks/{id}/vouches": {
+    get: {
+      tags: ["Networks - Reference Checks"],
+      summary: "Get vouches for reference check",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/offers/{id}": {
+    get: {
+      tags: ["Networks - Offers"],
+      summary: "Get specific offer",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/offers/{id}/accept": {
+    post: {
+      tags: ["Networks - Offers"],
+      summary: "Accept an offer",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/offers/{id}/reject": {
+    post: {
+      tags: ["Networks - Offers"],
+      summary: "Reject an offer",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/offers/{id}/counter": {
+    post: {
+      tags: ["Networks - Offers"],
+      summary: "Counter an offer",
+      description: "Sets 24h binding expiry and returns price_delta",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success - returns channel with price_delta" } }
+    }
+  },
+  "/api/v1/networks/chat/token": {
+    get: {
+      tags: ["Networks - Chat"],
+      summary: "Get GetStream chat token",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/chat/channels": {
+    get: {
+      tags: ["Networks - Chat"],
+      summary: "Get user channels",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/chat/channel": {
+    post: {
+      tags: ["Networks - Chat"],
+      summary: "Get or create channel",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/conversations": {
+    get: {
+      tags: ["Networks - Chat"],
+      summary: "List conversations",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/conversations/search": {
+    get: {
+      tags: ["Networks - Chat"],
+      summary: "Search conversations",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/conversations/{id}": {
+    get: {
+      tags: ["Networks - Chat"],
+      summary: "Get conversation context",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/conversations/{id}/media": {
+    get: {
+      tags: ["Networks - Chat"],
+      summary: "Get conversation media",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/messages/send": {
+    post: {
+      tags: ["Networks - Chat"],
+      summary: "Send a message",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/messages/channel/{channelId}": {
+    get: {
+      tags: ["Networks - Chat"],
+      summary: "Get channel messages",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "channelId", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/messages/{id}": {
+    put: {
+      tags: ["Networks - Chat"],
+      summary: "Update message",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    },
+    delete: {
+      tags: ["Networks - Chat"],
+      summary: "Delete message",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/messages/{id}/read": {
+    post: {
+      tags: ["Networks - Chat"],
+      summary: "Read message",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/messages/channel/{channelId}/read-all": {
+    post: {
+      tags: ["Networks - Chat"],
+      summary: "Read all messages",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "channelId", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/messages/{id}/react": {
+    post: {
+      tags: ["Networks - Chat"],
+      summary: "React to message",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/messages/channel/{channelId}/archive": {
+    post: {
+      tags: ["Networks - Chat"],
+      summary: "Archive channel",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "channelId", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/inbox": {
+    get: {
+      tags: ["Networks - Social Hub"],
+      summary: "Get unified social inbox",
+      description: "Aggregates personal/group chats. Capped at 999+ unread.",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/search": {
+    get: {
+      tags: ["Networks - Social Hub"],
+      summary: "Multi-entity search",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "q", in: "query", schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/discover": {
+    get: {
+      tags: ["Networks - Social Hub"],
+      summary: "Recommended people and groups",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/conversations/{id}/content": {
+    get: {
+      tags: ["Networks - Social Hub"],
+      summary: "Get shared content (media/links/files)",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/conversations/{id}/search": {
+    get: {
+      tags: ["Networks - Social Hub"],
+      summary: "Search messages in specific chat",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [
+        { name: "id", in: "path", required: true, schema: { type: "string" } },
+        { name: "q", in: "query", schema: { type: "string" } }
+      ],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/conversations/{id}/events": {
+    get: {
+      tags: ["Networks - Social Hub"],
+      summary: "Get unified conversation timeline",
+      description: "Aggregates offers, vouches, and order milestones",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/chat-profile/{userId}": {
+    get: {
+      tags: ["Networks - Social Hub"],
+      summary: "Get chat-specific user profile",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "userId", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/groups": {
+    post: {
+      tags: ["Networks - Social Hub | Groups"],
+      summary: "Create a social group",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/groups/{id}/members": {
+    post: {
+      tags: ["Networks - Social Hub | Groups"],
+      summary: "Add members to group",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    },
+    delete: {
+      tags: ["Networks - Social Hub | Groups"],
+      summary: "Remove member from group",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/groups/{id}/mute": {
+    post: {
+      tags: ["Networks - Social Hub | Groups"],
+      summary: "Mute/Unmute group",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/social/reports": {
+    post: {
+      tags: ["Networks - Social Hub | Reports"],
+      summary: "Report user/group/message",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      requestBody: { content: { "application/json": { schema: { type: "object" } } } },
+      responses: { 200: { description: "Success" } }
+    }
+  },
+  "/api/v1/networks/connections/listings": {
+    get: {
+      tags: ["Networks - Connections"],
+      summary: "Get listings from followed users",
+      description: "Returns activity feed containing listings from users you follow",
+      security: [{ bearerAuth: [] }, { mockUser: [] }],
+      responses: { 200: { description: "Success" } }
+    }
+  }
 };

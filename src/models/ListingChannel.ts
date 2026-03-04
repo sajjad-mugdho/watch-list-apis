@@ -13,13 +13,6 @@ const OFFER_STATUS_VALUES = [
 ] as const;
 const CHANNEL_STATUS_VALUES = ["open", "closed"] as const;
 const EVENT_TYPE_VALUES = ["inquiry", "offer", "order"] as const;
-const ORDER_STATUS_VALUES = [
-  "pending",
-  "paid",
-  "shipped",
-  "completed",
-  "cancelled",
-] as const;
 
 // ----------------------------------------------------------
 // Interfaces
@@ -41,15 +34,6 @@ export interface IOffer {
   createdAt: Date;
 }
 
-export interface IOrder {
-  from_offer_id: Types.ObjectId;
-  amount: number;
-  buyer_id: Schema.Types.ObjectId;
-  seller_id: Schema.Types.ObjectId;
-  status: (typeof ORDER_STATUS_VALUES)[number];
-  createdAt: Date;
-}
-
 export interface IUserSnapshot {
   _id: Schema.Types.ObjectId;
   name: string;
@@ -68,7 +52,7 @@ export interface IListingSnapshot {
 }
 
 /**
- * Networks-only listing channel interface
+ * Network listing channel interface (User-to-User centric)
  */
 export interface INetworkListingChannel extends Document {
   // Refs
@@ -88,7 +72,7 @@ export interface INetworkListingChannel extends Document {
 
   // Conversation + commerce
   inquiry?: IInquiry | null;
-  inquiries?: IInquiry[];  // NEW: Array of inquiries for multiple inquiry support
+  inquiries?: IInquiry[];
   offer_history: IOffer[];
   last_offer?: IOffer | null;
 
@@ -96,7 +80,7 @@ export interface INetworkListingChannel extends Document {
   getstream_channel_id?: string | null;
   getstream_channel_type?: string;
 
-  // Reference to canonical Order document (single source of truth)
+  // Reference to canonical Order document
   order_id: Types.ObjectId | null;
 
   // Timestamps
@@ -106,32 +90,13 @@ export interface INetworkListingChannel extends Document {
   // Instance methods
   isOfferExpired(): boolean;
   hasActiveOffer(): boolean;
-  getUserRole(
-    userId: string | Schema.Types.ObjectId
-  ): "buyer" | "seller" | null;
-  supersedeLastOffer(): void;
-  resolveLastOffer(status: "accepted" | "declined"): Promise<void>;
+  getUserRole(userId: string | Schema.Types.ObjectId): "buyer" | "seller" | null;
 }
 
-export interface INetworkListingChannelModel
-  extends Model<INetworkListingChannel> {
-  findByListingAndBuyer(
-    listingId: string,
-    buyerId: string
-  ): Promise<INetworkListingChannel | null>;
-
-  findByUserId(
-    userId: string,
-    role?: "buyer" | "seller"
-  ): Promise<INetworkListingChannel[]>;
-
-  findActiveOffersForSeller(
-    sellerId: string
-  ): Promise<INetworkListingChannel[]>;
-}
+export interface INetworkListingChannelModel extends Model<INetworkListingChannel> {}
 
 // ----------------------------------------------------------
-// Sub-schemas
+// Schema
 // ----------------------------------------------------------
 const InquirySchema = new Schema<IInquiry>(
   {
@@ -147,18 +112,8 @@ const OfferSchema = new Schema<IOffer>(
     sender_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
     amount: { type: Number, required: true, min: 0 },
     message: { type: String, default: null, trim: true },
-    offer_type: {
-      type: String,
-      enum: OFFER_TYPE_VALUES,
-      default: "initial",
-      required: true,
-    },
-    status: {
-      type: String,
-      enum: OFFER_STATUS_VALUES,
-      default: "sent",
-      required: true,
-    },
+    offer_type: { type: String, enum: OFFER_TYPE_VALUES, default: "initial", required: true },
+    status: { type: String, enum: OFFER_STATUS_VALUES, default: "sent", required: true },
     expiresAt: { type: Date },
     createdAt: { type: Date, default: Date.now },
   },
@@ -183,174 +138,54 @@ const ListingSnapshotSchema = new Schema<IListingSnapshot>(
     condition: { type: String, trim: true },
     contents: { type: String, trim: true },
     thumbnail: { type: String, trim: true },
-    year: { type: Number, min: 1800, max: new Date().getFullYear() + 1 },
+    year: { type: Number, min: 1800 },
   },
   { _id: false }
 );
 
-// ----------------------------------------------------------
-// Network Listing Channel Schema
-// ----------------------------------------------------------
 const networkListingChannelSchema = new Schema<INetworkListingChannel>(
   {
-    listing_id: {
-      type: Schema.Types.ObjectId,
-      ref: "NetworkListing",
-      required: true,
-      index: true,
-    },
-    buyer_id: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-    seller_id: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
-
-    status: {
-      type: String,
-      enum: CHANNEL_STATUS_VALUES,
-      default: "open",
-      index: true,
-    },
+    listing_id: { type: Schema.Types.ObjectId, ref: "NetworkListing", required: true, index: true },
+    buyer_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    seller_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    status: { type: String, enum: CHANNEL_STATUS_VALUES, default: "open", index: true },
     created_from: { type: String, enum: EVENT_TYPE_VALUES, required: true },
     last_event_type: { type: String, enum: EVENT_TYPE_VALUES, default: null },
-
     buyer_snapshot: { type: UserSnapshotSchema, required: true },
     seller_snapshot: { type: UserSnapshotSchema, required: true },
     listing_snapshot: { type: ListingSnapshotSchema, required: true },
-
     inquiry: { type: InquirySchema, default: null },
-    inquiries: { type: [InquirySchema], default: [] },  // NEW: Multiple inquiries
-
+    inquiries: { type: [InquirySchema], default: [] },
     offer_history: { type: [OfferSchema], default: [] },
     last_offer: { type: OfferSchema, default: null },
-
-    // GetStream mapping — will store chat channel id once chat is created
-    getstream_channel_id: {
-      type: String,
-      default: null,
-      index: true,
-      maxlength: 128,
-    },
+    getstream_channel_id: { type: String, default: null, index: true },
     getstream_channel_type: { type: String, default: "messaging" },
-
-    // Reference to canonical Order document (single source of truth)
-    order_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Order",
-      default: null,
-      index: true,
-    },
+    order_id: { type: Schema.Types.ObjectId, ref: "NetworkOrder", default: null, index: true },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
 // Indexes
-networkListingChannelSchema.index(
-  { buyer_id: 1, seller_id: 1 },
-  { unique: true }
-);
-networkListingChannelSchema.index({ "last_offer.status": 1 });
-networkListingChannelSchema.index({ buyer_id: 1, updatedAt: -1 });
-networkListingChannelSchema.index({ seller_id: 1, updatedAt: -1 });
+networkListingChannelSchema.index({ buyer_id: 1, seller_id: 1 }, { unique: true });
 
-// Instance methods
+// Methods
 networkListingChannelSchema.methods.isOfferExpired = function (): boolean {
   if (!this.last_offer || !this.last_offer.expiresAt) return false;
   return this.last_offer.expiresAt <= new Date();
 };
 
 networkListingChannelSchema.methods.hasActiveOffer = function (): boolean {
-  return (
-    this.last_offer != null &&
-    this.last_offer.status === "sent" &&
-    !this.isOfferExpired()
-  );
+  return this.last_offer != null && this.last_offer.status === "sent" && !this.isOfferExpired();
 };
 
-networkListingChannelSchema.methods.getUserRole = function (
-  userId: string | Schema.Types.ObjectId
-): "buyer" | "seller" | null {
+networkListingChannelSchema.methods.getUserRole = function (userId: string | Schema.Types.ObjectId): "buyer" | "seller" | null {
   const uid = String(userId);
   if (String(this.buyer_id) === uid) return "buyer";
   if (String(this.seller_id) === uid) return "seller";
   return null;
 };
 
-networkListingChannelSchema.methods.supersedeLastOffer = function (): void {
-  if (!this.last_offer) return;
-  const superseded = {
-    ...(this.last_offer.toObject?.() ?? this.last_offer),
-    status: "superseded" as const,
-  };
-  this.offer_history.push(superseded);
-  this.last_offer = null;
-};
-
-networkListingChannelSchema.methods.resolveLastOffer = async function (
-  status: "accepted" | "declined"
-): Promise<void> {
-  if (!this.last_offer) throw new Error("No active offer to resolve");
-  const resolved = {
-    ...(this.last_offer.toObject?.() ?? this.last_offer),
-    status,
-  };
-  this.offer_history.push(resolved);
-  this.last_offer = null;
-  this.last_event_type = "offer";
-  await this.save();
-};
-
-// Static methods
-networkListingChannelSchema.statics.findByListingAndBuyer = function (
-  listingId: string | Schema.Types.ObjectId,
-  buyerId: string | Schema.Types.ObjectId
-) {
-  return this.findOne({ listing_id: listingId, buyer_id: buyerId });
-};
-
-networkListingChannelSchema.statics.findByUserId = function (
-  userId: string | Schema.Types.ObjectId,
-  role?: "buyer" | "seller"
-) {
-  if (role === "buyer")
-    return this.find({ buyer_id: userId }).sort({ updatedAt: -1 });
-  if (role === "seller")
-    return this.find({ seller_id: userId }).sort({ updatedAt: -1 });
-  return this.find({
-    $or: [{ buyer_id: userId }, { seller_id: userId }],
-  }).sort({ updatedAt: -1 });
-};
-
-networkListingChannelSchema.statics.findActiveOffersForSeller = function (
-  sellerId: string | Schema.Types.ObjectId
-) {
-  return this.find({
-    seller_id: sellerId,
-    status: "open",
-    "last_offer.status": "sent",
-    $or: [
-      { "last_offer.expiresAt": { $exists: false } },
-      { "last_offer.expiresAt": { $gt: new Date() } },
-    ],
-  }).sort({ updatedAt: -1 });
-};
-
-// ----------------------------------------------------------
-// Model - Networks only
-// ----------------------------------------------------------
-export const NetworkListingChannel = mongoose.model<
-  INetworkListingChannel,
-  INetworkListingChannelModel
->(
+export const NetworkListingChannel = mongoose.model<INetworkListingChannel, INetworkListingChannelModel>(
   "NetworkListingChannel",
   networkListingChannelSchema,
   "network_listing_channels"

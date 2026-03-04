@@ -1,4 +1,4 @@
-import { messageService } from '../../../src/services/message/MessageService';
+
 import { messageRepository, channelRepository, userRepository } from '../../../src/repositories';
 import { chatService } from '../../../src/services/ChatService';
 import { events } from '../../../src/utils/events';
@@ -6,6 +6,7 @@ import { Types } from 'mongoose';
 import { MarketplaceListingChannel } from '../../../src/models/MarketplaceListingChannel';
 import { MarketplaceListing } from '../../../src/models/Listings';
 import { User } from '../../../src/models/User';
+import { messageService } from '../../../src/services';
 
 describe('MessageService', () => {
   let buyerId: string;
@@ -98,10 +99,8 @@ describe('MessageService', () => {
 
       // Execute
       const response = await messageService.sendMessage({
-        channelId,
-        getstreamChannelId,
+        channelId: getstreamChannelId,
         userId: buyerId,
-        clerkId: 'buyer_clerk',
         platform: 'marketplace',
         text: 'Hello, is this available?'
       });
@@ -135,10 +134,8 @@ describe('MessageService', () => {
       
       // Execute
       const response = await messageService.sendMessage({
-        channelId,
-        getstreamChannelId,
+        channelId: getstreamChannelId,
         userId: buyerId,
-        clerkId: 'buyer_clerk',
         platform: 'marketplace',
         text: 'Failing message'
       });
@@ -153,10 +150,8 @@ describe('MessageService', () => {
       await MarketplaceListingChannel.findByIdAndUpdate(channelId, { status: 'closed' });
 
       await expect(messageService.sendMessage({
-        channelId,
-        getstreamChannelId,
+        channelId: getstreamChannelId,
         userId: buyerId,
-        clerkId: 'buyer_clerk',
         platform: 'marketplace',
         text: 'Blocked message'
       })).rejects.toThrow('Cannot send messages to a closed channel');

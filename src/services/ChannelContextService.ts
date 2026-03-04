@@ -174,7 +174,8 @@ export class ChannelContextService {
     // Add active offer context
     const offerContext = await this.getActiveOfferContext(
       channelDoc.listing_id.toString(),
-      channelDoc.buyer_id._id?.toString() || channelDoc.buyer_id.toString()
+      channelDoc.buyer_id._id?.toString() || channelDoc.buyer_id.toString(),
+      platform
     );
     if (offerContext) {
       context.activeOffer = offerContext;
@@ -384,9 +385,10 @@ export class ChannelContextService {
 
   private async getActiveOfferContext(
     listingId: string,
-    buyerId: string
+    buyerId: string,
+    platform: Platform
   ): Promise<OfferContext | null> {
-    const offer = await Offer.findActiveByListingAndBuyer(listingId, buyerId);
+    const offer = await Offer.findActiveByListingAndBuyer(listingId, buyerId, platform);
     if (!offer) return null;
 
     const revision = await OfferRevision.getLatestRevision(offer._id.toString());
@@ -474,7 +476,8 @@ export class ChannelContextService {
       } else {
         const offer = await Offer.findActiveByListingAndBuyer(
           channel.listing_id.toString(),
-          channel.buyer_id._id.toString()
+          channel.buyer_id._id.toString(),
+          platform
         );
 
         if (offer) {

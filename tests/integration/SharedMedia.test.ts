@@ -1,6 +1,6 @@
 import request from 'supertest';
 import express from 'express';
-import { conversationRoutes } from '../../src/routes/conversationRoutes';
+import marketplaceConversationRoutes from "../../src/marketplace/routes/conversationRoutes";
 import { chatService } from '../../src/services/ChatService';
 import { channelContextService } from '../../src/services/ChannelContextService';
 import { User } from '../../src/models/User';
@@ -11,12 +11,17 @@ import { Types } from 'mongoose';
 // Setup Mock Express App
 const app = express();
 app.use(express.json());
+// Add mock platform routing middleware to make tests pass
+app.use((req, res, next) => {
+  (req as any).platform = 'marketplace';
+  next();
+});
 // Mock auth middleware
 app.use((req: any, res, next) => {
   req.auth = { userId: 'test_user_external' };
   next();
 });
-app.use('/api/v1/conversations', conversationRoutes);
+app.use('/api/v1/conversations', marketplaceConversationRoutes);
 
 describe('Shared Media Integration', () => {
   let user: any;
@@ -158,7 +163,7 @@ describe('Shared Media Integration', () => {
       display_name: 'Other'
     });
 
-    unauthorizedApp.use('/api/v1/conversations', conversationRoutes);
+    unauthorizedApp.use('/api/v1/conversations', marketplaceConversationRoutes);
 
     const response = await request(unauthorizedApp)
       .get(`/api/v1/conversations/${channel._id}/media`);

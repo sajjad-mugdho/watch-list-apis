@@ -12,16 +12,14 @@
 
 import { Types } from 'mongoose';
 import { User } from '../../src/models/User';
-import { MarketplaceListing, NetworkListing } from '../../src/models/Listings';
-import { MarketplaceListingChannel } from '../../src/models/MarketplaceListingChannel';
-import { NetworkListingChannel } from '../../src/models/ListingChannel';
+
 import { Order } from '../../src/models/Order';
 import { Favorite } from '../../src/models/Favorite';
 import { ReferenceCheck } from '../../src/models/ReferenceCheck';
 import { ISO } from '../../src/models/ISO';
 import { chatService } from '../../src/services/ChatService';
-import { channelService } from '../../src/services/channel/ChannelService';
-import { favoriteService } from '../../src/services';
+
+import { channelService, favoriteService } from '../../src/services';
 
 describe('Platform Separation Tests', () => {
   let userA: any;

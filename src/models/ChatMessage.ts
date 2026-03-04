@@ -13,6 +13,9 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 export interface IAttachment {
   type: string;
   url: string;
+  title?: string;
+  size?: number;
+  mime_type?: string;
   [key: string]: any;
 }
 
@@ -23,6 +26,7 @@ export interface IChatMessage extends Document {
   stream_message_id?: string;  // Optional - may not exist until GetStream confirms
   stream_channel_id: string;
   stream_channel_type: string;
+  platform: "marketplace" | "networks";
   
   // Message content
   text: string;
@@ -31,12 +35,12 @@ export interface IChatMessage extends Document {
   sender_clerk_id: string;
   
   // Message metadata
-  type: "regular" | "system" | "offer" | "counter_offer" | "offer_accepted" | "offer_rejected" | "order_created" | "order_paid" | "order_shipped" | "order_delivered" | "inquiry" | "order" | "listing_reserved" | "offer_expired";
+  type: "regular" | "system" | "offer" | "counter_offer" | "offer_accepted" | "offer_rejected" | "order_created" | "order_paid" | "order_shipped" | "order_delivered" | "inquiry" | "order" | "listing_reserved" | "offer_expired" | "image" | "file" | "link";
   attachments?: IAttachment[];
 
   mentioned_users?: string[];
   parent_id?: string; // For thread replies (GetStream)
-  parent_message_id?: string; // For thread replies (MongoDB)
+  parent_message_id?: Types.ObjectId; // For thread replies (MongoDB)
   custom_data?: Record<string, any>;  // Flexible custom data
   
   // Marketplace context
@@ -105,6 +109,13 @@ const ChatMessageSchema = new Schema<IChatMessage>(
       required: true,
       default: "messaging",
     },
+    platform: {
+      type: String,
+      enum: ["marketplace", "networks"],
+      required: true,
+      index: true,
+      default: "marketplace",
+    },
     text: {
       type: String,
       required: true,
@@ -122,7 +133,7 @@ const ChatMessageSchema = new Schema<IChatMessage>(
     },
     type: {
       type: String,
-      enum: ["regular", "system", "offer", "counter_offer", "offer_accepted", "offer_rejected", "order_created", "order_paid", "order_shipped", "order_delivered", "inquiry", "order", "listing_reserved", "offer_expired"],
+      enum: ["regular", "system", "offer", "counter_offer", "offer_accepted", "offer_rejected", "order_created", "order_paid", "order_shipped", "order_delivered", "inquiry", "order", "listing_reserved", "offer_expired", "image", "file", "link"],
       default: "regular",
       index: true,
     },
@@ -142,7 +153,8 @@ const ChatMessageSchema = new Schema<IChatMessage>(
       default: null,
     },
     parent_message_id: {
-      type: String,
+      type: Schema.Types.ObjectId,
+      ref: "ChatMessage",
       default: null,
     },
     original_text: {
@@ -240,6 +252,7 @@ ChatMessageSchema.index({ createdAt: -1 });
 ChatMessageSchema.index({ sender_id: 1, createdAt: -1 });
 ChatMessageSchema.index({ listing_id: 1, createdAt: -1 });
 ChatMessageSchema.index({ stream_channel_id: 1, createdAt: -1 });
+ChatMessageSchema.index({ text: "text" });
 
 // Transform for JSON
 ChatMessageSchema.set("toJSON", {

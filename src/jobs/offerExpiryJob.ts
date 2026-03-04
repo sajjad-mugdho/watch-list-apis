@@ -7,7 +7,8 @@
  * Offers expire after 48 hours automatically.
  */
 
-import { offerService } from '../services';
+import { marketplaceOfferService } from '../marketplace/services/MarketplaceOfferService';
+import { networksOfferService } from '../networks/services/NetworksOfferService';
 import logger from '../utils/logger';
 
 // Run every 15 minutes
@@ -31,16 +32,31 @@ async function processExpiredOffers(): Promise<void> {
   try {
     logger.info('Starting offer expiry job');
 
-    // Process all expired offers (no longer separated by platform)
-    const expiredOffers = await offerService.getExpiredOffers();
+    // Process Marketplace Expired Offers
+    const marketplaceExpiredOffers = await marketplaceOfferService.getExpiredOffers();
     let expiredCount = 0;
     
-    for (const offer of expiredOffers as any[]) {
+    for (const offer of marketplaceExpiredOffers as any[]) {
       try {
-        await offerService.expireOffer(offer._id.toString());
+        await marketplaceOfferService.expireOffer(offer._id.toString());
         expiredCount++;
       } catch (error) {
-        logger.error('Failed to expire offer', {
+        logger.error('Failed to expire marketplace offer', {
+          offerId: offer._id,
+          error: error instanceof Error ? error.message : error,
+        });
+      }
+    }
+
+    // Process Networks Expired Offers
+    const networksExpiredOffers = await networksOfferService.getExpiredOffers();
+    
+    for (const offer of networksExpiredOffers as any[]) {
+      try {
+        await networksOfferService.expireOffer(offer._id.toString());
+        expiredCount++;
+      } catch (error) {
+        logger.error('Failed to expire networks offer', {
           offerId: offer._id,
           error: error instanceof Error ? error.message : error,
         });

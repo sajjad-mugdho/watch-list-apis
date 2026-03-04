@@ -10,6 +10,7 @@ export interface ListingFilterInput {
   min_price?: number;
   max_price?: number;
   allow_offers?: boolean;
+  is_featured?: boolean;
 }
 
 /**
@@ -22,11 +23,15 @@ export function buildListingFilter(
   input: ListingFilterInput,
   includeOffersFilter: boolean = true
 ): Record<string, any> {
-  const { q, brand, condition, min_price, max_price, allow_offers } = input;
+  const { q, brand, condition, min_price, max_price, allow_offers, is_featured } = input;
 
   const filter: any = {
     status: "active",
   };
+
+  if (is_featured !== undefined) {
+    filter.is_featured = is_featured;
+  }
 
   // Search query (searches brand, model, reference)
   if (q) {

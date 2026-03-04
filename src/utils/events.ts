@@ -95,6 +95,11 @@ export interface EventMap {
     listingId: string;
   };
 
+  // GetStream Events
+  'getstream:message.new': {
+    listingId: string;
+  };
+
   // Order Lifecycle Events
   'order:created': {
     buyerId: string;

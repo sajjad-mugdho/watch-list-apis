@@ -1,5 +1,5 @@
 import { Types } from 'mongoose';
-import { channelService } from '../../src/services/channel/ChannelService';
+import { marketplaceChannelService } from '../../src/marketplace/services/MarketplaceChannelService';
 import { User } from '../../src/models/User';
 import { MarketplaceListing } from '../../src/models/Listings';
 import { MarketplaceListingChannel } from '../../src/models/MarketplaceListingChannel';
@@ -92,10 +92,10 @@ describe('Marketplace Channels Integration', () => {
     };
 
     // First creation
-    const res1 = await channelService.createChannel(params);
+    const res1 = await marketplaceChannelService.createChannel(params);
     expect(res1.channel).toBeDefined();
 
-    const res2: any = await channelService.createChannel(params);
+    const res2: any = await marketplaceChannelService.createChannel(params);
     expect(res2.channel._id.toString()).toBe((res1.channel as any)._id.toString());
 
     const count = await MarketplaceListingChannel.countDocuments({
@@ -108,20 +108,18 @@ describe('Marketplace Channels Integration', () => {
 
   it('should create DIFFERENT channels for DIFFERENT listings from same seller', async () => {
     // Channel for listing 1
-    const res1 = await channelService.createChannel({
+    const res1 = await marketplaceChannelService.createChannel({
       buyerId: buyer._id.toString(),
       sellerId: seller._id.toString(),
       listingId: listing1._id.toString(),
-      platform: 'marketplace',
       createdFrom: 'inquiry'
     });
 
     // Channel for listing 2
-    const res2 = await channelService.createChannel({
+    const res2 = await marketplaceChannelService.createChannel({
       buyerId: buyer._id.toString(),
       sellerId: seller._id.toString(),
       listingId: listing2._id.toString(),
-      platform: 'marketplace',
       createdFrom: 'inquiry'
     });
 

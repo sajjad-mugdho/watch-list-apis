@@ -1,13 +1,19 @@
 import request from 'supertest';
 import express from 'express';
-import { referenceCheckRoutes } from '../../src/routes/referenceCheckRoutes';
+import networksReferenceCheckRoutes from "../../src/networks/routes/referenceCheckRoutes";
 import { User } from '../../src/models/User';
 import { ReferenceCheck } from '../../src/models/ReferenceCheck';
 import { Vouch } from '../../src/models/Vouch';
-import { MarketplaceListing } from '../../src/models/Listings';
 import { Order } from '../../src/models/Order';
-import { Friendship } from '../../src/models/Friendship';
 import { Types } from 'mongoose';
+
+import { events } from '../../src/utils/events';
+import { Notification } from '../../src/models/Notification';
+import { feedService } from '../../src/services/FeedService';
+import { auditService } from '../../src/services/AuditService';
+
+import { MarketplaceListing } from '../../src/models/Listings';
+import { Friendship } from '../../src/models/Friendship';
 
 // Mock auth middleware for different users
 const mockAuth = (userId: string) => (req: any, res: any, next: any) => {
@@ -19,7 +25,12 @@ const createApp = (userId: string) => {
   const app = express();
   app.use(express.json());
   app.use(mockAuth(userId));
-  app.use('/api/v1/reference-checks', referenceCheckRoutes);
+  // Add mock networks platform routing middleware
+  app.use((req, res, next) => {
+    (req as any).platform = 'networks';
+    next();
+  });
+  app.use('/api/v1/reference-checks', networksReferenceCheckRoutes);
   return app;
 };
 
@@ -107,7 +118,13 @@ describe('Load Burst Integration', () => {
       requester_id: buyer._id,
       target_id: seller._id,
       order_id: order._id,
-      status: 'pending'
+      status: 'pending',
+      listing_snapshot: { 
+        brand: 'Rolex', 
+        model: 'Sub', 
+        reference: '126610LN',
+        price: 10000 
+      }
     });
   });
 
@@ -232,7 +249,13 @@ describe('Load Burst Integration', () => {
       const check = await ReferenceCheck.create({
         requester_id: buyer._id,
         target_id: target._id,
-        status: 'pending'
+        status: 'pending',
+        listing_snapshot: { 
+          brand: 'Rolex', 
+          model: 'Sub', 
+          reference: '126610LN',
+          price: 10000 
+        }
       });
       checks.push(check);
     }

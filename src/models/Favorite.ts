@@ -93,37 +93,42 @@ interface IFavoriteModel extends mongoose.Model<IFavorite> {
   isFavorited(
     userId: string,
     itemType: FavoriteType,
-    itemId: string
+    itemId: string,
+    platform: Platform
   ): Promise<boolean>;
   getFavorites(
     userId: string,
+    platform: Platform,
     itemType?: FavoriteType,
     limit?: number,
     offset?: number
   ): Promise<IFavorite[]>;
-  countFavorites(userId: string, itemType?: FavoriteType): Promise<number>;
+  countFavorites(userId: string, platform: Platform, itemType?: FavoriteType): Promise<number>;
 }
 
 FavoriteSchema.statics.isFavorited = async function (
   userId: string,
   itemType: FavoriteType,
-  itemId: string
+  itemId: string,
+  platform: Platform
 ): Promise<boolean> {
   const favorite = await this.findOne({
     user_id: userId,
     item_type: itemType,
     item_id: itemId,
+    platform,
   });
   return !!favorite;
 };
 
 FavoriteSchema.statics.getFavorites = async function (
   userId: string,
+  platform: Platform,
   itemType?: FavoriteType,
   limit: number = 20,
   offset: number = 0
 ): Promise<IFavorite[]> {
-  const query: Record<string, any> = { user_id: userId };
+  const query: Record<string, any> = { user_id: userId, platform };
   if (itemType) query.item_type = itemType;
 
   return this.find(query)
@@ -134,9 +139,10 @@ FavoriteSchema.statics.getFavorites = async function (
 
 FavoriteSchema.statics.countFavorites = async function (
   userId: string,
+  platform: Platform,
   itemType?: FavoriteType
 ): Promise<number> {
-  const query: Record<string, any> = { user_id: userId };
+  const query: Record<string, any> = { user_id: userId, platform };
   if (itemType) query.item_type = itemType;
 
   return this.countDocuments(query);

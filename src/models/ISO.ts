@@ -17,6 +17,9 @@ export type ISOStatus = (typeof ISO_STATUS_VALUES)[number];
 export const ISO_URGENCY_VALUES = ["low", "medium", "high", "urgent"] as const;
 export type ISOUrgency = (typeof ISO_URGENCY_VALUES)[number];
 
+export const ISO_STRENGTH_VALUES = ["low", "medium", "strong"] as const;
+export type ISOStrength = (typeof ISO_STRENGTH_VALUES)[number];
+
 // ----------------------------------------------------------
 // Interface
 // ----------------------------------------------------------
@@ -42,6 +45,7 @@ export interface IISO extends Document {
   // Status and visibility
   status: ISOStatus;
   urgency: ISOUrgency;
+  strength: ISOStrength;
   is_public: boolean;
 
   // Timestamps
@@ -104,6 +108,11 @@ const ISOSchema = new Schema<IISO>(
     urgency: {
       type: String,
       enum: ISO_URGENCY_VALUES,
+      default: "medium",
+    },
+    strength: {
+      type: String,
+      enum: ISO_STRENGTH_VALUES,
       default: "medium",
     },
     is_public: {

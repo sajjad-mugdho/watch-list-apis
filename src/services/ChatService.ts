@@ -229,7 +229,7 @@ class ChatService {
   async getOrCreateChannel(
     buyerId: string,
     sellerId: string,
-    metadata: ChatChannelMetadata,
+    metadata: ChatChannelMetadata & { platform?: string },
     listingUnique: boolean = true
   ): Promise<{ channel: Channel; channelId: string }> {
     const startTime = Date.now();
@@ -241,12 +241,14 @@ class ChatService {
     
     await this.ensureConnected();
 
+    const platform = metadata.platform || 'marketplace';
+
     // Generate a deterministic channel ID that fits within Stream's 64-character limit
     // This ensures IDEMPOTENCY - same inputs always yield same channel
     const sortedIds = [buyerId, sellerId].sort();
     const rawId = listingUnique
-      ? `listing_${metadata.listing_id}_${sortedIds[0]}_${sortedIds[1]}`
-      : `direct_${sortedIds[0]}_${sortedIds[1]}`;
+      ? `${platform}_listing_${metadata.listing_id}_${sortedIds[0]}_${sortedIds[1]}`
+      : `${platform}_direct_${sortedIds[0]}_${sortedIds[1]}`;
 
     // Stream allows up to 64 chars. Our raw ID can be ~80 chars.
     // We'll use a deterministic hash (MD5 is fine for IDs) to keep it short and safe.
@@ -277,6 +279,7 @@ class ChatService {
       // Update channel with custom listing data after creation
       await channel.updatePartial({
         set: {
+          platform,
           listing_id: metadata.listing_id,
           listing_title: metadata.listing_title,
           listing_price: metadata.listing_price,

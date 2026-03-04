@@ -202,6 +202,7 @@ export class TestFactory {
     const seller_id = typeof sellerId === 'string' ? new Types.ObjectId(sellerId) : sellerId;
     
     const defaultOrder = {
+      listing_type: 'MarketplaceListing',
       listing_id: new Types.ObjectId(),
       buyer_id,
       seller_id,

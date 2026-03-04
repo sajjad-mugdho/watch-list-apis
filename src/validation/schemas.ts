@@ -175,7 +175,7 @@ export const createListingSchema = z.object({
       })
       .optional(),
     acceptable_conditions: z
-      .array(z.enum(["new", "like-new", "good", "fair", "poor"]))
+      .array(z.enum(["New", "Used - Very Good", "Used - Good", "Used - Fair", "Used - Damaged"]))
       .optional(),
     wtb_description: z.string().max(2000).optional(),
   }),
@@ -215,7 +215,7 @@ export const resetListingSchema = z.object({
  */
 export const getUserInventorySchema = z.object({
   query: z.object({
-    status: z.enum(["all", "draft", "active", "reserved", "sold"]).optional(),
+    status: z.enum(["all", "draft", "active", "reserved", "sold", "inactive"]).optional(),
     limit: z
       .string()
       .regex(/^\d+$/, "Limit must be a positive number")
@@ -242,10 +242,10 @@ export const updateListingSchema = z.object({
     .object({
       subtitle: z.string().max(200).optional(),
       price: z.number().min(0).optional(),
-      condition: z.enum(["new", "like-new", "good", "fair", "poor"]).optional(),
+      condition: z.enum(["New", "Used - Very Good", "Used - Good", "Used - Fair", "Used - Damaged"]).optional(),
       allow_offers: z.boolean().optional(),
-      year: z.number().min(1900).max(2025).optional(),
-      contents: z.enum(["box_papers", "box", "papers", "watch"]).optional(),
+      year: z.number().min(1900).max(2030).optional(),
+      contents: z.enum(["Box & Papers", "Box Only", "Papers Only", "Watch Only"]).optional(),
       images: z.array(z.string().url()).optional(),
       thumbnail: z.string().url().optional(),
       shipping: z
@@ -278,9 +278,10 @@ export const updateListingSchema = z.object({
         })
         .optional(),
       acceptable_conditions: z
-        .array(z.enum(["new", "like-new", "good", "fair", "poor"]))
+        .array(z.enum(["New", "Used - Very Good", "Used - Good", "Used - Fair", "Used - Damaged"]))
         .optional(),
       wtb_description: z.string().max(2000).optional(),
+      reservation_terms: z.string().max(2000).optional(),
     })
 
     .strict(), // Only allow defined fields
@@ -290,6 +291,27 @@ export const updateListingSchema = z.object({
  * Schema for publishing a listing
  */
 export const publishListingSchema = z.object({
+  params: z.object({
+    id: z.string().regex(objectIdRegex, "Invalid listing ID format"),
+  }),
+});
+
+/**
+ * Schema for updating listing status (deactivate/reactivate)
+ */
+export const updateListingStatusSchema = z.object({
+  params: z.object({
+    id: z.string().regex(objectIdRegex, "Invalid listing ID format"),
+  }),
+  body: z.object({
+    status: z.enum(["active", "inactive"]),
+  }),
+});
+
+/**
+ * Schema for deleting a listing
+ */
+export const deleteListingSchema = z.object({
   params: z.object({
     id: z.string().regex(objectIdRegex, "Invalid listing ID format"),
   }),
@@ -312,6 +334,9 @@ export const sendOfferSchema = z.object({
       .positive("Amount must be positive")
       .int("Amount must be an integer")
       .min(1, "Amount must be at least 1"),
+    shipping_region: z.string().min(1, "Shipping region is required"),
+    request_free_shipping: z.boolean().optional(),
+    reservation_terms_snapshot: z.string().optional(),
     message: z
       .string()
       .trim()
@@ -319,6 +344,86 @@ export const sendOfferSchema = z.object({
       .optional(),
   }),
 });
+
+/**
+ * Schema for requesting concierge service on a listing
+ */
+export const conciergeRequestSchema = z.object({
+  params: z.object({
+    id: z.string().regex(objectIdRegex, "Invalid listing ID"),
+  }),
+  body: z.object({
+    message: z.string().max(300).optional(),
+  }),
+});
+
+/**
+ * Schema for reporting a user or listing
+ */
+export const createReportSchema = z.object({
+  body: z.object({
+    target_id: z.string().regex(objectIdRegex, "Invalid target ID"),
+    target_type: z.enum(["User", "NetworkListing"]),
+    reason: z.string().min(1, "Reason is required"),
+    description: z.string().max(1000).optional(),
+  }),
+});
+
+/**
+ * Schema for blocking a user
+ */
+export const blockUserSchema = z.object({
+  body: z.object({
+    blocked_id: z.string().regex(objectIdRegex, "Invalid user ID"),
+    reason: z.string().max(200).optional(),
+  }),
+});
+
+/**
+ * Schema for sending a friend request
+ */
+export const friendRequestSchema = z.object({
+  body: z.object({
+    target_user_id: z.string().regex(objectIdRegex, "Invalid user ID"),
+  }),
+});
+
+/**
+ * Schema for responding to a friend request
+ */
+export const respondFriendRequestSchema = z.object({
+  params: z.object({
+    id: z.string().regex(objectIdRegex, "Invalid friendship ID"),
+  }),
+  body: z.object({
+    status: z.enum(["accepted", "declined"]),
+  }),
+});
+
+/**
+ * Schema for getting public profile inventory
+ */
+export const getUserPublicProfileSchema = z.object({
+  params: z.object({
+    id: z.string().regex(objectIdRegex, "Invalid user ID"),
+  }),
+  query: z.object({
+    status: z.enum(["active", "sold", "all"]).optional(),
+    page: z.string().regex(/^\d+$/).optional(),
+    limit: z.string().regex(/^\d+$/).optional(),
+  }).optional(),
+});
+
+/**
+ * Schema for creating a reservation (direct buy)
+ */
+export const createReservationSchema = z.object({
+  body: z.object({
+    listing_id: z.string().regex(objectIdRegex, "Invalid listing ID"),
+    shipping_region: z.enum(["US", "CA", "International"]),
+  }),
+});
+
 /**
  * Schema for finix webhook validation
  */
@@ -425,7 +530,7 @@ export const channelActionSchema = z.object({
 export const getUserChannelsSchema = z.object({
   query: z.object({
     type: z.enum(["sent", "received"]).optional(),
-    status: z.enum(["active", "accepted", "declined", "all"]).optional(),
+    status: z.enum(["active", "accepted", "declined", "expired", "in_progress", "all"]).optional(),
     limit: z
       .string()
       .regex(/^\d+$/, "Limit must be a positive number")
@@ -452,14 +557,6 @@ export const getListingChannelsSchema = z.object({
   }),
 });
 
-/**
- * Schema for getting listing channels (seller view of all offers on a listing)
- */
-export const getUserPublicProfileSchema = z.object({
-  params: z.object({
-    id: z.string().regex(objectIdRegex, "Invalid user ID"),
-  }),
-});
 
 /**
  * Onboarding Step Schemas (wrapped in { body: ... } to match validateRequest)
@@ -491,6 +588,11 @@ export const patchLocationStepSchema = z.object({
         (val) => /^[A-Za-z0-9\s-]+$/.test(val),
         "Postal code may only contain letters, numbers, spaces, and hyphens"
       ),
+    currency: z
+      .string()
+      .trim()
+      .length(3, "Currency code must be exactly 3 characters")
+      .optional(),
   }),
 });
 
@@ -537,7 +639,7 @@ export const getListingsSchema = z.object({
 
     // Filters
     brand: z.string().trim().max(50).optional(),
-    condition: z.enum(["new", "like-new", "good", "fair", "poor"]).optional(),
+    condition: z.enum(["New", "Used - Very Good", "Used - Good", "Used - Fair", "Used - Damaged"]).optional(),
     min_price: z
       .string()
       .regex(/^\d+$/, "Min price must be a number")
@@ -795,6 +897,12 @@ export const shipOrderSchema = z.object({
  */
 export const updateProfileSchema = z.object({
   body: z.object({
+    fullName: z
+      .string()
+      .trim()
+      .min(2, "Full name too short")
+      .max(100, "Full name too long")
+      .optional(),
     bio: z
       .string()
       .max(500, "Bio must be 500 characters or less")
@@ -823,6 +931,15 @@ export const updateProfileSchema = z.object({
           .optional(),
       })
       .optional(),
+  }),
+});
+
+/**
+ * Schema for deactivating user
+ */
+export const deactivateUserSchema = z.object({
+  body: z.object({
+    active: z.boolean(),
   }),
 });
 
@@ -1129,6 +1246,49 @@ export const getUserTicketsSchema = z.object({
   }),
 });
 
+/**
+ * Schema for creating a social group
+ */
+export const createGroupSchema = z.object({
+  body: z.object({
+    name: z.string().min(3).max(50).trim(),
+    description: z.string().max(200).optional(),
+    avatar: z.string().url().optional(),
+    is_private: z.boolean().optional(),
+    members: z.array(z.string().regex(objectIdRegex)).optional(),
+  }),
+});
+
+/**
+ * Schema for joining a social group
+ */
+export const joinGroupSchema = z.object({
+  params: z.object({
+    group_id: z.string().regex(objectIdRegex, "Invalid group ID"),
+  }),
+});
+
+/**
+ * Schema for getting social inbox
+ */
+export const getSocialInboxSchema = z.object({
+  query: z.object({
+    filter: z.enum(["all", "unread", "offers", "inquiries", "reference_checks"]).optional().default("all"),
+    limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+    offset: z.string().regex(/^\d+$/).transform(Number).optional().default("0"),
+  }),
+});
+
+/**
+ * Schema for searching social hub
+ */
+export const searchSocialSchema = z.object({
+  query: z.object({
+    q: z.string().min(1, "Search query is required"),
+    type: z.enum(["all", "people", "groups", "messages"]).optional().default("all"),
+  }),
+});
+
 // ----------------------------------------------------------
 // Type Exports
 // ----------------------------------------------------------
@@ -1151,10 +1311,21 @@ export type CreateListingInput = z.infer<typeof createListingSchema>;
 export type GetUserInventoryInput = z.infer<typeof getUserInventorySchema>;
 export type UpdateListingInput = z.infer<typeof updateListingSchema>;
 export type PublishListingInput = z.infer<typeof publishListingSchema>;
+export type UpdateListingStatusInput = z.infer<typeof updateListingStatusSchema>;
+export type DeleteListingInput = z.infer<typeof deleteListingSchema>;
+export type ConciergeRequestInput = z.infer<typeof conciergeRequestSchema>;
+export type CreateReportInput = z.infer<typeof createReportSchema>;
+export type BlockUserInput = z.infer<typeof blockUserSchema>;
+export type FriendRequestInput = z.infer<typeof friendRequestSchema>;
+export type RespondFriendRequestInput = z.infer<typeof respondFriendRequestSchema>;
+export type GetUserPublicProfileInput = z.infer<typeof getUserPublicProfileSchema>;
+export type CreateReservationInput = z.infer<typeof createReservationSchema>;
 
-export type GetUserPublicProfileInput = z.infer<
-  typeof getUserPublicProfileSchema
->;
+// Social types
+export type CreateGroupInput = z.infer<typeof createGroupSchema>;
+export type JoinGroupInput = z.infer<typeof joinGroupSchema>;
+export type GetSocialInboxInput = z.infer<typeof getSocialInboxSchema>;
+export type SearchSocialInput = z.infer<typeof searchSocialSchema>;
 
 // Offer/Channel types
 export type SendOfferInput = z.infer<typeof sendOfferSchema>;

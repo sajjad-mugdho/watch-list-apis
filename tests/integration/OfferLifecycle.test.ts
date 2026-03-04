@@ -1,7 +1,5 @@
 import { Types } from 'mongoose';
 import { offerService } from '../../src/services/offer/OfferService';
-import { channelService } from '../../src/services/channel/ChannelService';
-import { messageService } from '../../src/services/message/MessageService';
 import { notificationService } from '../../src/services/notification/NotificationService';
 import { chatService } from '../../src/services/ChatService';
 import { registerEventHandlers } from '../../src/bootstrap/eventHandlers';
@@ -11,6 +9,7 @@ import { MarketplaceListingChannel } from '../../src/models/MarketplaceListingCh
 import { Notification } from '../../src/models/Notification';
 import { ChatMessage } from '../../src/models/ChatMessage';
 import { Order } from '../../src/models/Order';
+import { channelService, messageService } from '../../src/services';
 
 describe('Offer Lifecycle Integration', () => {
   let buyer: any;

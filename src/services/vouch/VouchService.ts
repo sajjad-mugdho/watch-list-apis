@@ -31,6 +31,7 @@ export interface CreateVouchParams {
   vouchForUserId: string; // buyer or seller in the reference check
   voucherId: string;
   comment?: string;
+  legal_consent_accepted: boolean;
 }
 
 export interface VouchEligibility {
@@ -128,7 +129,7 @@ export class VouchService {
    * Create a vouch
    */
   async createVouch(params: CreateVouchParams): Promise<VouchDTO> {
-    const { referenceCheckId, vouchForUserId, voucherId, comment } = params;
+    const { referenceCheckId, vouchForUserId, voucherId, comment, legal_consent_accepted } = params;
 
     logger.info("[VouchService] Creating vouch", {
       referenceCheckId,
@@ -175,6 +176,7 @@ export class VouchService {
           connection_type: connection.type,
           reputation_score: (voucher as any).reputation_score,
         },
+        legal_consent_accepted,
       });
       await vouch.save({ session });
 

@@ -9,6 +9,8 @@ import {
     PatchLocationStepInput
 } from "../validation/schemas";
 import {ApiResponse} from "../types";
+import { imageService, ImageContext } from "../services/ImageService";
+import { ValidationError } from "../utils/errors";
 
 // ----------------------------------------------------------
 // Handler Functions
@@ -58,13 +60,14 @@ export const onboarding_location_patch = async (
             throw new ConflictError("Onboarding already completed");
         }
 
-        const { country, postal_code, region } = req.body;
+        const { country, postal_code, region, currency } = req.body;
 
         const now = new Date();
         user.set("onboarding.steps.location", {
             country,
             postal_code,
             region: region ?? null,
+            currency: currency ?? null,
             updated_at: now,
         });
         user.set("onboarding.last_step", "location");
@@ -136,7 +139,7 @@ export const onboarding_display_name_patch = async (
 };
 
 /**
- * Handle avatar step of onboarding
+ * Handle avatar step of onboarding (manual URL setting)
  * PATCH /api/v1/onboarding/avatar
  */
 export const onboarding_avatar_patch = async (
@@ -177,6 +180,63 @@ export const onboarding_avatar_patch = async (
         res.status(200).json(response);
     } catch (err) {
         next(err instanceof AppError ? err : new DatabaseError("Failed to save avatar", err));
+    }
+};
+
+/**
+ * Handle avatar upload step of onboarding
+ * POST /api/v1/onboarding/steps/avatar/upload
+ */
+export const onboarding_avatar_upload_post = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const user = await loadCurrentUser(req);
+        if (user.onboarding.status === "completed") {
+            throw new ConflictError("Onboarding already completed");
+        }
+
+        if (!req.file) {
+            throw new ValidationError("No avatar file provided");
+        }
+
+        const now = new Date();
+        
+        // Upload image using ImageService
+        const metadata = await imageService.uploadImage(req.file, {
+            context: ImageContext.AVATAR,
+            entityId: user._id.toString(),
+            generateThumbnail: true, // We could use thumbnails for avatars too
+            optimize: true,
+            maxWidth: 800,
+            maxHeight: 800
+        });
+
+        user.set("onboarding.steps.avatar", {
+            user_provided: true,
+            url: metadata.url,
+            confirmed: true,
+            updated_at: now,
+        });
+        user.set("onboarding.last_step", "avatar");
+
+        const progress = getOnboardingProgress(user);
+        if (progress.is_finished) await finalizeOnboarding(user);
+        else await user.save();
+
+        const response: ApiResponse<any> = {
+            data: user.onboarding.steps.avatar,
+            _metadata: {
+                onboarding: { ...progress }
+            },
+            requestId: req.headers['x-request-id'] as string,
+        };
+
+        res.status(200).json(response);
+    } catch (err) {
+        next(err instanceof AppError ? err : new DatabaseError("Failed to upload avatar", err));
     }
 };
 

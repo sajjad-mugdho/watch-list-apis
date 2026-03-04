@@ -1,9 +1,11 @@
 // src/routes/user/onboardingRoutes.ts
 import { Router } from "express";
 import { validateRequest } from "../middleware/validation";
+import { uploadAvatar } from "../middleware/upload";
 import {
   onboarding_acknowledgements_patch,
   onboarding_avatar_patch,
+  onboarding_avatar_upload_post,
   onboarding_display_name_patch,
   onboarding_location_patch,
   onboarding_status_get,
@@ -37,6 +39,11 @@ router.patch(
   "/steps/avatar",
   validateRequest(patchAvatarStepSchema),
   onboarding_avatar_patch
+);
+router.post(
+  "/steps/avatar/upload",
+  uploadAvatar,
+  onboarding_avatar_upload_post
 );
 router.patch(
   "/steps/acknowledgements",

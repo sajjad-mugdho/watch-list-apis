@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
-import { networksRoutes } from "./networksRoutes";
-import { marketplaceRoutes } from "./marketplaceRoutes";
+import rateLimit from "express-rate-limit";
+import networksRoutes from "../networks";
+import marketplaceRoutes from "../marketplace";
 
 import { healthCheck, readinessCheck } from "../middleware/operational";
 import { requirePlatformAuth, requireAdmin } from "../middleware/authentication";
@@ -12,16 +13,18 @@ import { debugRoutes } from "./debugRoutes";
 import { feedRoutes } from "./feedRoutes";
 import { followRoutes } from "./followRoutes";
 import { isoRoutes } from "./isoRoutes";
-import { referenceCheckRoutes } from "./referenceCheckRoutes";
+// Reference checks - Networks only (modular handler)
+import referenceCheckRoutes from "../networks/routes/referenceCheckRoutes";
 import { subscriptionRoutes } from "./subscriptionRoutes";
 import { getstreamWebhookRoutes } from "./getstreamWebhookRoutes";
 import { userSubRoutes } from "./user"; // Consolidated user routes
 import { reviewRoutes } from "./reviewRoutes";
 import { notificationRoutes } from "./notificationRoutes";
 import { analyticsRoutes } from "./analyticsRoutes";
+import { newsRoutes } from "./newsRoutes";
 
 import { trustCaseRoutes } from "./admin/trustCaseRoutes";
-import * as orderHandlers from "../handlers/orderHandlers";
+import * as orderHandlers from "../marketplace/handlers/MarketplaceOrderHandlers";
 import { validateRequest } from "../middleware/validation";
 import { reserveListingSchema, resetListingSchema } from "../validation/schemas";
 import { reservationTermsRoutes } from "./reservationTermsRoutes";
@@ -62,7 +65,13 @@ router.use("/v1/debug", debugRoutes);
 
 // platform-agnostic top level resources
 router.use("/v1/watches", watchesRoutes);
-router.use("/v1/onboarding", requirePlatformAuth(), onboardingRoutes);
+
+const onboardingLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 20, // limit each IP to 20 requests per windowMs
+  message: { error: { message: "Too many requests to onboarding, please try again later." } }
+});
+router.use("/v1/onboarding", requirePlatformAuth(), onboardingLimiter, onboardingRoutes);
 
 // Current User Resources (scoped to the authenticated user)
 // /api/v1/user/* -> "My Content"
@@ -102,6 +111,9 @@ router.use("/v1/analytics", requirePlatformAuth(), requireAdmin(), analyticsRout
 
 // Notification routes
 router.use("/v1/notifications", requirePlatformAuth(), notificationRoutes);
+
+// News & Events (Batch 2 Dashboard)
+router.use("/v1/news", requirePlatformAuth(), newsRoutes);
 
 // Reservation Terms - versioned legal terms
 router.use("/v1/reservation-terms", reservationTermsRoutes);
