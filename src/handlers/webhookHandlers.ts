@@ -3,6 +3,7 @@ import { verifyWebhook } from "@clerk/express/webhooks";
 import { clerkClient } from "@clerk/express";
 import { DatabaseError, ValidationError } from "../utils/errors";
 import { NextFunction, Request, Response } from "express";
+import logger from "../utils/logger";
 import { config } from "../config";
 import { webhookLogger } from "../utils/logger";
 import { events } from "../utils/events";
@@ -43,7 +44,7 @@ export function ExtractClerkUserData(data: any): ClerkUserData | null {
  * Returns the created user for downstream event emission
  */
 async function createUserFromClerkData(
-  clerkUser: ClerkUserData
+  clerkUser: ClerkUserData,
 ): Promise<{ userId: string; firstName: string }> {
   let newUser;
   try {
@@ -54,7 +55,7 @@ async function createUserFromClerkData(
         first_name: clerkUser.first_name,
         last_name: clerkUser.last_name,
       },
-      { upsert: true, new: true, setDefaultsOnInsert: true }
+      { upsert: true, new: true, setDefaultsOnInsert: true },
     );
     // TypeScript check
     if (!newUser) {
@@ -76,7 +77,7 @@ async function createUserFromClerkData(
   } else {
     webhookLogger.info(
       "[webhooks/clerk] Mutations disabled; skipped updateUserMetadata.",
-      { userId: clerkUser.id, dialistId: newUser._id }
+      { userId: clerkUser.id, dialistId: newUser._id },
     );
   }
 
@@ -97,7 +98,7 @@ async function createUserFromClerkData(
 export const webhook_clerk_post = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const evt = await verifyWebhook(req as any, {
@@ -111,23 +112,26 @@ export const webhook_clerk_post = async (
         const user = ExtractClerkUserData(evt.data);
         if (!user) {
           throw new ValidationError(
-            "Invalid Clerk user data in webhook payload"
+            "Invalid Clerk user data in webhook payload",
           );
         }
-        
+
         // Create user and get their ID for notifications
         const newUserData = await createUserFromClerkData(user);
-        
+
         // Emit welcome event to trigger notification
-        events.emit('user:registered', {
+        events.emit("user:registered", {
           userId: newUserData.userId,
           email: user.email,
           firstName: newUserData.firstName,
         });
-        
-        webhookLogger.info("[webhooks/clerk] User created and welcome event emitted", {
-          userId: newUserData.userId,
-        });
+
+        webhookLogger.info(
+          "[webhooks/clerk] User created and welcome event emitted",
+          {
+            userId: newUserData.userId,
+          },
+        );
         break;
       }
 
@@ -135,10 +139,10 @@ export const webhook_clerk_post = async (
         const user = ExtractClerkUserData(evt.data);
         if (!user) {
           throw new ValidationError(
-            "Invalid Clerk user data in webhook payload"
+            "Invalid Clerk user data in webhook payload",
           );
         }
-        
+
         try {
           const updatedUser = await User.findOneAndUpdate(
             { external_id: user.id },
@@ -147,13 +151,17 @@ export const webhook_clerk_post = async (
               first_name: user.first_name,
               last_name: user.last_name,
             },
-            { new: true }
+            { new: true },
           );
 
           if (!updatedUser) {
-            webhookLogger.warn("Received user.updated for unknown user", { clerkId: user.id });
+            webhookLogger.warn("Received user.updated for unknown user", {
+              clerkId: user.id,
+            });
           } else {
-            webhookLogger.info("[webhooks/clerk] User updated", { userId: updatedUser._id });
+            webhookLogger.info("[webhooks/clerk] User updated", {
+              userId: updatedUser._id,
+            });
           }
         } catch (err) {
           throw new DatabaseError("Failed to update user", err);
@@ -166,13 +174,19 @@ export const webhook_clerk_post = async (
         if (!userId) {
           throw new ValidationError("Missing user id in user.deleted payload");
         }
-        
+
         try {
-          const deletedUser = await User.findOneAndDelete({ external_id: userId });
+          const deletedUser = await User.findOneAndDelete({
+            external_id: userId,
+          });
           if (!deletedUser) {
-             webhookLogger.warn("Received user.deleted for unknown user", { clerkId: userId });
+            webhookLogger.warn("Received user.deleted for unknown user", {
+              clerkId: userId,
+            });
           } else {
-             webhookLogger.info("[webhooks/clerk] User deleted", { userId: deletedUser._id });
+            webhookLogger.info("[webhooks/clerk] User deleted", {
+              userId: deletedUser._id,
+            });
           }
         } catch (err) {
           throw new DatabaseError("Failed to delete user", err);
@@ -181,7 +195,7 @@ export const webhook_clerk_post = async (
       }
 
       default: {
-        console.log(`Unhandled event type: ${eventType}`);
+        logger.warn(`Unhandled Clerk webhook event type: ${eventType}`);
         // Not an error, we just acknowledge
         break;
       }
@@ -195,9 +209,7 @@ export const webhook_clerk_post = async (
     }
 
     // If verifyWebhook failed or anything else unexpected:
-    console.error("❌ Clerk webhook handler error:", err);
+    logger.error("Clerk webhook handler error", { error: err });
     return next(new ValidationError("Invalid webhook", err));
   }
 };
-
-

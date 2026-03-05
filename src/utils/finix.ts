@@ -81,12 +81,12 @@ export function verifyBasic(req: any) {
 export function verifyFinixSignature(
   payload: string,
   signature: string | undefined,
-  secret: string
+  secret: string,
 ): boolean {
   // If no secret configured, skip verification (dev mode)
   if (!secret || secret.trim() === "") {
     finixLogger.warn(
-      "FINIX_WEBHOOK_SECRET not configured - skipping signature verification (INSECURE in production!)"
+      "FINIX_WEBHOOK_SECRET not configured - skipping signature verification (INSECURE in production!)",
     );
     return true;
   }
@@ -164,7 +164,7 @@ export interface OnboardingFormResponse {
  * identity_id will be populated after the user completes the form
  */
 export async function createOnboardingForm(
-  params: CreateOnboardingFormParams
+  params: CreateOnboardingFormParams,
 ): Promise<OnboardingFormResponse> {
   const {
     dialist_user_id,
@@ -196,7 +196,7 @@ export async function createOnboardingForm(
 
   if (!application_id) {
     throw new Error(
-      `No Finix application cfinixUsApplicationIdonfigured for location: ${user_location}`
+      `No Finix application cfinixUsApplicationIdonfigured for location: ${user_location}`,
     );
   }
 
@@ -226,7 +226,7 @@ export async function createOnboardingForm(
         last_name,
         business_name,
       },
-    }
+    },
   );
 
   // First, validate the application exists
@@ -243,7 +243,7 @@ export async function createOnboardingForm(
       "GET",
       `/applications/${application_id}`,
       error.response?.status,
-      error
+      error,
     );
     finixLogger.error(`Application ${application_id} not found`, {
       application_id,
@@ -445,7 +445,7 @@ export async function createOnboardingForm(
               business_address: form.onboarding_data.entity.business_address,
             }
           : null,
-      }
+      },
     );
 
     return {
@@ -464,7 +464,7 @@ export async function createOnboardingForm(
     throw new Error(
       `Failed to create Finix onboarding form: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 }
@@ -485,7 +485,7 @@ export async function createOnboardingForm(
 export async function provisionMerchant(
   identity_id: string,
   onboarding_form_id: string,
-  idempotencyKey?: string
+  idempotencyKey?: string,
 ): Promise<{
   merchant_id: string;
   verification_id: string | null;
@@ -503,12 +503,12 @@ export async function provisionMerchant(
       onboarding_form_id,
     });
     const formResponse = await finix.get(
-      `/onboarding_forms/${onboarding_form_id}`
+      `/onboarding_forms/${onboarding_form_id}`,
     );
     logFinixApiCall(
       "GET",
       `/onboarding_forms/${onboarding_form_id}`,
-      formResponse.status
+      formResponse.status,
     );
     const formData = formResponse.data;
 
@@ -599,14 +599,14 @@ export async function provisionMerchant(
           "Finix-Idempotency-Key": merchantIdempotency,
           "Finix-Version": config.finixVersion,
         },
-      }
+      },
     );
 
     const merchant = merchantResponse.data;
     logFinixApiCall(
       "POST",
       `/identities/${identity_id}/merchants`,
-      merchantResponse.status
+      merchantResponse.status,
     );
 
     finixLogger.info(`Merchant created: ${merchant.id}`, {
@@ -629,7 +629,7 @@ export async function provisionMerchant(
         "POST",
         `/identities/${identity_id}/merchants`,
         error.response.status,
-        error
+        error,
       );
       finixLogger.error("Finix API Error (provisionMerchant)", {
         identity_id,
@@ -639,7 +639,7 @@ export async function provisionMerchant(
       throw new Error(
         `Failed to provision merchant: ${
           error.response.data.message || error.message
-        }`
+        }`,
       );
     }
     finixLogger.error(`Unexpected error in provisionMerchant`, {
@@ -659,7 +659,7 @@ export async function provisionMerchant(
 export async function createFormLink(
   form_id: string,
   link_expiration_minutes: number = 10080,
-  idempotencyKey?: string
+  idempotencyKey?: string,
 ): Promise<{ form_link: string; expires_at: string }> {
   finixLogger.info(`Creating new link for form ${form_id}`, {
     form_id,
@@ -693,13 +693,13 @@ export async function createFormLink(
           "Finix-Idempotency-Key": idempotency,
           "Finix-Version": config.finixVersion,
         },
-      }
+      },
     );
 
     logFinixApiCall(
       "POST",
       `/onboarding_forms/${form_id}/links`,
-      response.status
+      response.status,
     );
     finixLogger.info(`Form link created`, {
       form_id,
@@ -716,7 +716,7 @@ export async function createFormLink(
       "POST",
       `/onboarding_forms/${form_id}/links`,
       error.response?.status,
-      error
+      error,
     );
     finixLogger.error("Finix API Error (createFormLink)", {
       form_id,
@@ -726,7 +726,7 @@ export async function createFormLink(
     throw new Error(
       `Failed to create form link: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 }
@@ -864,12 +864,12 @@ export async function createBuyerIdentity(params: {
             error: error.message,
             code: error.code,
             status: error.response?.status,
-          }
+          },
         );
 
         // Wait before retry (exponential backoff)
         await new Promise((resolve) =>
-          setTimeout(resolve, Math.pow(2, attempt) * 1000)
+          setTimeout(resolve, Math.pow(2, attempt) * 1000),
         );
         continue;
       }
@@ -880,11 +880,6 @@ export async function createBuyerIdentity(params: {
   }
 
   // All retries failed
-  console.error(
-    "[Finix] Error creating buyer identity after retries:",
-    lastError
-  );
-
   finixLogger.error("Finix API Error (createBuyerIdentity)", {
     error: lastError.response?.data || lastError.message,
     attempts: maxRetries,
@@ -892,7 +887,7 @@ export async function createBuyerIdentity(params: {
   throw new Error(
     `Failed to create buyer identity: ${
       lastError.response?.data?.message || lastError.message
-    }`
+    }`,
   );
 }
 
@@ -1012,14 +1007,13 @@ export async function createPaymentInstrument(params: {
       instrument_type: data.type,
     };
   } catch (error) {
-    console.error("[Finix] Error creating payment instrument:", error);
     finixLogger.error("Finix API Error (createPaymentInstrument)", {
       error: (error as any).response?.data || (error as Error).message,
     });
     throw new Error(
       `Failed to create payment instrument: ${
         (error as any).response?.data?.message || (error as Error).message
-      }`
+      }`,
     );
   }
 }
@@ -1103,7 +1097,7 @@ export async function createTransfer(params: {
           amount: transferData.amount,
           ready_to_settle_at: transferData.ready_to_settle_at,
           messages: transferData.messages,
-        }
+        },
       );
     } else if (transferData.state === "SUCCEEDED") {
       finixLogger.info("[Finix] Transfer SUCCEEDED", {
@@ -1194,24 +1188,17 @@ export async function createTransfer(params: {
 
     // Enhanced error logging for debugging
     const errorData = error.response?.data;
-    console.error(
-      "🔴 FINIX TRANSFER ERROR DETAILS:",
-      JSON.stringify(
-        {
-          status: error.response?.status,
-          statusText: error.response?.statusText,
-          errorData: errorData,
-          errorMessage: errorData?.message,
-          errorDetails:
-            errorData?._embedded?.errors ||
-            errorData?._embedded?.transfers ||
-            errorData?.errors,
-          requestPayload: params,
-        },
-        null,
-        2
-      )
-    );
+    finixLogger.error("🔴 FINIX TRANSFER ERROR DETAILS", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      errorData: errorData,
+      errorMessage: errorData?.message,
+      errorDetails:
+        errorData?._embedded?.errors ||
+        errorData?._embedded?.transfers ||
+        errorData?.errors,
+      requestPayload: params,
+    });
 
     finixLogger.error("[Finix] API Error (createTransfer)", {
       error: errorData || error.message,
@@ -1252,13 +1239,13 @@ export async function createTransferReversal(params: {
           "Finix-Idempotency-Key": idempotencyKey,
           "Finix-Version": config.finixVersion,
         },
-      }
+      },
     );
 
     logFinixApiCall(
       "POST",
       `/transfers/${params.transfer_id}/reversals`,
-      response.status
+      response.status,
     );
 
     return {
@@ -1271,7 +1258,7 @@ export async function createTransferReversal(params: {
       "POST",
       `/transfers/${params.transfer_id}/reversals`,
       error.response?.status,
-      error
+      error,
     );
     finixLogger.error("Finix API Error (createTransferReversal)", {
       error: error.response?.data || error.message,
@@ -1280,7 +1267,7 @@ export async function createTransferReversal(params: {
     throw new Error(
       `Failed to create transfer reversal: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 }
@@ -1338,7 +1325,7 @@ export async function authorizePayment(params: {
         "Authorization without fraud_session_id - fraud detection disabled",
         {
           payment_instrument_id: params.payment_instrument_id,
-        }
+        },
       );
     }
 
@@ -1424,8 +1411,6 @@ export async function authorizePayment(params: {
       failure_message: authData.failure_message,
     };
   } catch (error: any) {
-    console.error("[Finix] Error authorizing payment:", error);
-
     // Extract detailed error from Finix response
     let errorMessage = error.message;
     let failureCode: string | undefined;
@@ -1465,7 +1450,7 @@ export async function authorizePayment(params: {
 
     // Re-throw with structured data for orderHandler to extract
     const enrichedError: any = new Error(
-      `Failed to authorize payment: ${errorMessage}`
+      `Failed to authorize payment: ${errorMessage}`,
     );
     enrichedError.response = error.response;
     throw enrichedError;
@@ -1503,7 +1488,7 @@ export async function capturePayment(params: {
   amount: number;
   trace_id?: string;
 }> {
-  console.log("[DEBUG] capturePayment called with params:", params);
+  finixLogger.debug("[Finix] capturePayment called", { params });
 
   try {
     // First get the authorization details to validate state and get amount
@@ -1515,7 +1500,7 @@ export async function capturePayment(params: {
 
     if (authorization.state !== "SUCCEEDED") {
       throw new Error(
-        `Authorization is not in SUCCEEDED state: ${authorization.state}`
+        `Authorization is not in SUCCEEDED state: ${authorization.state}`,
       );
     }
 
@@ -1527,12 +1512,12 @@ export async function capturePayment(params: {
       const merchant = await getMerchant(params.merchant_id);
       if (merchant.onboarding_state !== "APPROVED") {
         throw new Error(
-          `Merchant ${params.merchant_id} is not approved for transfers. Current state: ${merchant.onboarding_state}`
+          `Merchant ${params.merchant_id} is not approved for transfers. Current state: ${merchant.onboarding_state}`,
         );
       }
     }
 
-    console.log("[DEBUG] Capturing authorization:", {
+    finixLogger.debug("[Finix] Capturing authorization", {
       authorization_id: params.authorization_id,
       capture_amount: captureAmount,
       original_amount: authorization.amount,
@@ -1567,10 +1552,10 @@ export async function capturePayment(params: {
           "Finix-Idempotency-Key": idempotencyKey,
           "Finix-Version": config.finixVersion,
         },
-      }
+      },
     );
 
-    console.log("[DEBUG] Authorization capture response:", {
+    finixLogger.debug("[Finix] Authorization capture response", {
       status: response.status,
       authorization_id: response.data.id,
       state: response.data.state,
@@ -1585,7 +1570,7 @@ export async function capturePayment(params: {
 
     if (!transferId) {
       throw new Error(
-        "Authorization captured but no transfer ID returned. This should not happen."
+        "Authorization captured but no transfer ID returned. This should not happen.",
       );
     }
 
@@ -1603,7 +1588,7 @@ export async function capturePayment(params: {
     } catch (err) {
       finixLogger.warn(
         "[Finix] Could not fetch transfer details to verify idempotency_id",
-        { transfer_id: transferId, error: (err as Error).message }
+        { transfer_id: transferId, error: (err as Error).message },
       );
     }
 
@@ -1630,19 +1615,6 @@ export async function capturePayment(params: {
       trace_id: response.data.trace_id,
     };
   } catch (error: any) {
-    console.error("[DEBUG] capturePayment error:", error);
-    console.error("[DEBUG] Error response:", error.response?.data);
-
-    // Log specific Finix errors if available
-    if (error.response?.data?._embedded?.errors) {
-      console.error("[DEBUG] Finix validation errors:");
-      for (const err of error.response.data._embedded.errors) {
-        console.error(
-          `[DEBUG] - ${err.code}: ${err.message} (field: ${err.field || "N/A"})`
-        );
-      }
-    }
-
     finixLogger.error("Finix API Error (capturePayment)", {
       authorization_id: params.authorization_id,
       merchant_id: params.merchant_id,
@@ -1652,7 +1624,7 @@ export async function capturePayment(params: {
     throw new Error(
       `Failed to capture authorization: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 }
@@ -1672,14 +1644,13 @@ export async function getIdentity(identity_id: string) {
 
     return response.data;
   } catch (error: any) {
-    console.error("[Finix] Error fetching identity:", error);
     finixLogger.error("Finix API Error (getIdentity)", {
       error: error.response?.data || error.message,
     });
     throw new Error(
       `Failed to fetch identity: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 }
@@ -1697,19 +1668,18 @@ export async function getPaymentInstrument(payment_instrument_id: string) {
         headers: {
           "Finix-Version": config.finixVersion,
         },
-      }
+      },
     );
 
     return response.data;
   } catch (error: any) {
-    console.error("[Finix] Error fetching payment instrument:", error);
     finixLogger.error("Finix API Error (getPaymentInstrument)", {
       error: error.response?.data || error.message,
     });
     throw new Error(
       `Failed to fetch payment instrument: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 }
@@ -1729,14 +1699,13 @@ export const getAuthorization = async (authorization_id: string) => {
 
     return response.data;
   } catch (error: any) {
-    console.error("[Finix] Error fetching authorization:", error);
     finixLogger.error("Finix API Error (getAuthorization)", {
       error: error.response?.data || error.message,
     });
     throw new Error(
       `Failed to fetch authorization: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 };
@@ -1755,14 +1724,13 @@ export const getTransfer = async (transfer_id: string) => {
     });
     return response.data;
   } catch (error: any) {
-    console.error("[Finix] Error fetching transfer:", error);
     finixLogger.error("Finix API Error (getTransfer)", {
       error: error.response?.data || error.message,
     });
     throw new Error(
       `Failed to fetch transfer: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 };
@@ -1780,14 +1748,13 @@ export const getMerchant = async (merchant_id: string) => {
     });
     return response.data;
   } catch (error: any) {
-    console.error("[Finix] Error fetching merchant:", error);
     finixLogger.error("Finix API Error (getMerchant)", {
       error: error.response?.data || error.message,
     });
     throw new Error(
       `Failed to fetch merchant: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 };
@@ -1833,14 +1800,14 @@ export async function voidAuthorization(params: {
     // Can only void authorizations that haven't been captured
     if (authorization.transfer) {
       throw new Error(
-        `Authorization ${params.authorization_id} has already been captured (transfer: ${authorization.transfer}). Use refund instead.`
+        `Authorization ${params.authorization_id} has already been captured (transfer: ${authorization.transfer}). Use refund instead.`,
       );
     }
 
     // Can only void SUCCEEDED authorizations
     if (authorization.state !== "SUCCEEDED") {
       throw new Error(
-        `Cannot void authorization in state: ${authorization.state}. Only SUCCEEDED authorizations can be voided.`
+        `Cannot void authorization in state: ${authorization.state}. Only SUCCEEDED authorizations can be voided.`,
       );
     }
 
@@ -1852,7 +1819,7 @@ export async function voidAuthorization(params: {
           authorization_id: params.authorization_id,
           void_state: authorization.void_state,
           is_void: authorization.is_void,
-        }
+        },
       );
       return {
         authorization_id: authorization.id,
@@ -1890,13 +1857,13 @@ export async function voidAuthorization(params: {
           "Finix-Idempotency-Key": idempotencyKey,
           "Finix-Version": config.finixVersion,
         },
-      }
+      },
     );
 
     logFinixApiCall(
       "PUT",
       `/authorizations/${params.authorization_id}`,
-      response.status
+      response.status,
     );
 
     const voidedAuth = response.data;
@@ -1909,7 +1876,7 @@ export async function voidAuthorization(params: {
         void_state: voidedAuth.void_state,
         is_void: voidedAuth.is_void,
         amount: voidedAuth.amount,
-      }
+      },
     );
 
     return {
@@ -1924,7 +1891,7 @@ export async function voidAuthorization(params: {
       "PUT",
       `/authorizations/${params.authorization_id}`,
       error.response?.status,
-      error
+      error,
     );
 
     finixLogger.error("Finix API Error (voidAuthorization)", {
@@ -1936,7 +1903,7 @@ export async function voidAuthorization(params: {
     throw new Error(
       `Failed to void authorization: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 }
@@ -1959,7 +1926,7 @@ export async function getOnboardingForm(form_id: string) {
       "GET",
       `/onboarding_forms/${form_id}`,
       error.response?.status,
-      error
+      error,
     );
     finixLogger.error("Finix API Error (getOnboardingForm)", {
       form_id,
@@ -1968,7 +1935,7 @@ export async function getOnboardingForm(form_id: string) {
     throw new Error(
       `Failed to fetch onboarding form: ${
         error.response?.data?.message || error.message
-      }`
+      }`,
     );
   }
 }

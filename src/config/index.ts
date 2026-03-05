@@ -81,7 +81,7 @@ const requiredEnvVars = [
   // Persona
   "PERSONA_API_KEY",
   "PERSONA_TEMPLATE_ID",
-  "PERSONA_WEBHOOK_SECRET"
+  "PERSONA_WEBHOOK_SECRET",
 ] as const;
 
 for (const envVar of requiredEnvVars) {
@@ -95,7 +95,7 @@ for (const envVar of requiredEnvVars) {
 const port = parseInt(process.env.PORT || "3000", 10);
 if (isNaN(port) || port < 1 || port > 65535) {
   console.error(
-    `Invalid PORT value: ${process.env.PORT}. Must be a number between 1 and 65535.`
+    `Invalid PORT value: ${process.env.PORT}. Must be a number between 1 and 65535.`,
   );
   process.exit(1);
 }
@@ -103,13 +103,13 @@ if (isNaN(port) || port < 1 || port > 65535) {
 function parseFeatureFlag(value: string | undefined, key: string): boolean {
   if (value !== "0" && value !== "1") {
     console.error(
-      `Invalid ${key} value: "${value}". Must be either "0" or "1".`
+      `Invalid ${key} value: "${value}". Must be either "0" or "1".`,
     );
     process.exit(1);
   }
   const enabled = value === "1";
   console.log(
-    `🔧 Feature flag: ${key} = ${enabled ? "ENABLED ✅" : "DISABLED 🚫"}`
+    `🔧 Feature flag: ${key} = ${enabled ? "ENABLED ✅" : "DISABLED 🚫"}`,
   );
   return enabled;
 }
@@ -134,9 +134,23 @@ export const config: Config = {
   clerkSecretKey: process.env.CLERK_SECRET_KEY!,
   clerkWebhookSigningSecret: process.env.CLERK_WEBHOOK_SIGNING_SECRET!,
 
+  /**
+   * FEATURE_CLERK_MUTATIONS (0 or 1)
+   *
+   * When ENABLED (1):
+   * - After user signs up, dialist_id is synced back to Clerk user metadata
+   * - Clerk session claims will include dialist_id from metadata
+   * - Recommended for PRODUCTION
+   *
+   * When DISABLED (0):
+   * - dialist_id stays only in DB
+   * - Clerk session claims will NOT include dialist_id
+   * - Backend must look up user from DB on every request (requirePlatformAuth fallback)
+   * - Acceptable for development, but higher latency in production
+   */
   featureClerkMutations: parseFeatureFlag(
     process.env.FEATURE_CLERK_MUTATIONS,
-    "FEATURE_CLERK_MUTATIONS"
+    "FEATURE_CLERK_MUTATIONS",
   ),
 
   // Optional with defaults
@@ -164,9 +178,10 @@ export const config: Config = {
     apiKey: process.env.PERSONA_API_KEY!,
     webhookSecret: process.env.PERSONA_WEBHOOK_SECRET!,
     templateId: process.env.PERSONA_TEMPLATE_ID!,
-    baseUrl: 'https://withpersona.com/api/v1',
-    environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
-  }
+    baseUrl: "https://withpersona.com/api/v1",
+    environment:
+      process.env.NODE_ENV === "production" ? "production" : "sandbox",
+  },
 };
 
 console.log("Configuration validated successfully");

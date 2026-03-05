@@ -40,7 +40,7 @@ import { Notification } from "../../models/Notification";
 export const reserveListing = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { listing_id } = req.body;
@@ -82,7 +82,7 @@ export const reserveListing = async (
     // Check if listing is already reserved
     if (listing.reserved_until && listing.reserved_until > new Date()) {
       const theMinutesLeft = Math.ceil(
-        (listing.reserved_until.getTime() - Date.now()) / 60000
+        (listing.reserved_until.getTime() - Date.now()) / 60000,
       );
 
       logger.warn("[Order] Reserve failed: listing already reserved", {
@@ -93,7 +93,7 @@ export const reserveListing = async (
       });
 
       throw new ValidationError(
-        `Listing is already reserved for another buyer. Please try again in ${theMinutesLeft} minutes.`
+        `Listing is already reserved for another buyer. Please try again in ${theMinutesLeft} minutes.`,
       );
     }
 
@@ -173,7 +173,7 @@ export const reserveListing = async (
       },
       {
         new: true,
-      }
+      },
     );
 
     if (!update) {
@@ -184,7 +184,7 @@ export const reserveListing = async (
       });
       await order.deleteOne();
       throw new ValidationError(
-        "Failed to reserve listing; it may have just been reserved by another buyer. Please try again."
+        "Failed to reserve listing; it may have just been reserved by another buyer. Please try again.",
       );
     }
 
@@ -200,14 +200,16 @@ export const reserveListing = async (
       try {
         await chatService.sendSystemMessage(
           order.getstream_channel_id,
-          { 
-            type: "listing_reserved", 
-            order_id: order._id.toString() 
+          {
+            type: "listing_reserved",
+            order_id: order._id.toString(),
           },
-          buyer_user_id || ""
+          buyer_user_id || "",
         );
       } catch (chatError) {
-        logger.warn("Failed to send reservation message to Stream", { chatError });
+        logger.warn("Failed to send reservation message to Stream", {
+          chatError,
+        });
       }
     }
 
@@ -262,7 +264,7 @@ export const reserveListing = async (
 export const getTokenizationForm = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -320,7 +322,7 @@ export const getTokenizationForm = async (
         {
           order_id: id,
           buyer_user_id,
-        }
+        },
       );
     }
 
@@ -492,7 +494,7 @@ export const getTokenizationForm = async (
         body_country ||
           onboardingLocation?.country ||
           userLocation?.country ||
-          "USA"
+          "USA",
       );
 
       logger.info("[Order] Creating Finix buyer identity with full profile", {
@@ -512,8 +514,8 @@ export const getTokenizationForm = async (
           address: effective_body_line1_tokenize
             ? "request"
             : onboardingLocation?.line1
-            ? "onboarding"
-            : "user_location",
+              ? "onboarding"
+              : "user_location",
         },
       });
 
@@ -614,7 +616,7 @@ export const getTokenizationForm = async (
 export const processPayment = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -728,7 +730,7 @@ export const processPayment = async (
         buyer_user_id,
       });
       throw new ValidationError(
-        "payment_token is required for payment processing"
+        "payment_token is required for payment processing",
       );
     }
 
@@ -762,7 +764,7 @@ export const processPayment = async (
         {
           order_id: id,
           buyer_user_id,
-        }
+        },
       );
     }
 
@@ -801,7 +803,8 @@ export const processPayment = async (
     }
 
     // Get seller's merchant account
-    const { MerchantOnboarding } = await import("../../models/MerchantOnboarding");
+    const { MerchantOnboarding } =
+      await import("../../models/MerchantOnboarding");
 
     const listing = await MarketplaceListing.findById(order.listing_id);
 
@@ -824,7 +827,7 @@ export const processPayment = async (
         seller_id: order.seller_id,
       });
       throw new ValidationError(
-        "Seller does not have a valid merchant account to process payments"
+        "Seller does not have a valid merchant account to process payments",
       );
     }
     logger.info("[Order] Merchant account found", {
@@ -840,7 +843,7 @@ export const processPayment = async (
         buyer_user_id,
       });
       throw new ValidationError(
-        "Buyer identity not found. Please request tokenization config first."
+        "Buyer identity not found. Please request tokenization config first.",
       );
     }
 
@@ -876,12 +879,13 @@ export const processPayment = async (
       });
 
       // Normalize postal code if provided (optional - address is in token)
-      const finixCountry = (req as any).user?.location_country === "CA" ? "CAN" : "USA";
+      const finixCountry =
+        (req as any).user?.location_country === "CA" ? "CAN" : "USA";
       let normalizedPostal: string | null = null;
       if (effective_postal) {
         normalizedPostal = validateAndFormatPostalCode(
           effective_postal,
-          finixCountry
+          finixCountry,
         );
         if (!normalizedPostal) {
           logger.warn(
@@ -889,7 +893,7 @@ export const processPayment = async (
             {
               order_id: id,
               postal_code,
-            }
+            },
           );
           // Don't throw - address is in token, this is just an optional override
         }
@@ -906,7 +910,7 @@ export const processPayment = async (
           order_id: id,
           token_prefix: payment_token?.substring(0, 10) + "...",
           has_explicit_address: !!(effective_body_line1 || effective_postal),
-        }
+        },
       );
 
       paymentInstrument = await createPaymentInstrument({
@@ -933,33 +937,29 @@ export const processPayment = async (
           source: "finix_tokenization",
           has_fraud_session_id: !!effectiveFraudSessionId,
           fraud_session_id_prefix: effectiveFraudSessionId?.substring(0, 20),
-        }
+        },
       );
     } else if (payment_instrument_id) {
       // Use existing payment instrument
       // FINIX CERTIFICATION: Support reused payment instruments (saved cards)
-      logger.info(
-        "[Order] Using existing Payment Instrument",
-        {
-          order_id: id,
-          payment_instrument_id,
-        }
-      );
-      
+      logger.info("[Order] Using existing Payment Instrument", {
+        order_id: id,
+        payment_instrument_id,
+      });
+
       const piDetails = await getPaymentInstrument(payment_instrument_id);
-      
+
       // Map to local structure if needed, or simply use the ID
       paymentInstrument = {
-        payment_instrument_id: piDetails.id, 
-        // We might not have all PI details here like card_type unless we fetch it, 
+        payment_instrument_id: piDetails.id,
+        // We might not have all PI details here like card_type unless we fetch it,
         // but the downstream logic relies mostly on the ID.
         // We should ensure getPaymentInstrument returns expected format or fetch logic is solid.
         // Assuming getPaymentInstrument returns the Finix PI object.
       };
-      
     } else {
       throw new ValidationError(
-        "payment_token or payment_instrument_id is required for payment processing"
+        "payment_token or payment_instrument_id is required for payment processing",
       );
     }
 
@@ -969,7 +969,7 @@ export const processPayment = async (
     let cvvResult: string | undefined;
     try {
       const pi = await getPaymentInstrument(
-        paymentInstrument.payment_instrument_id
+        paymentInstrument.payment_instrument_id,
       );
       avsResult = pi.address_verification;
       cvvResult = pi.security_code_verification;
@@ -1030,7 +1030,7 @@ export const processPayment = async (
                 bank_account_validation_check: bankCheck,
                 hint: "In sandbox, use Bank Code: 122105278, Account Number: 0000000016 for valid test accounts",
               },
-            }
+            },
           );
         }
 
@@ -1042,7 +1042,7 @@ export const processPayment = async (
               bankCheck,
               payment_instrument_id: paymentInstrument.payment_instrument_id,
               note: "Transfer creation may fail if bank account is invalid",
-            }
+            },
           );
         }
 
@@ -1072,9 +1072,10 @@ export const processPayment = async (
 
     // Track payment method type for order record
     const paymentMethodType: "card" | "bank" | "token" = "token";
-    
+
     // Determine source_type for Finix tags (token vs saved_instrument)
-    const sourceType = (payment_instrument_id && !payment_token) ? "saved_instrument" : "token";
+    const sourceType =
+      payment_instrument_id && !payment_token ? "saved_instrument" : "token";
 
     // Decide flow based on instrument type
     // If it's a bank payment instrument (ACH/EFT), we create a Transfer directly
@@ -1194,7 +1195,7 @@ export const processPayment = async (
           embedded_authorizations: !!finixData?._embedded?.authorizations,
           embedded_transfers: !!finixData?._embedded?.transfers,
           embedded_errors: !!finixData?._embedded?.errors,
-        }
+        },
       );
 
       // Check for embedded authorization errors (card payments)
@@ -1214,7 +1215,7 @@ export const processPayment = async (
             failure_message: failureMessage,
             state: auth.state,
             messages: auth.messages,
-          }
+          },
         );
       }
       // Check for embedded transfer errors (ACH/EFT payments)
@@ -1389,12 +1390,12 @@ export const processPayment = async (
           transfer_id: transferId,
           avs_result: avsResult,
           cvv_result: cvvResult,
-        }
+        },
       );
 
       throw new PaymentError(
         failureMessage || err.message || "Payment processing failed",
-        errorDetails
+        errorDetails,
       );
     }
 
@@ -1405,7 +1406,7 @@ export const processPayment = async (
         transfer_id: captureResult.transfer_id,
         transfer_state: captureResult.state,
         trace_id: captureResult.trace_id,
-      }
+      },
     );
 
     // FINIX CERTIFICATION: Validate transfer state per Finix documentation
@@ -1426,7 +1427,7 @@ export const processPayment = async (
             captureResult.failure_message || "The transfer was declined",
           transfer_id: captureResult.transfer_id,
           payment_instrument_id: paymentInstrument.payment_instrument_id,
-        }
+        },
       );
     } else if (captureResult.state === "CANCELED") {
       logger.error("[Order] Transfer CANCELED by processor", {
@@ -1440,7 +1441,7 @@ export const processPayment = async (
           failure_message: "Transfer canceled by payment processor",
           transfer_id: captureResult.transfer_id,
           payment_instrument_id: paymentInstrument.payment_instrument_id,
-        }
+        },
       );
     } else if (captureResult.state === "UNKNOWN") {
       logger.warn("[Order] Transfer state UNKNOWN - connection issue", {
@@ -1474,7 +1475,7 @@ export const processPayment = async (
       {
         order_id: id,
         authorization_id: authorizationId,
-      }
+      },
     );
 
     // Send system message to Stream Chat channel if it exists
@@ -1482,12 +1483,12 @@ export const processPayment = async (
       try {
         await chatService.sendSystemMessage(
           order.getstream_channel_id,
-          { 
-            type: "order_paid", 
-            amount: order.amount, 
-            order_id: order._id.toString() 
+          {
+            type: "order_paid",
+            amount: order.amount,
+            order_id: order._id.toString(),
           },
-          buyer_user_id
+          buyer_user_id,
         );
       } catch (chatError) {
         logger.warn("Failed to send payment message to Stream", { chatError });
@@ -1533,7 +1534,7 @@ export const processPayment = async (
             ? `Bank payment authorized for ${order.currency} ${(
                 order.amount / 100
               ).toFixed(
-                2
+                2,
               )}. By completing this payment, you authorize Dialist to debit your bank account for this transaction.`
             : "Payment is processing. You'll receive confirmation shortly.",
         ach_authorization:
@@ -1560,7 +1561,7 @@ export const processPayment = async (
 export const uploadTracking = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -1609,7 +1610,7 @@ export const uploadTracking = async (
       });
       throw new AuthorizationError(
         "Only the seller can upload tracking information",
-        { order_id: id, seller_id: seller_clerk_id }
+        { order_id: id, seller_id: seller_clerk_id },
       );
     }
 
@@ -1640,11 +1641,11 @@ export const uploadTracking = async (
       try {
         await chatService.sendSystemMessage(
           order.getstream_channel_id,
-          { 
-            type: "order_shipped", 
-            order_id: order._id.toString() 
+          {
+            type: "order_shipped",
+            order_id: order._id.toString(),
           },
-          seller_clerk_id
+          seller_clerk_id,
         );
       } catch (chatError) {
         logger.warn("Failed to send shipping message to Stream", { chatError });
@@ -1693,7 +1694,7 @@ export const uploadTracking = async (
 export const confirmDelivery = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -1743,7 +1744,7 @@ export const confirmDelivery = async (
         current_status: order.status,
       });
       throw new ValidationError(
-        "Order must be shipped before confirming delivery"
+        "Order must be shipped before confirming delivery",
       );
     }
 
@@ -1762,24 +1763,26 @@ export const confirmDelivery = async (
         // First send order completed
         await chatService.sendSystemMessage(
           order.getstream_channel_id,
-          { 
-            type: "order_completed", 
-            order_id: order._id.toString() 
+          {
+            type: "order_completed",
+            order_id: order._id.toString(),
           },
-          buyer_user_id
+          buyer_user_id,
         );
 
         // Then send listing sold
         await chatService.sendSystemMessage(
           order.getstream_channel_id,
-          { 
-            type: "listing_sold", 
-            order_id: order._id.toString() 
+          {
+            type: "listing_sold",
+            order_id: order._id.toString(),
           },
-          buyer_user_id
+          buyer_user_id,
         );
       } catch (chatError) {
-        logger.warn("Failed to send completion messages to Stream", { chatError });
+        logger.warn("Failed to send completion messages to Stream", {
+          chatError,
+        });
       }
     }
 
@@ -1821,7 +1824,7 @@ export const confirmDelivery = async (
 export const cancelOrder = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -1871,7 +1874,7 @@ export const cancelOrder = async (
         current_status: order.status,
       });
       throw new ValidationError(
-        "Cannot cancel order after payment has been processed"
+        "Cannot cancel order after payment has been processed",
       );
     }
 
@@ -1918,7 +1921,7 @@ export const cancelOrder = async (
 export const requestRefund = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -1938,7 +1941,7 @@ export const requestRefund = async (
     // Reason is required for refund requests
     if (!reason || typeof reason !== "string" || reason.trim().length < 10) {
       throw new ValidationError(
-        "A valid reason (minimum 10 characters) is required for refund requests"
+        "A valid reason (minimum 10 characters) is required for refund requests",
       );
     }
 
@@ -1959,7 +1962,7 @@ export const requestRefund = async (
       });
       throw new AuthorizationError(
         "Only the buyer can request refunds for their purchased items",
-        { order_id: id }
+        { order_id: id },
       );
     }
 
@@ -1971,7 +1974,7 @@ export const requestRefund = async (
 
     if (existingRequest) {
       throw new ValidationError(
-        "A refund request is already pending for this order. Wait for seller review or cancellation."
+        "A refund request is already pending for this order. Wait for seller review or cancellation.",
       );
     }
 
@@ -1991,7 +1994,7 @@ export const requestRefund = async (
         {
           order_id: id,
           transfer_id: order.finix_transfer_id,
-        }
+        },
       );
       throw new ValidationError("Transfer not found");
     }
@@ -2004,7 +2007,7 @@ export const requestRefund = async (
         state: transfer.state,
       });
       throw new ValidationError(
-        "Transfer must be SUCCEEDED before requesting refund"
+        "Transfer must be SUCCEEDED before requesting refund",
       );
     }
 
@@ -2031,13 +2034,13 @@ export const requestRefund = async (
 
     if (!Number.isInteger(refundAmountCents) || refundAmountCents < 1) {
       throw new ValidationError(
-        "refund_amount must be an integer >= 1 (in cents)"
+        "refund_amount must be an integer >= 1 (in cents)",
       );
     }
 
     if (refundAmountCents > transfer.amount) {
       throw new ValidationError(
-        `Refund amount cannot exceed original transfer amount (${transfer.amount} cents)`
+        `Refund amount cannot exceed original transfer amount (${transfer.amount} cents)`,
       );
     }
 
@@ -2124,7 +2127,7 @@ export const requestRefund = async (
 export const submitProductReturn = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -2150,19 +2153,19 @@ export const submitProductReturn = async (
     if (refundRequest.buyer_id.toString() !== requester_user_id) {
       throw new AuthorizationError(
         "Only the buyer can submit return information",
-        { refund_request_id: id }
+        { refund_request_id: id },
       );
     }
 
     if (refundRequest.status !== "pending") {
       throw new ValidationError(
-        `Cannot submit return for this request. Current status: ${refundRequest.status}`
+        `Cannot submit return for this request. Current status: ${refundRequest.status}`,
       );
     }
 
     if (refundRequest.product_returned) {
       throw new ValidationError(
-        "Return information has already been submitted"
+        "Return information has already been submitted",
       );
     }
 
@@ -2221,7 +2224,7 @@ export const submitProductReturn = async (
 export const confirmProductReturn = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -2246,7 +2249,7 @@ export const confirmProductReturn = async (
     if (refundRequest.seller_id.toString() !== requester_user_id) {
       throw new AuthorizationError(
         "Only the seller can confirm product return",
-        { refund_request_id: id }
+        { refund_request_id: id },
       );
     }
 
@@ -2255,13 +2258,13 @@ export const confirmProductReturn = async (
       refundRequest.status !== "pending"
     ) {
       throw new ValidationError(
-        `Cannot confirm return for this request. Current status: ${refundRequest.status}`
+        `Cannot confirm return for this request. Current status: ${refundRequest.status}`,
       );
     }
 
     if (!refundRequest.product_returned) {
       throw new ValidationError(
-        "Buyer has not submitted return information yet. Please wait for the buyer to return the product."
+        "Buyer has not submitted return information yet. Please wait for the buyer to return the product.",
       );
     }
 
@@ -2317,7 +2320,7 @@ export const confirmProductReturn = async (
 export const approveRefundRequest = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -2347,7 +2350,7 @@ export const approveRefundRequest = async (
       });
       throw new AuthorizationError(
         "Only the seller can approve refund requests",
-        { refund_request_id: id }
+        { refund_request_id: id },
       );
     }
 
@@ -2355,11 +2358,11 @@ export const approveRefundRequest = async (
     if (!refundRequest.product_return_confirmed) {
       if (!refundRequest.product_returned) {
         throw new ValidationError(
-          "Cannot approve refund: Buyer has not returned the product yet. Please wait for product return."
+          "Cannot approve refund: Buyer has not returned the product yet. Please wait for product return.",
         );
       }
       throw new ValidationError(
-        "Cannot approve refund: You must confirm product receipt first using /confirm-return endpoint."
+        "Cannot approve refund: You must confirm product receipt first using /confirm-return endpoint.",
       );
     }
 
@@ -2379,7 +2382,7 @@ export const approveRefundRequest = async (
       refundRequest.status !== "pending"
     ) {
       throw new ValidationError(
-        `Refund request cannot be approved. Current status: ${refundRequest.status}`
+        `Refund request cannot be approved. Current status: ${refundRequest.status}`,
       );
     }
 
@@ -2391,7 +2394,7 @@ export const approveRefundRequest = async (
     // Ensure we have a valid transfer ID
     if (!refundRequest.finix_transfer_id) {
       throw new ValidationError(
-        "No transfer ID associated with this refund request"
+        "No transfer ID associated with this refund request",
       );
     }
 
@@ -2497,7 +2500,7 @@ export const approveRefundRequest = async (
 export const denyRefundRequest = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -2515,7 +2518,7 @@ export const denyRefundRequest = async (
 
     if (!reason || typeof reason !== "string" || reason.trim().length < 10) {
       throw new ValidationError(
-        "A valid reason (minimum 10 characters) is required to deny a refund request"
+        "A valid reason (minimum 10 characters) is required to deny a refund request",
       );
     }
 
@@ -2542,7 +2545,7 @@ export const denyRefundRequest = async (
       ).includes(refundRequest.status)
     ) {
       throw new ValidationError(
-        `Refund request cannot be denied. Current status: ${refundRequest.status}`
+        `Refund request cannot be denied. Current status: ${refundRequest.status}`,
       );
     }
 
@@ -2613,7 +2616,7 @@ export const denyRefundRequest = async (
 export const getRefundRequests = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const user_id = (req as any).user?.dialist_id;
@@ -2674,7 +2677,7 @@ export const getRefundRequests = async (
 export const getRefundRequest = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -2701,7 +2704,7 @@ export const getRefundRequest = async (
     ) {
       throw new AuthorizationError(
         "Not authorized to view this refund request",
-        { refund_request_id: id }
+        { refund_request_id: id },
       );
     }
 
@@ -2721,7 +2724,7 @@ export const getRefundRequest = async (
 export const cancelRefundRequest = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -2745,17 +2748,17 @@ export const cancelRefundRequest = async (
     if (refundRequest.buyer_id.toString() !== requester_user_id) {
       throw new AuthorizationError(
         "Only the buyer can cancel their refund request",
-        { refund_request_id: id }
+        { refund_request_id: id },
       );
     }
 
     if (
       !(["pending", "return_requested"] as string[]).includes(
-        refundRequest.status
+        refundRequest.status,
       )
     ) {
       throw new ValidationError(
-        `Cannot cancel refund request. Current status: ${refundRequest.status}`
+        `Cannot cancel refund request. Current status: ${refundRequest.status}`,
       );
     }
 
@@ -2809,7 +2812,7 @@ export const cancelRefundRequest = async (
 export const getOrder = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -2874,7 +2877,7 @@ export const getOrder = async (
 export const getBuyerOrders = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const buyer_id = (req as any).user?.dialist_id;
@@ -2911,7 +2914,7 @@ export const getBuyerOrders = async (
 export const getSellerOrders = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const seller_id = (req as any).user?.dialist_id;
@@ -2952,7 +2955,7 @@ export const getSellerOrders = async (
 export const clearAllReservations = async (
   _req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     logger.warn("[Order] ⚠️ DEV: Clearing all reservations!");
@@ -2972,7 +2975,7 @@ export const clearAllReservations = async (
           reserved_by_user_id: 1,
           reserved_by_order_id: 1,
         },
-      }
+      },
     );
 
     // Cancel all reserved orders (not yet paid)
@@ -2984,7 +2987,7 @@ export const clearAllReservations = async (
           cancelled_at: new Date(),
           cancellation_reason: "DEV: Reservation cleared",
         },
-      }
+      },
     );
 
     logger.info("[Order] ✅ DEV: Reservations cleared", {
@@ -3016,7 +3019,7 @@ export const clearAllReservations = async (
 export const resetListing = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { listing_id, order_id } = req.body || {};
@@ -3078,7 +3081,7 @@ export const resetListing = async (
       },
     });
   } catch (err: any) {
-    console.log("DEBUG: reserveListing error:", err);
+    logger.error("reserveListing error", { error: err });
     next(err);
   }
 };
@@ -3091,7 +3094,7 @@ export const resetListing = async (
 export const getOrderDispute = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;

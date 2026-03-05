@@ -2,7 +2,6 @@ import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import { ChatMessage } from "../../models/ChatMessage";
 import { MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
-import { NetworkListingChannel } from "../../models/ListingChannel";
 import { User } from "../../models/User";
 import { chatService } from "../../services/ChatService";
 import { marketplaceChannelService } from "../services/MarketplaceChannelService";
@@ -347,8 +346,7 @@ export const markAsRead = (platform: "marketplace" | "networks") => async (req: 
     }
     const channel_id = message.stream_channel_id;
 
-    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
-    const isMember = await ChannelModel.exists({ getstream_channel_id: channel_id, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
+    const isMember = await MarketplaceListingChannel.exists({ getstream_channel_id: channel_id, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
     
     if (!isMember) {
       res.status(403).json({ error: { message: "Not a member of this channel" } });
@@ -382,8 +380,7 @@ export const markAllAsRead = (platform: "marketplace" | "networks") => async (re
     }
 
     // Membership check for markAllAsRead
-    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
-    const isMember = await ChannelModel.exists({ getstream_channel_id: channelId, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
+    const isMember = await MarketplaceListingChannel.exists({ getstream_channel_id: channelId, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
     
     if (!isMember) {
       res.status(403).json({ error: { message: "Not a member of this channel" } });
@@ -430,8 +427,7 @@ export const reactToMessage = (platform: "marketplace" | "networks") => async (r
     }
 
     // Membership check for reactions
-    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
-    const isMember = await ChannelModel.exists({ getstream_channel_id: message.stream_channel_id, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
+    const isMember = await MarketplaceListingChannel.exists({ getstream_channel_id: message.stream_channel_id, $or: [{ buyer_id: user._id }, { seller_id: user._id }] });
     
     if (!isMember) {
       res.status(403).json({ error: { message: "Not a member of this channel" } });
@@ -480,10 +476,9 @@ export const archiveChannel = (platform: "marketplace" | "networks") => async (r
     }
 
     // Verify channel membership before allowing archive (hide)
-    const ChannelModel = platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
     const q = { getstream_channel_id: channelId, $or: [{ buyer_id: user._id }, { seller_id: user._id }] };
     
-    const channel_exists = await ChannelModel.exists(q);
+    const channel_exists = await MarketplaceListingChannel.exists(q);
     
     if (!channel_exists) {
       res.status(403).json({ error: { message: "Not a member of this channel" } });

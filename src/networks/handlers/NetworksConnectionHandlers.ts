@@ -1,17 +1,13 @@
 // src/networks/handlers/NetworksConnectionHandlers.ts
 import { NextFunction, Request, Response } from "express";
 import { ApiResponse } from "../../types";
-import {
-  MissingUserContextError,
-  ValidationError,
-  } from "../../utils/errors";
+import { MissingUserContextError, ValidationError } from "../../utils/errors";
 import { friendshipService } from "../../services/friendship/FriendshipService";
 import {
   FriendRequestInput,
   RespondFriendRequestInput,
 } from "../../validation/schemas";
 import { feedService } from "../../services/FeedService";
-
 
 /**
  * Send a friend request
@@ -20,7 +16,7 @@ import { feedService } from "../../services/FeedService";
 export const networks_friend_request_send = async (
   req: Request<{}, {}, FriendRequestInput["body"]>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -46,9 +42,13 @@ export const networks_friend_request_send = async (
  * PATCH /api/v1/networks/connections/:id/respond
  */
 export const networks_friend_request_respond = async (
-  req: Request<RespondFriendRequestInput["params"], {}, RespondFriendRequestInput["body"]>,
+  req: Request<
+    RespondFriendRequestInput["params"],
+    {},
+    RespondFriendRequestInput["body"]
+  >,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -58,7 +58,10 @@ export const networks_friend_request_respond = async (
 
     let result;
     if (status === "accepted") {
-      result = await friendshipService.acceptRequest(friendshipId, String(userId));
+      result = await friendshipService.acceptRequest(
+        friendshipId,
+        String(userId),
+      );
     } else {
       await friendshipService.declineRequest(friendshipId, String(userId));
       result = { message: "Request declined" };
@@ -80,20 +83,23 @@ export const networks_friend_request_respond = async (
 export const networks_connections_get = async (
   req: Request,
   res: Response<ApiResponse<any[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = (req as any).user.dialist_id;
-    
+
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 50;
     const offset = (page - 1) * limit;
 
-    const { friends, total } = await friendshipService.getFriends(String(userId), { 
-      limit, 
-      offset 
-    });
+    const { friends, total } = await friendshipService.getFriends(
+      String(userId),
+      {
+        limit,
+        offset,
+      },
+    );
 
     res.json({
       data: friends,
@@ -120,7 +126,7 @@ export const networks_connections_get = async (
 export const networks_connections_listings_get = async (
   req: Request,
   res: Response<ApiResponse<any[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -129,9 +135,13 @@ export const networks_connections_listings_get = async (
     const limit = Math.min(Number(req.query.limit) || 20, 50);
     const offset = Number(req.query.offset) || 0;
 
-    const activities = await feedService.getTimeline(String(userId), limit, offset);
+    const activities = await feedService.getTimeline(
+      String(userId),
+      limit,
+      offset,
+    );
 
-    // Filter for listing activities specifically if needed, 
+    // Filter for listing activities specifically if needed,
     // or return the whole timeline as requested by the spec
     res.json({
       data: activities,
@@ -139,6 +149,7 @@ export const networks_connections_listings_get = async (
       _metadata: {
         paging: {
           count: activities.length,
+          total: activities.length,
           limit,
           offset,
         },

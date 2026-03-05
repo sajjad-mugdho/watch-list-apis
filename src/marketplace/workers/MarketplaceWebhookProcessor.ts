@@ -14,7 +14,6 @@ import { finixLogger, userLogger, merchantLogger } from "../../utils/logger";
 import { config } from "../../config";
 import { provisionMerchant } from "../../utils/finix";
 
-
 /**
  * Process Finix webhook events
  *
@@ -33,7 +32,7 @@ import { provisionMerchant } from "../../utils/finix";
 async function processFinixWebhook(
   type: string,
   payload: any,
-  eventId: string
+  eventId: string,
 ): Promise<string> {
   const { entity, _embedded } = payload;
 
@@ -85,7 +84,7 @@ async function processFinixWebhook(
           formId: form.id,
           status: form.status,
           type,
-        }
+        },
       );
       return `Onboarding form not completed (${type}, status: ${form.status})`;
     }
@@ -110,7 +109,7 @@ async function processFinixWebhook(
       });
       throw new Error(
         `Missing dialist_user_id tag in completed form. Form ID: ${form.id}. ` +
-          `Make sure you include tags: { dialist_user_id: user._id } when creating the form.`
+          `Make sure you include tags: { dialist_user_id: user._id } when creating the form.`,
       );
     }
 
@@ -122,7 +121,7 @@ async function processFinixWebhook(
       });
       throw new Error(
         `Missing identity_id in completed form ${form.id}. ` +
-          `This should be populated by Finix when status is COMPLETED.`
+          `This should be populated by Finix when status is COMPLETED.`,
       );
     }
 
@@ -141,7 +140,7 @@ async function processFinixWebhook(
       });
       throw new Error(
         `User not found: ${dialistUserId}. ` +
-          `Verify the user exists before creating the onboarding form.`
+          `Verify the user exists before creating the onboarding form.`,
       );
     }
 
@@ -159,7 +158,7 @@ async function processFinixWebhook(
         onboarding_state: "PROVISIONING",
         onboarded_at: new Date(),
       },
-      { new: true }
+      { new: true },
     );
 
     finixLogger.info(`✅ Event 1: Stored identity_id in MerchantOnboarding`, {
@@ -182,7 +181,7 @@ async function processFinixWebhook(
 
       if (!application_id) {
         throw new Error(
-          `No Finix application configured for location: ${user.location?.country}`
+          `No Finix application configured for location: ${user.location?.country}`,
         );
       }
 
@@ -194,7 +193,7 @@ async function processFinixWebhook(
       });
       const merchantData = await provisionMerchant(
         identityId,
-        form.id // Pass onboarding_form_id to fetch payment instrument data
+        form.id, // Pass onboarding_form_id to fetch payment instrument data
       );
 
       // Update user with merchant data
@@ -206,7 +205,7 @@ async function processFinixWebhook(
           onboarding_state: merchantData.onboarding_state,
           verification_id: merchantData.verification_id || undefined,
         },
-        { new: true }
+        { new: true },
       );
 
       merchantLogger.info(`✅ Auto-provisioned merchant successfully`, {
@@ -280,7 +279,7 @@ async function processFinixWebhook(
         {
           identityId,
           eventId,
-        }
+        },
       );
 
       // Mark webhook for retry
@@ -318,7 +317,7 @@ async function processFinixWebhook(
     await MerchantOnboarding.findOneAndUpdate(
       { identity_id: identityId },
       updateData,
-      { new: true }
+      { new: true },
     );
 
     finixLogger.info(`Merchant ${type} processed`, {
@@ -371,7 +370,7 @@ async function processFinixWebhook(
     const verification = _embedded?.verifications?.[0];
 
     if (!verification) {
-      console.error("❌ Missing verification data in webhook");
+      finixLogger.error("Missing verification data in webhook");
       throw new Error("Missing verification data");
     }
 
@@ -407,7 +406,7 @@ async function processFinixWebhook(
         {
           identityId,
           eventId,
-        }
+        },
       );
 
       const finixEvent = await FinixWebhookEvent.findOne({ eventId });
@@ -448,7 +447,7 @@ async function processFinixWebhook(
     await MerchantOnboarding.findOneAndUpdate(
       { identity_id: identityId },
       merchantOnboardingUpdate,
-      { new: true }
+      { new: true },
     );
 
     finixLogger.info("Verification updated in MerchantOnboarding", {
@@ -535,7 +534,7 @@ async function processFinixWebhook(
             orderId: order._id.toString(),
             transferId,
             amount,
-          }
+          },
         );
 
         return `Payment completed for order ${order._id} (transfer: ${transferId})`;
@@ -628,7 +627,7 @@ async function processFinixWebhook(
             orderId: order._id.toString(),
             transferId,
             amount,
-          }
+          },
         );
 
         // Re-open listing if needed
@@ -847,4 +846,3 @@ async function processFinixWebhook(
 }
 
 export { processFinixWebhook };
-

@@ -1,19 +1,14 @@
 import { NextFunction, Request, Response } from "express";
 import { ApiResponse } from "../../types";
+import logger from "../../utils/logger";
 import {
   DatabaseError,
   MissingUserContextError,
   NotFoundError,
 } from "../../utils/errors";
-import {
-  INetworkListing,
-  IMarketplaceListing,
-  MarketplaceListing,
-  NetworkListing,
-} from "../../models/Listings";
+import { IMarketplaceListing, MarketplaceListing } from "../../models/Listings";
 import { User } from "../../models/User";
 import mongoose from "mongoose";
-import { GetUserInventoryInput } from "../../validation/schemas";
 
 // ----------------------------------------------------------
 // Types
@@ -46,7 +41,7 @@ export interface InventoryMetadata {
 export const networks_user_get = async (
   req: Request,
   res: Response<ApiResponse<{ platform: "networks" }>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const response: ApiResponse<{ platform: "networks" }> = {
@@ -69,7 +64,7 @@ export const networks_user_get = async (
 export const marketplace_user_get = async (
   req: Request,
   res: Response<ApiResponse<{ platform: "marketplace" }>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const response: ApiResponse<{ platform: "marketplace" }> = {
@@ -86,106 +81,13 @@ export const marketplace_user_get = async (
 };
 
 /**
- * Get networks user inventory (listings)
- * GET /api/v1/networks/user/listings
- */
-export const networks_user_inventory_get = async (
-  req: Request<{}, {}, {}, GetUserInventoryInput["query"]>,
-  res: Response<ApiResponse<INetworkListing[], InventoryMetadata>>,
-  next: NextFunction
-): Promise<void> => {
-  try {
-    if (!(req as any).user)
-      throw new MissingUserContextError({
-        route: req.path,
-        note: "(req as any).user missing in getUserInventory",
-      });
-
-    // Handle defaults in handler
-    const status = (req.query.status as string) ?? "all";
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 30;
-    const skip = (page - 1) * limit;
-
-    // Build filters
-    const filters: Record<string, any> = {
-      dialist_id: new mongoose.Types.ObjectId((req as any).user.dialist_id),
-    };
-    if (status !== "all") filters.status = status;
-
-    // Fetch paginated listings
-    const listings = await NetworkListing.find(filters)
-      .sort({ updatedAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-
-    // Get total count for pagination
-    const total = await NetworkListing.countDocuments(filters);
-
-    // Get grouped counts across all statuses
-    const counts = await NetworkListing.aggregate([
-      {
-        $match: {
-          dialist_id: new mongoose.Types.ObjectId((req as any).user.dialist_id),
-        },
-      },
-      {
-        $group: {
-          _id: "$status",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-
-    const groups: Record<"draft" | "active" | "reserved" | "sold", number> = {
-      draft: 0,
-      active: 0,
-      reserved: 0,
-      sold: 0,
-    };
-
-    counts.forEach((c) => {
-      if (c._id in groups) {
-        groups[c._id as keyof typeof groups] = c.count;
-      }
-    });
-
-    const response: ApiResponse<INetworkListing[], InventoryMetadata> = {
-      data: listings as any,
-      requestId: req.headers["x-request-id"] as string,
-      _metadata: {
-        paging: {
-          count: listings.length,
-          total,
-          page,
-          limit,
-          pages: Math.ceil(total / limit),
-        },
-        groups,
-        filters: { status },
-      },
-    };
-
-    res.json(response);
-  } catch (err: any) {
-    console.error("Error fetching networks user inventory:", err);
-    if (err instanceof MissingUserContextError) {
-      next(err);
-    } else {
-      next(new DatabaseError("Failed to fetch user inventory", err));
-    }
-  }
-};
-
-/**
  * Get marketplace user inventory (listings)
  * GET /api/v1/marketplace/user/listings
  */
 export const marketplace_user_inventory_get = async (
   req: Request,
   res: Response<ApiResponse<IMarketplaceListing[], InventoryMetadata>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user)
@@ -262,7 +164,7 @@ export const marketplace_user_inventory_get = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error fetching marketplace user inventory:", err);
+    logger.error("Error fetching marketplace user inventory", { error: err });
     if (err instanceof MissingUserContextError) {
       next(err);
     } else {
@@ -278,7 +180,7 @@ export const marketplace_user_inventory_get = async (
 export const user_get = async (
   req: Request,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user)
@@ -339,7 +241,7 @@ import { Offer } from "../../models/Offer";
 export const marketplace_user_offers_get_handler = async (
   req: Request,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user)
@@ -348,16 +250,22 @@ export const marketplace_user_offers_get_handler = async (
         note: "(req as any).user missing in marketplace_user_offers_get",
       });
 
-    const type = (req.query.type === "sent" || req.query.type === "received") ? req.query.type : "sent";
+    const type =
+      req.query.type === "sent" || req.query.type === "received"
+        ? req.query.type
+        : "sent";
     const status = (req.query.status as string) ?? "all";
     const MAX_LIMIT = 100;
-    const limit = Math.min(Math.max(parseInt(req.query.limit as string, 10) || 50, 1), MAX_LIMIT);
+    const limit = Math.min(
+      Math.max(parseInt(req.query.limit as string, 10) || 50, 1),
+      MAX_LIMIT,
+    );
     const offset = Math.max(parseInt(req.query.offset as string, 10) || 0, 0);
 
     const userId = new mongoose.Types.ObjectId((req as any).user.dialist_id);
 
     const query: any = { platform: "marketplace" };
-    
+
     if (type === "sent") {
       query.buyer_id = userId;
     } else {

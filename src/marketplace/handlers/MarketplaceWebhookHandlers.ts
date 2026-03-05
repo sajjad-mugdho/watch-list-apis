@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { config } from "../../config";
 import { verifyBasic, verifyFinixSignature } from "../../utils/finix";
 import { FinixEventSchema } from "../../validation/schemas";
+import logger from "../../utils/logger";
 import { WebhookEvent } from "../../models/WebhookEvent";
 import { FinixWebhookEvent } from "../../models/FinixWebhookEvent";
 import webhookQueue from "../../queues/webhookQueue";
@@ -11,8 +12,6 @@ import { webhookLogger, logWebhookEvent } from "../../utils/logger";
 // ----------------------------------------------------------
 // Types
 // ----------------------------------------------------------
-
-
 
 /**
  * Handle Finix webhook events
@@ -28,7 +27,7 @@ import { webhookLogger, logWebhookEvent } from "../../utils/logger";
 export const webhook_finix_post = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   const startTime = Date.now();
 
@@ -39,15 +38,15 @@ export const webhook_finix_post = async (
       url: req.url,
       headers: {
         "content-type": req.headers["content-type"],
-        "finix-signature": req.headers["finix-signature"] ? "[PRESENT]" : "[MISSING]",
+        "finix-signature": req.headers["finix-signature"]
+          ? "[PRESENT]"
+          : "[MISSING]",
         authorization: req.headers["authorization"] ? "[PRESENT]" : "[MISSING]",
         "x-request-id": req.headers["x-request-id"],
         "content-length": req.headers["content-length"],
       },
       bodyKeys:
-        req.body && typeof req.body === "object"
-          ? Object.keys(req.body)
-          : [],
+        req.body && typeof req.body === "object" ? Object.keys(req.body) : [],
       ip: req.ip,
       timestamp: new Date().toISOString(),
     });
@@ -65,7 +64,7 @@ export const webhook_finix_post = async (
     const isValidSignature = verifyFinixSignature(
       rawBody,
       signature,
-      config.finixWebhookSecret
+      config.finixWebhookSecret,
     );
 
     if (!isValidSignature) {
@@ -114,7 +113,7 @@ export const webhook_finix_post = async (
             eventId,
             status: existingEvent.status,
             requestId: req.headers["x-request-id"],
-          }
+          },
         );
         res.status(200).json({
           success: true,
@@ -132,7 +131,7 @@ export const webhook_finix_post = async (
           status: existingEvent.status,
           attemptCount: existingEvent.attemptCount,
           requestId: req.headers["x-request-id"],
-        }
+        },
       );
     }
 
@@ -160,7 +159,7 @@ export const webhook_finix_post = async (
         status: "received",
         data: {},
       },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     // Step 8: Enqueue job for async processing
@@ -176,9 +175,11 @@ export const webhook_finix_post = async (
     });
 
     const processingTime = Date.now() - startTime;
-    console.log(
-      `✅ Enqueued Finix webhook ${eventId} as job ${job.id} (${processingTime}ms)`
-    );
+    logger.info(`Enqueued Finix webhook as job`, {
+      eventId,
+      jobId: job.id,
+      processingTime,
+    });
 
     // Step 9: Return 200 OK immediately (<200ms target)
     res.status(200).json({
@@ -190,15 +191,11 @@ export const webhook_finix_post = async (
     });
   } catch (err: any) {
     const processingTime = Date.now() - startTime;
-    console.error(
-      `❌ Finix webhook handler error (${processingTime}ms):`,
-      err.message || err
-    );
-
-    // Log security-related errors
-    if (err.isAuth) {
-      console.error("🚨 Authentication failed:", err.message);
-    }
+    logger.error(`Finix webhook handler error`, {
+      processingTime,
+      message: err.message || err,
+      isAuth: err.isAuth,
+    });
 
     if (err instanceof ValidationError || err instanceof DatabaseError) {
       return next(err);

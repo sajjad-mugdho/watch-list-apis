@@ -17,12 +17,14 @@ import {
 } from "../../validation/schemas";
 import { INetworkListing, NetworkListing } from "../../models/Listings";
 
-
 import { Watch } from "../../models/Watches";
 import { NetworkListingChannel } from "../../models/ListingChannel";
 import { ExtractWatchSpecData } from "../../utils/watchDataExtraction";
 import { validateListingCompleteness } from "../../utils/listingValidation";
-import { buildListingFilter, buildListingSort } from "../../utils/listingFilters";
+import {
+  buildListingFilter,
+  buildListingSort,
+} from "../../utils/listingFilters";
 import { transitionListingStatus } from "../../utils/listingStatusMachine";
 import { Subscription } from "../../models/Subscription";
 import { feedService } from "../../services/FeedService";
@@ -52,7 +54,7 @@ const MAX_ACTIVE_LISTINGS_PREMIUM = 50;
 export const networks_listings_get = async (
   req: Request<{}, {}, {}, GetListingsInput["query"]>,
   res: Response<ApiResponse<INetworkListing[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const {
@@ -79,7 +81,7 @@ export const networks_listings_get = async (
 
     const filter = buildListingFilter(
       filterInput,
-      true // Networks supports allow_offers filtering
+      true, // Networks supports allow_offers filtering
     );
 
     // Build sort object using shared utility
@@ -91,7 +93,11 @@ export const networks_listings_get = async (
     // Execute query with pagination (excluding deleted)
     const activeFilter = { ...filter, is_deleted: { $ne: true } };
     const [listings, total] = await Promise.all([
-      NetworkListing.find(activeFilter).sort(sort).skip(skip).limit(limit).lean(),
+      NetworkListing.find(activeFilter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
       NetworkListing.countDocuments(activeFilter),
     ]);
 
@@ -123,7 +129,7 @@ export const networks_listings_get = async (
 
     res.json(response);
   } catch (error: any) {
-    console.error("Error fetching networks listings:", error);
+    logger.error("Error fetching networks listings", { error });
     next(new DatabaseError("Failed to fetch listings", error));
   }
 };
@@ -135,7 +141,7 @@ export const networks_listings_get = async (
 export const networks_listing_create = async (
   req: Request<{}, {}, CreateListingInput["body"]>,
   res: Response<ApiResponse<INetworkListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -165,7 +171,7 @@ export const networks_listing_create = async (
     if (draftCount >= MAX_DRAFT_LISTINGS) {
       throw new ValidationError(
         `Maximum ${MAX_DRAFT_LISTINGS} draft listings allowed. Please publish or delete existing drafts.`,
-        { current_drafts: draftCount, limit: MAX_DRAFT_LISTINGS }
+        { current_drafts: draftCount, limit: MAX_DRAFT_LISTINGS },
       );
     }
 
@@ -194,7 +200,11 @@ export const networks_listing_create = async (
 
     res.status(201).json(response);
   } catch (err: any) {
-    if (err instanceof ValidationError || err instanceof AuthorizationError || err instanceof NotFoundError) {
+    if (
+      err instanceof ValidationError ||
+      err instanceof AuthorizationError ||
+      err instanceof NotFoundError
+    ) {
       return next(err);
     }
     next(new DatabaseError("Failed to create listing", err));
@@ -208,7 +218,7 @@ export const networks_listing_create = async (
 export const networks_listing_update = async (
   req: Request<UpdateListingInput["params"], {}, UpdateListingInput["body"]>,
   res: Response<ApiResponse<INetworkListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -238,10 +248,12 @@ export const networks_listing_update = async (
       status: "open",
       "last_offer.offer_type": "counter",
       "last_offer.status": "sent",
-      "last_offer.expiresAt": { $gt: new Date() }
+      "last_offer.expiresAt": { $gt: new Date() },
     });
     if (hasBindingOffer) {
-      throw new ValidationError("Cannot modify listing while a binding counter-offer is active (24h period)");
+      throw new ValidationError(
+        "Cannot modify listing while a binding counter-offer is active (24h period)",
+      );
     }
 
     // Only allow updates if draft
@@ -260,7 +272,7 @@ export const networks_listing_update = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error updating listing:", err);
+    logger.error("Error updating listing", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof AuthorizationError ||
@@ -281,7 +293,7 @@ export const networks_listing_update = async (
 export const networks_listing_publish = async (
   req: Request<PublishListingInput["params"], {}, {}>,
   res: Response<ApiResponse<INetworkListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -323,9 +335,10 @@ export const networks_listing_publish = async (
       status: "active",
     });
 
-    const maxActiveListings = subscription?.tier === "premium" || subscription?.tier === "enterprise"
-      ? MAX_ACTIVE_LISTINGS_PREMIUM
-      : MAX_ACTIVE_LISTINGS_FREE;
+    const maxActiveListings =
+      subscription?.tier === "premium" || subscription?.tier === "enterprise"
+        ? MAX_ACTIVE_LISTINGS_PREMIUM
+        : MAX_ACTIVE_LISTINGS_FREE;
 
     const activeCount = await NetworkListing.countDocuments({
       dialist_id: (req as any).user.dialist_id,
@@ -333,16 +346,17 @@ export const networks_listing_publish = async (
     });
 
     if (activeCount >= maxActiveListings) {
-      const upgradeMessage = subscription?.tier === "free" || !subscription
-        ? " Upgrade to Premium for up to 50 active listings."
-        : "";
+      const upgradeMessage =
+        subscription?.tier === "free" || !subscription
+          ? " Upgrade to Premium for up to 50 active listings."
+          : "";
       throw new ValidationError(
         `Maximum ${maxActiveListings} active listings allowed.${upgradeMessage}`,
         {
           current_active: activeCount,
           limit: maxActiveListings,
           tier: subscription?.tier || "free",
-        }
+        },
       );
     }
 
@@ -359,17 +373,21 @@ export const networks_listing_publish = async (
           title: listing.title || "New Listing",
           price: listing.price || 0,
           ...(listing.thumbnail && { thumbnail: listing.thumbnail }),
-        }
+        },
       );
     } catch (feedError) {
-      logger.warn("Failed to add network listing to activity feed", { feedError });
+      logger.warn("Failed to add network listing to activity feed", {
+        feedError,
+      });
     }
 
     // Trigger ISO matching (Async via Event)
     try {
       listingEvents.emitPublished(listing);
     } catch (isoError) {
-      logger.warn("Failed to trigger ISO matching for network listing", { isoError });
+      logger.warn("Failed to trigger ISO matching for network listing", {
+        isoError,
+      });
     }
 
     const response: ApiResponse<INetworkListing> = {
@@ -379,7 +397,7 @@ export const networks_listing_publish = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error publishing listing:", err);
+    logger.error("Error publishing listing", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof AuthorizationError ||
@@ -398,9 +416,13 @@ export const networks_listing_publish = async (
  * PATCH /api/v1/networks/listings/:id/status
  */
 export const networks_listing_status_patch = async (
-  req: Request<UpdateListingStatusInput["params"], {}, UpdateListingStatusInput["body"]>,
+  req: Request<
+    UpdateListingStatusInput["params"],
+    {},
+    UpdateListingStatusInput["body"]
+  >,
   res: Response<ApiResponse<INetworkListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -430,10 +452,12 @@ export const networks_listing_status_patch = async (
       status: "open",
       "last_offer.offer_type": "counter",
       "last_offer.status": "sent",
-      "last_offer.expiresAt": { $gt: new Date() }
+      "last_offer.expiresAt": { $gt: new Date() },
     });
     if (hasBindingOffer) {
-      throw new ValidationError("Cannot change status while a binding counter-offer is active (24h period)");
+      throw new ValidationError(
+        "Cannot change status while a binding counter-offer is active (24h period)",
+      );
     }
 
     // Transition status
@@ -446,7 +470,7 @@ export const networks_listing_status_patch = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error updating listing status:", err);
+    logger.error("Error updating listing status", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof AuthorizationError ||
@@ -467,7 +491,7 @@ export const networks_listing_status_patch = async (
 export const networks_listing_delete = async (
   req: Request<DeleteListingInput["params"]>,
   res: Response<ApiResponse<{ success: boolean }>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -496,22 +520,26 @@ export const networks_listing_delete = async (
       status: "open",
       "last_offer.offer_type": "counter",
       "last_offer.status": "sent",
-      "last_offer.expiresAt": { $gt: new Date() }
+      "last_offer.expiresAt": { $gt: new Date() },
     });
     if (hasBindingOffer) {
-      throw new ValidationError("Cannot delete listing while a binding counter-offer is active (24h period)");
+      throw new ValidationError(
+        "Cannot delete listing while a binding counter-offer is active (24h period)",
+      );
     }
 
     // Check for active orders/offers if necessary (placeholder for now)
     // For now, we allow soft delete if it's draft or active or inactive
     // If reserved or sold, we might want to block deletion.
     if (listing.status === "reserved" || listing.status === "sold") {
-      throw new ValidationError(`Cannot delete listing with status: ${listing.status}`);
+      throw new ValidationError(
+        `Cannot delete listing with status: ${listing.status}`,
+      );
     }
 
     // Permanent delete for now, or we could add 'isDeleted' field.
     // The user rules suggest "Soft delete recommended".
-    
+
     listing.is_deleted = true;
     await listing.save();
 
@@ -520,7 +548,7 @@ export const networks_listing_delete = async (
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err: any) {
-    console.error("Error deleting listing:", err);
+    logger.error("Error deleting listing", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof AuthorizationError ||
@@ -541,7 +569,7 @@ export const networks_listing_delete = async (
 export const networks_listing_preview = async (
   req: Request<{ id: string }>,
   res: Response<ApiResponse<INetworkListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -561,7 +589,10 @@ export const networks_listing_preview = async (
 
     // Validate ownership - only author can preview their own draft/listing
     if (String(listing.dialist_id) !== String((req as any).user.dialist_id)) {
-      throw new AuthorizationError("Not authorized to preview this listing", {});
+      throw new AuthorizationError(
+        "Not authorized to preview this listing",
+        {},
+      );
     }
 
     const response: ApiResponse<INetworkListing> = {
@@ -571,7 +602,7 @@ export const networks_listing_preview = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error fetching listing preview:", err);
+    logger.error("Error fetching listing preview", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof AuthorizationError ||
@@ -588,15 +619,15 @@ export const networks_listing_preview = async (
 /**
  * Get a single network listing by ID (Public view)
  * GET /api/v1/networks/listings/:id
- * 
- * Visibility: 
+ *
+ * Visibility:
  * - Active/Reserved/Sold: Anyone
  * - Draft/Inactive: Author only
  */
 export const networks_listing_get = async (
   req: Request<{ id: string }>,
   res: Response<ApiResponse<INetworkListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -609,10 +640,15 @@ export const networks_listing_get = async (
 
     // Visibility check
     const isOwner = userId && String(listing.dialist_id) === String(userId);
-    const isPubliclyVisible = ["active", "reserved", "sold"].includes(listing.status);
+    const isPubliclyVisible = ["active", "reserved", "sold"].includes(
+      listing.status,
+    );
 
     if (!isPubliclyVisible && !isOwner) {
-      throw new AuthorizationError("You do not have permission to view this listing", {});
+      throw new AuthorizationError(
+        "You do not have permission to view this listing",
+        {},
+      );
     }
 
     const response: ApiResponse<INetworkListing> = {

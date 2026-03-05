@@ -51,7 +51,7 @@ interface SeededUser {
  */
 function claimsToUserDocument(
   claims: MockUserClaims,
-  userId: string
+  userId: string,
 ): Partial<IUser> {
   const isOnboardingComplete = claims.onboarding_status === "completed";
 
@@ -68,27 +68,29 @@ function claimsToUserDocument(
     first_name: firstName,
     last_name: lastName.replace(".", ""), // Remove trailing dot from "John B."
     display_name: claims.display_name,
-    avatar: claims.display_avatar || undefined,
-    location: claims.location_country
-      ? {
-          country: claims.location_country,
-          region: claims.location_region || undefined,
-          city: null,
-          postal_code: claims.location_country === "US" ? "94102" : "M5V 1A1",
-        }
-      : undefined,
+    ...(claims.display_avatar !== undefined && {
+      avatar: claims.display_avatar,
+    }),
+    ...(claims.location_country !== undefined && {
+      location: {
+        country: claims.location_country as "US" | "CA",
+        region: claims.location_region ?? null,
+        city: null,
+        postal_code: claims.location_country === "US" ? "94102" : "M5V 1A1",
+      },
+    }),
     onboarding: {
       status: claims.onboarding_status,
       version: "v1",
       steps: {
         location: {
-          country: claims.location_country,
+          country: (claims.location_country ?? null) as "CA" | "US" | null,
           postal_code: claims.location_country
             ? claims.location_country === "US"
               ? "94102"
               : "M5V 1A1"
             : null,
-          region: claims.location_region || null,
+          region: claims.location_region ?? null,
           updated_at: isOnboardingComplete ? new Date() : null,
         },
         display_name: {
@@ -99,7 +101,7 @@ function claimsToUserDocument(
         },
         avatar: {
           confirmed: isOnboardingComplete,
-          url: claims.display_avatar,
+          url: claims.display_avatar ?? null,
           user_provided: !!claims.display_avatar,
           updated_at: isOnboardingComplete ? new Date() : null,
         },
@@ -110,7 +112,7 @@ function claimsToUserDocument(
           updated_at: isOnboardingComplete ? new Date() : null,
         },
       },
-      completed_at: isOnboardingComplete ? new Date() : undefined,
+      completed_at: isOnboardingComplete ? new Date() : null,
     },
     marketplace_profile_config: {
       location: "country_region",
@@ -133,7 +135,7 @@ function claimsToUserDocument(
  * Create MerchantOnboarding record if user has merchant state
  */
 async function createMerchantOnboardingRecord(
-  claims: MockUserClaims
+  claims: MockUserClaims,
 ): Promise<ReturnType<typeof MerchantOnboarding.prototype.toObject> | null> {
   if (!claims.onboarding_state) {
     return null;
@@ -160,7 +162,7 @@ async function createMerchantOnboardingRecord(
         claims.onboarding_state !== "PENDING" ? new Date() : undefined,
       verified_at: claims.isMerchant ? new Date() : undefined,
     },
-    { upsert: true, new: true }
+    { upsert: true, new: true },
   );
 
   return merchantOnboarding?.toObject() || null;
@@ -213,7 +215,7 @@ export async function seedMockUser(mockUserId: string): Promise<SeededUser> {
  * @returns Map of mock user ID to seeded data
  */
 export async function seedMockUsers(
-  mockUserIds: string[]
+  mockUserIds: string[],
 ): Promise<Map<string, SeededUser>> {
   const results = new Map<string, SeededUser>();
 

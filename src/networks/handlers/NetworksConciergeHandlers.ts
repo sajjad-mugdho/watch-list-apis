@@ -12,15 +12,18 @@ import {
 import { ConciergeRequestInput } from "../../validation/schemas";
 import logger from "../../utils/logger";
 
-
 /**
  * Request concierge service for a listing
  * POST /api/v1/networks/listings/:id/concierge
  */
 export const networks_concierge_request_create = async (
-  req: Request<ConciergeRequestInput["params"], {}, ConciergeRequestInput["body"]>,
+  req: Request<
+    ConciergeRequestInput["params"],
+    {},
+    ConciergeRequestInput["body"]
+  >,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -38,11 +41,15 @@ export const networks_concierge_request_create = async (
 
     // Basic requirements: listing must be active and not owned by buyer
     if (listing.status !== "active") {
-      throw new ValidationError("Concierge service only available for active listings");
+      throw new ValidationError(
+        "Concierge service only available for active listings",
+      );
     }
 
     if (String(listing.dialist_id) === String(buyerId)) {
-      throw new ValidationError("Cannot request concierge for your own listing");
+      throw new ValidationError(
+        "Cannot request concierge for your own listing",
+      );
     }
 
     // Check for existing pending request
@@ -53,7 +60,9 @@ export const networks_concierge_request_create = async (
     });
 
     if (existing) {
-      throw new ValidationError("A concierge request is already pending for this listing");
+      throw new ValidationError(
+        "A concierge request is already pending for this listing",
+      );
     }
 
     const conciergeRequest = await ConciergeRequest.create({
@@ -65,7 +74,7 @@ export const networks_concierge_request_create = async (
     // Notify seller that a buyer is interested in concierge service (optional, but good for UX)
     // Actually, usually concierge is between Buyer and Platform.
     // However, the seller should know if their item is being authenticated.
-    
+
     logger.info("Concierge request created", {
       requestId: conciergeRequest._id,
       listingId,
@@ -78,7 +87,7 @@ export const networks_concierge_request_create = async (
       message: "Concierge request submitted successfully",
     });
   } catch (err: any) {
-    console.error("Error creating concierge request:", err);
+    logger.error("Error creating concierge request", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof ValidationError ||

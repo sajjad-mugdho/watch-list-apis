@@ -5,6 +5,7 @@ import {
   MissingUserContextError,
   ValidationError,
   DatabaseError,
+  NotFoundError,
 } from "../../utils/errors";
 import { ChatMessage } from "../../models/ChatMessage";
 import { SocialGroup } from "../../models/SocialGroup";
@@ -28,7 +29,7 @@ import mongoose from "mongoose";
 export const social_inbox_get = async (
   req: Request<{}, {}, {}, GetSocialInboxInput["query"]>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -36,7 +37,9 @@ export const social_inbox_get = async (
     const { filter, limit, offset } = req.query;
 
     // Update user presence for Networks
-    await User.findByIdAndUpdate(userId, { networks_last_accessed: new Date() });
+    await User.findByIdAndUpdate(userId, {
+      networks_last_accessed: new Date(),
+    });
 
     await chatService.ensureConnected();
     const client = chatService.getClient();
@@ -69,7 +72,7 @@ export const social_inbox_get = async (
       const isGroup = data?.type === "group";
       const name = data?.name || data?.listing_title || "Chat";
       const lastMsg = c.state.messages[c.state.messages.length - 1];
-      
+
       return {
         id: c.id,
         type: isGroup ? "group" : "personal",
@@ -83,19 +86,24 @@ export const social_inbox_get = async (
         metadata: {
           listing_id: data?.listing_id,
           group_id: data?.group_id,
-          is_reference_check: name.includes("Reference Check:") || !!data?.reference_check_id,
-        }
+          is_reference_check:
+            name.includes("Reference Check:") || !!data?.reference_check_id,
+        },
       };
     });
 
     // 3. (Optional) Filter by message type / channel type
     let filteredChannels = channels;
     if (filter === "offers") {
-      filteredChannels = channels.filter(c => c.lastMessageType.includes("offer"));
+      filteredChannels = channels.filter((c) =>
+        c.lastMessageType.includes("offer"),
+      );
     } else if (filter === "inquiries") {
-      filteredChannels = channels.filter(c => c.lastMessageType === "inquiry");
+      filteredChannels = channels.filter(
+        (c) => c.lastMessageType === "inquiry",
+      );
     } else if (filter === "reference_checks") {
-      filteredChannels = channels.filter(c => c.metadata.is_reference_check);
+      filteredChannels = channels.filter((c) => c.metadata.is_reference_check);
     }
 
     res.json({
@@ -122,7 +130,7 @@ export const social_inbox_get = async (
 export const social_search_get = async (
   req: Request<{}, {}, {}, SearchSocialInput["query"]>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { q, type } = req.query;
@@ -138,9 +146,9 @@ export const social_search_get = async (
         ],
         networks_published: true,
       })
-      .limit(10)
-      .select("display_name avatar location first_name last_name")
-      .lean();
+        .limit(10)
+        .select("display_name avatar location first_name last_name")
+        .lean();
     }
 
     // 2. Search Groups
@@ -149,15 +157,15 @@ export const social_search_get = async (
         name: { $regex: q, $options: "i" },
         is_private: false,
       })
-      .limit(10)
-      .lean();
+        .limit(10)
+        .lean();
     }
 
     // 3. Search Messages (Backfill from internal DB if synced, or GetStream)
     if (type === "all" || type === "messages") {
       if (!(req as any).user) throw new MissingUserContextError();
       const userId = (req as any).user.dialist_id;
-      
+
       // Search internal ChatMessage model
       results.messages = await ChatMessage.find({
         text: { $regex: q, $options: "i" },
@@ -165,12 +173,12 @@ export const social_search_get = async (
         $or: [
           { sender_id: userId },
           // This is a simplified check, real check would need channel membership
-          { stream_channel_id: { $in: await getStreamChannelIds(userId) } }
-        ]
+          { stream_channel_id: { $in: await getStreamChannelIds(userId) } },
+        ],
       })
-      .limit(20)
-      .sort({ createdAt: -1 })
-      .lean();
+        .limit(20)
+        .sort({ createdAt: -1 })
+        .lean();
     }
 
     res.json({
@@ -189,7 +197,7 @@ export const social_search_get = async (
 export const social_discover_get = async (
   req: Request,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -205,12 +213,12 @@ export const social_discover_get = async (
     const people = await User.find({
       _id: { $ne: userId },
       networks_published: true,
-      onboarding_status: "completed"
+      onboarding_status: "completed",
     })
-    .sort({ networks_last_accessed: -1 })
-    .limit(10)
-    .select("display_name avatar location bio stats")
-    .lean();
+      .sort({ networks_last_accessed: -1 })
+      .limit(10)
+      .select("display_name avatar location bio stats")
+      .lean();
 
     res.json({
       data: {
@@ -225,14 +233,18 @@ export const social_discover_get = async (
 };
 
 // Helper for finding channels a user belongs to
-async function getStreamChannelIds(userId: string | mongoose.Types.ObjectId): Promise<string[]> {
+async function getStreamChannelIds(
+  userId: string | mongoose.Types.ObjectId,
+): Promise<string[]> {
   try {
     const uid = new mongoose.Types.ObjectId(String(userId));
 
     // 1. Get marketplace/networks channels where user is buyer or seller
     const networksChannels = await NetworkListingChannel.find({
       $or: [{ buyer_id: uid }, { seller_id: uid }],
-    }).select("stream_chat_channel_id").lean();
+    })
+      .select("stream_chat_channel_id")
+      .lean();
 
     // 2. Get social groups user belongs to
     const groupMemberships = await SocialGroupMember.find({ user_id: uid })
@@ -240,10 +252,10 @@ async function getStreamChannelIds(userId: string | mongoose.Types.ObjectId): Pr
       .lean();
 
     const channelIds: string[] = [
-      ...networksChannels.map(c => (c as any).stream_chat_channel_id),
+      ...networksChannels.map((c) => (c as any).stream_chat_channel_id),
       ...groupMemberships
         .map((m: any) => m.group_id?.getstream_channel_id)
-        .filter(Boolean)
+        .filter(Boolean),
     ];
 
     return channelIds;
@@ -259,11 +271,15 @@ async function getStreamChannelIds(userId: string | mongoose.Types.ObjectId): Pr
 export const social_shared_content_get = async (
   req: Request<{ id: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
-    const { type = "media" } = req.query;
+    const {
+      type = "media",
+      limit: limitQ = "50",
+      offset: offsetQ = "0",
+    } = req.query;
 
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = (req as any).user.dialist_id;
@@ -271,7 +287,9 @@ export const social_shared_content_get = async (
     // Verify membership
     const channelIds = await getStreamChannelIds(userId);
     if (!channelIds.includes(id)) {
-      res.status(403).json({ error: { message: "Not authorized to view this channel's content" } });
+      res.status(403).json({
+        error: { message: "Not authorized to view this channel's content" },
+      });
       return;
     }
 
@@ -285,6 +303,9 @@ export const social_shared_content_get = async (
       query.type = "link";
     }
 
+    const offset = Number(offsetQ);
+    const limit = Number(limitQ);
+
     const messages = await ChatMessage.find(query)
       .sort({ createdAt: -1 })
       .skip(Number(offset))
@@ -293,7 +314,7 @@ export const social_shared_content_get = async (
 
     const total = await ChatMessage.countDocuments(query);
 
-    const data = messages.map(m => ({
+    const data = messages.map((m) => ({
       message_id: m._id,
       type: m.type,
       attachments: m.attachments,
@@ -317,7 +338,7 @@ export const social_shared_content_get = async (
 export const social_chat_profile_get = async (
   req: Request<{ userId: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { userId } = req.params;
@@ -325,7 +346,9 @@ export const social_chat_profile_get = async (
     const myId = (req as any).user.dialist_id;
 
     const targetUser = await User.findById(userId)
-      .select("display_name avatar location createdAt networks_last_accessed bio")
+      .select(
+        "display_name avatar location createdAt networks_last_accessed bio",
+      )
       .lean();
 
     if (!targetUser) {
@@ -339,12 +362,14 @@ export const social_chat_profile_get = async (
       SocialGroupMember.find({ user_id: userId }).select("group_id").lean(),
     ]);
 
-    const myGroupIds = myGroups.map(g => g.group_id.toString());
+    const myGroupIds = myGroups.map((g) => g.group_id.toString());
     const commonGroupIds = theirGroups
-      .map(g => g.group_id.toString())
-      .filter(id => myGroupIds.includes(id));
+      .map((g) => g.group_id.toString())
+      .filter((id) => myGroupIds.includes(id));
 
-    const commonGroups = await SocialGroup.find({ _id: { $in: commonGroupIds } })
+    const commonGroups = await SocialGroup.find({
+      _id: { $in: commonGroupIds },
+    })
       .limit(5)
       .lean();
 
@@ -356,9 +381,9 @@ export const social_chat_profile_get = async (
       ],
       status: "open",
     })
-    .populate("listing_id", "brand model thumbnail price")
-    .limit(5)
-    .lean();
+      .populate("listing_id", "brand model thumbnail price")
+      .limit(5)
+      .lean();
 
     res.json({
       data: {
@@ -383,7 +408,7 @@ export const social_chat_profile_get = async (
 export const social_chat_search_get = async (
   req: Request<{ id: string }, {}, {}, { q: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id: channelId } = req.params;
@@ -397,7 +422,9 @@ export const social_chat_search_get = async (
     // 1. Verify membership
     const channelIds = await getStreamChannelIds(userId);
     if (!channelIds.includes(channelId)) {
-      res.status(403).json({ error: { message: "Not authorized to search in this channel" } });
+      res.status(403).json({
+        error: { message: "Not authorized to search in this channel" },
+      });
       return;
     }
 
@@ -407,12 +434,12 @@ export const social_chat_search_get = async (
       $text: { $search: q },
       is_deleted: { $ne: true },
     })
-    .sort({ score: { $meta: "textScore" } })
-    .limit(50)
-    .lean();
+      .sort({ score: { $meta: "textScore" } })
+      .limit(50)
+      .lean();
 
     res.json({
-      data: messages.map(m => ({
+      data: messages.map((m) => ({
         _id: m._id,
         text: m.text,
         sender_id: m.sender_id,
@@ -432,7 +459,7 @@ export const social_chat_search_get = async (
 export const social_conversation_events_get = async (
   req: Request<{ id: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id: streamChannelId } = req.params;
@@ -440,12 +467,19 @@ export const social_conversation_events_get = async (
     const userId = (req as any).user.dialist_id;
 
     // 1. Find Network Channel
-    const channel = await NetworkListingChannel.findOne({ getstream_channel_id: streamChannelId });
+    const channel = await NetworkListingChannel.findOne({
+      getstream_channel_id: streamChannelId,
+    });
     if (!channel) throw new NotFoundError("Conversation not found");
 
     // Check membership
-    if (channel.buyer_id.toString() !== userId.toString() && channel.seller_id.toString() !== userId.toString()) {
-      res.status(403).json({ error: { message: "Not authorized to view events for this channel" } });
+    if (
+      channel.buyer_id.toString() !== userId.toString() &&
+      channel.seller_id.toString() !== userId.toString()
+    ) {
+      res.status(403).json({
+        error: { message: "Not authorized to view events for this channel" },
+      });
       return;
     }
 
@@ -453,7 +487,7 @@ export const social_conversation_events_get = async (
 
     // 2. Add Inquiries
     if (channel.inquiries) {
-      channel.inquiries.forEach(inq => {
+      channel.inquiries.forEach((inq) => {
         events.push({
           type: "inquiry",
           sender_id: inq.sender_id,
@@ -465,7 +499,7 @@ export const social_conversation_events_get = async (
 
     // 3. Add Offer History
     if (channel.offer_history) {
-      channel.offer_history.forEach(offer => {
+      channel.offer_history.forEach((offer) => {
         events.push({
           type: "offer",
           sender_id: offer.sender_id,
@@ -488,7 +522,9 @@ export const social_conversation_events_get = async (
     }
 
     // 4. Add Reference Check events
-    const refCheck = await ReferenceCheck.findOne({ getstream_channel_id: streamChannelId });
+    const refCheck = await ReferenceCheck.findOne({
+      getstream_channel_id: streamChannelId,
+    });
     if (refCheck) {
       events.push({
         type: "reference_check_started",
@@ -507,7 +543,7 @@ export const social_conversation_events_get = async (
 
       // Add Vouches
       const vouches = await Vouch.find({ reference_check_id: refCheck._id });
-      vouches.forEach(vouch => {
+      vouches.forEach((vouch) => {
         events.push({
           type: "vouch",
           voucher_name: vouch.voucher_snapshot.display_name,
@@ -527,10 +563,13 @@ export const social_conversation_events_get = async (
           status: order.status,
           timestamp: order.createdAt,
         });
-        
+
         // Add status change events if available (mocked here based on status)
         if (order.status === "reserved") {
-          events.push({ type: "listing_reserved", timestamp: order.reserved_at });
+          events.push({
+            type: "listing_reserved",
+            timestamp: order.reserved_at,
+          });
         }
       }
     }

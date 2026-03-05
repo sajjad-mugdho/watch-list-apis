@@ -12,7 +12,7 @@
  * - Aggregate context for conversation list view
  */
 
-import { Types } from "mongoose";
+import { Model, Types } from "mongoose";
 
 import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
 
@@ -117,11 +117,13 @@ export interface ConversationListItem {
   lastMessage?: string;
   lastMessageAt?: Date;
   unreadCount: number;
-  listing?: {
-    title: string;
-    thumbnail?: string;
-    price?: number;
-  } | undefined;
+  listing?:
+    | {
+        title: string;
+        thumbnail?: string;
+        price?: number;
+      }
+    | undefined;
   status: {
     type: "offer" | "order" | "inquiry" | "reference_check";
     label: string;
@@ -139,17 +141,23 @@ export class ChannelContextService {
    */
   async getChannelContext(
     channelId: string,
-    platform: Platform
+    platform: Platform,
   ): Promise<ChannelContext | null> {
-    const ChannelModel =
-      (platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel) as Model<any>;
+    const ChannelModel = (
+      platform === "marketplace"
+        ? MarketplaceListingChannel
+        : NetworkListingChannel
+    ) as Model<any>;
 
     const channel = await ChannelModel.findById(channelId)
       .populate("buyer_id", "_id display_name avatar")
       .populate("seller_id", "_id display_name avatar");
 
     if (!channel) {
-      logger.warn("[ChannelContextService] Channel not found", { channelId, platform });
+      logger.warn("[ChannelContextService] Channel not found", {
+        channelId,
+        platform,
+      });
       return null;
     }
 
@@ -167,7 +175,7 @@ export class ChannelContextService {
     // Add listing context
     const listingContext = await this.getListingContext(
       channelDoc.listing_id.toString(),
-      platform
+      platform,
     );
     if (listingContext) {
       context.listing = listingContext;
@@ -177,7 +185,7 @@ export class ChannelContextService {
     const offerContext = await this.getActiveOfferContext(
       channelDoc.listing_id.toString(),
       channelDoc.buyer_id._id?.toString() || channelDoc.buyer_id.toString(),
-      platform
+      platform,
     );
     if (offerContext) {
       context.activeOffer = offerContext;
@@ -186,7 +194,7 @@ export class ChannelContextService {
     // Add order context if exists
     if (channelDoc.order_id) {
       const orderContext = await this.getOrderContext(
-        channelDoc.order_id.toString()
+        channelDoc.order_id.toString(),
       );
       if (orderContext) {
         context.order = orderContext;
@@ -202,12 +210,15 @@ export class ChannelContextService {
   async getConversationsForUser(
     userId: string,
     platform: Platform,
-    options: { limit?: number; offset?: number } = {}
+    options: { limit?: number; offset?: number } = {},
   ): Promise<ConversationListItem[]> {
     const { limit = 20, offset = 0 } = options;
 
-    const ChannelModel =
-      (platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel) as Model<any>;
+    const ChannelModel = (
+      platform === "marketplace"
+        ? MarketplaceListingChannel
+        : NetworkListingChannel
+    ) as Model<any>;
 
     // Find channels where user is buyer or seller
     const channels = await ChannelModel.find({
@@ -234,7 +245,7 @@ export class ChannelContextService {
         channel,
         userId,
         platform,
-        unreadCounts
+        unreadCounts,
       );
       if (item) {
         conversations.push(item);
@@ -249,7 +260,7 @@ export class ChannelContextService {
    */
   async batchGetChannelContext(
     channelIds: string[],
-    platform: Platform
+    platform: Platform,
   ): Promise<Map<string, ChannelContext>> {
     const results = new Map<string, ChannelContext>();
 
@@ -258,7 +269,7 @@ export class ChannelContextService {
     for (let i = 0; i < channelIds.length; i += batchSize) {
       const batch = channelIds.slice(i, i + batchSize);
       const contexts = await Promise.all(
-        batch.map((id) => this.getChannelContext(id, platform))
+        batch.map((id) => this.getChannelContext(id, platform)),
       );
 
       contexts.forEach((ctx, idx) => {
@@ -277,10 +288,13 @@ export class ChannelContextService {
   async searchConversations(
     userId: string,
     query: string,
-    platform: Platform
+    platform: Platform,
   ): Promise<ConversationListItem[]> {
-    const ChannelModel =
-      (platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel) as Model<any>;
+    const ChannelModel = (
+      platform === "marketplace"
+        ? MarketplaceListingChannel
+        : NetworkListingChannel
+    ) as Model<any>;
 
     // Find all user's channels first
     const channels = await ChannelModel.find({
@@ -313,7 +327,7 @@ export class ChannelContextService {
       // Get listing to check title
       const listing = await this.getListingContext(
         channel.listing_id.toString(),
-        platform
+        platform,
       );
       const listingMatches =
         listing?.brand?.toLowerCase().includes(lowerQuery) ||
@@ -325,7 +339,7 @@ export class ChannelContextService {
           channel,
           userId,
           platform,
-          unreadCounts
+          unreadCounts,
         );
         if (item) {
           results.push(item);
@@ -359,7 +373,7 @@ export class ChannelContextService {
 
   private async getListingContext(
     listingId: string,
-    platform: Platform
+    platform: Platform,
   ): Promise<ListingContext | null> {
     let listing: any;
     if (platform === "marketplace") {
@@ -388,12 +402,18 @@ export class ChannelContextService {
   private async getActiveOfferContext(
     listingId: string,
     buyerId: string,
-    platform: Platform
+    platform: Platform,
   ): Promise<OfferContext | null> {
-    const offer = await (Offer as any).findActiveByListingAndBuyer(listingId, buyerId, platform);
+    const offer = await (Offer as any).findActiveByListingAndBuyer(
+      listingId,
+      buyerId,
+      platform,
+    );
     if (!offer) return null;
 
-    const revision = await OfferRevision.getLatestRevision(offer._id.toString());
+    const revision = await OfferRevision.getLatestRevision(
+      offer._id.toString(),
+    );
     if (!revision) return null;
 
     return {
@@ -427,7 +447,7 @@ export class ChannelContextService {
   }
 
   private async getUnreadCountsMap(
-    userId: string
+    userId: string,
   ): Promise<Map<string, number>> {
     try {
       const { channels } = await chatService.getUnreadCounts(userId);
@@ -445,7 +465,7 @@ export class ChannelContextService {
     channel: any,
     userId: string,
     platform: Platform,
-    unreadCounts: Map<string, number>
+    unreadCounts: Map<string, number>,
   ): Promise<ConversationListItem | null> {
     try {
       const getstreamChannelId = channel.getstream_channel_id || "";
@@ -457,7 +477,7 @@ export class ChannelContextService {
       // Get listing info
       const listing = await this.getListingContext(
         channel.listing_id.toString(),
-        platform
+        platform,
       );
 
       // Determine status
@@ -479,7 +499,7 @@ export class ChannelContextService {
         const offer = await (Offer as any).findActiveByListingAndBuyer(
           channel.listing_id.toString(),
           channel.buyer_id._id.toString(),
-          platform
+          platform,
         );
 
         if (offer) {
@@ -509,21 +529,29 @@ export class ChannelContextService {
         unreadCount: unreadCounts.get(getstreamChannelId) || 0,
         listing: listing
           ? (() => {
-              const listingInfo: { title: string; thumbnail?: string; price?: number } = {
+              const listingInfo: {
+                title: string;
+                thumbnail?: string;
+                price?: number;
+              } = {
                 title: [listing.brand, listing.model].filter(Boolean).join(" "),
               };
               if (listing.thumbnail) listingInfo.thumbnail = listing.thumbnail;
-              if (listing.price !== undefined) listingInfo.price = listing.price;
+              if (listing.price !== undefined)
+                listingInfo.price = listing.price;
               return listingInfo;
             })()
           : undefined,
         status,
       };
     } catch (error) {
-      logger.error("[ChannelContextService] Failed to build conversation item", {
-        channelId: channel._id?.toString(),
-        error,
-      });
+      logger.error(
+        "[ChannelContextService] Failed to build conversation item",
+        {
+          channelId: channel._id?.toString(),
+          error,
+        },
+      );
       return null;
     }
   }
@@ -558,7 +586,7 @@ export class ChannelContextService {
    */
   async getSharedMedia(
     getstreamChannelId: string,
-    options: { type?: string; limit?: number; next?: string } = {}
+    options: { type?: string; limit?: number; next?: string } = {},
   ): Promise<SharedMediaResponse> {
     const { type = "all", limit = 20, next } = options;
 
@@ -571,7 +599,7 @@ export class ChannelContextService {
       { cid: getstreamChannelId },
       messageFilter,
       limit,
-      next
+      next,
     );
 
     const media: SharedMediaItem[] = response.results.flatMap((r: any) =>
@@ -582,7 +610,7 @@ export class ChannelContextService {
         thumbUrl: att.thumb_url,
         title: att.title,
         createdAt: new Date(r.message.created_at),
-      }))
+      })),
     );
 
     return {

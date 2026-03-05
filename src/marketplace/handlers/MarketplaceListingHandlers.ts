@@ -19,7 +19,10 @@ import { Watch } from "../../models/Watches";
 import { MerchantOnboarding } from "../../models/MerchantOnboarding";
 import { ExtractWatchSpecData } from "../../utils/watchDataExtraction";
 import { validateListingCompleteness } from "../../utils/listingValidation";
-import { buildListingFilter, buildListingSort } from "../../utils/listingFilters";
+import {
+  buildListingFilter,
+  buildListingSort,
+} from "../../utils/listingFilters";
 import { Subscription } from "../../models/Subscription";
 import { feedService } from "../../services/FeedService";
 import { listingEvents } from "../../events/listingEvents";
@@ -48,7 +51,7 @@ const MAX_ACTIVE_LISTINGS_PREMIUM = 50;
 export const marketplace_listings_get = async (
   req: Request<{}, {}, {}, GetListingsInput["query"]>,
   res: Response<ApiResponse<IMarketplaceListing[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const {
@@ -75,7 +78,7 @@ export const marketplace_listings_get = async (
 
     const filter = buildListingFilter(
       filterInput,
-      true // Marketplace now supports allow_offers filtering
+      true, // Marketplace now supports allow_offers filtering
     );
 
     // Build sort object using shared utility
@@ -117,7 +120,7 @@ export const marketplace_listings_get = async (
 
     res.json(response);
   } catch (error: any) {
-    console.error("Error fetching marketplace listings:", error);
+    logger.error("Error fetching marketplace listings", { error });
     next(new DatabaseError("Failed to fetch listings", error));
   }
 };
@@ -129,7 +132,7 @@ export const marketplace_listings_get = async (
 export const marketplace_listing_get_by_id = async (
   req: Request,
   res: Response<ApiResponse<IMarketplaceListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -154,7 +157,7 @@ export const marketplace_listing_get_by_id = async (
     if (error instanceof NotFoundError || error instanceof ValidationError) {
       next(error);
     } else {
-      console.error("Error fetching listing by ID:", error);
+      logger.error("Error fetching listing by ID", { error });
       next(new DatabaseError("Failed to fetch listing", error));
     }
   }
@@ -167,7 +170,7 @@ export const marketplace_listing_get_by_id = async (
 export const marketplace_listing_create = async (
   req: Request<{}, {}, CreateListingInput["body"]>,
   res: Response<ApiResponse<IMarketplaceListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -192,7 +195,7 @@ export const marketplace_listing_create = async (
           route: req.path,
           userId: user.userId,
           requiredPermission: "MERCHANT_APPROVED",
-        }
+        },
       );
     }
 
@@ -219,7 +222,7 @@ export const marketplace_listing_create = async (
     if (draftCount >= MAX_DRAFT_LISTINGS) {
       throw new ValidationError(
         `Maximum ${MAX_DRAFT_LISTINGS} draft listings allowed. Please publish or delete existing drafts.`,
-        { current_drafts: draftCount, limit: MAX_DRAFT_LISTINGS }
+        { current_drafts: draftCount, limit: MAX_DRAFT_LISTINGS },
       );
     }
 
@@ -266,7 +269,7 @@ export const marketplace_listing_create = async (
 
     res.status(201).json(response);
   } catch (err: any) {
-    console.error(err);
+    logger.error("Error creating marketplace listing", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof MissingUserContextError ||
@@ -275,7 +278,6 @@ export const marketplace_listing_create = async (
     ) {
       next(err);
     } else {
-      console.error(err);
       next(new DatabaseError("Failed to create listing", err));
     }
   }
@@ -288,7 +290,7 @@ export const marketplace_listing_create = async (
 export const marketplace_listing_update = async (
   req: Request<UpdateListingInput["params"], {}, UpdateListingInput["body"]>,
   res: Response<ApiResponse<IMarketplaceListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -328,7 +330,7 @@ export const marketplace_listing_update = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error updating listing:", err);
+    logger.error("Error updating marketplace listing", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof AuthorizationError ||
@@ -349,7 +351,7 @@ export const marketplace_listing_update = async (
 export const marketplace_listing_publish = async (
   req: Request<PublishListingInput["params"], {}, {}>,
   res: Response<ApiResponse<IMarketplaceListing>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -392,9 +394,10 @@ export const marketplace_listing_publish = async (
       status: "active",
     });
 
-    const maxActiveListings = subscription?.tier === "premium" || subscription?.tier === "enterprise"
-      ? MAX_ACTIVE_LISTINGS_PREMIUM
-      : MAX_ACTIVE_LISTINGS_FREE;
+    const maxActiveListings =
+      subscription?.tier === "premium" || subscription?.tier === "enterprise"
+        ? MAX_ACTIVE_LISTINGS_PREMIUM
+        : MAX_ACTIVE_LISTINGS_FREE;
 
     const activeCount = await MarketplaceListing.countDocuments({
       dialist_id: (req as any).user.dialist_id,
@@ -402,16 +405,17 @@ export const marketplace_listing_publish = async (
     });
 
     if (activeCount >= maxActiveListings) {
-      const upgradeMessage = subscription?.tier === "free" || !subscription
-        ? " Upgrade to Premium for up to 50 active listings."
-        : "";
+      const upgradeMessage =
+        subscription?.tier === "free" || !subscription
+          ? " Upgrade to Premium for up to 50 active listings."
+          : "";
       throw new ValidationError(
         `Maximum ${maxActiveListings} active listings allowed.${upgradeMessage}`,
         {
           current_active: activeCount,
           limit: maxActiveListings,
           tier: subscription?.tier || "free",
-        }
+        },
       );
     }
 
@@ -428,7 +432,7 @@ export const marketplace_listing_publish = async (
           title: listing.title || "New Listing",
           price: listing.price || 0,
           ...(listing.thumbnail && { thumbnail: listing.thumbnail }),
-        }
+        },
       );
     } catch (feedError) {
       logger.warn("Failed to add listing to activity feed", { feedError });
@@ -448,7 +452,7 @@ export const marketplace_listing_publish = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error publishing listing:", err);
+    logger.error("Error publishing marketplace listing", { error: err });
     if (
       err instanceof NotFoundError ||
       err instanceof AuthorizationError ||

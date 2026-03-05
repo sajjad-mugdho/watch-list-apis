@@ -28,7 +28,7 @@ import { NetworkListing } from "../../models/Listings";
 export const networks_reservation_create = async (
   req: Request<{}, {}, CreateReservationInput["body"]>,
   res: Response<ApiResponse<IOrder>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -38,14 +38,17 @@ export const networks_reservation_create = async (
       throw new MissingUserContextError();
     }
 
-    if (!(req as any).user.isMerchant) {
-      throw new AuthorizationError("Only approved merchants can reserve items on Networks", {});
+    if ((req as any).user.onboarding_status !== "completed") {
+      throw new AuthorizationError(
+        "Complete your profile setup before making reservations",
+        {},
+      );
     }
 
     const { listing_id, shipping_region } = req.body;
     const buyerId = (req as any).user.dialist_id;
 
-    // 1. Find listing and lock it (SELECT FOR UPDATE equivalent in Mongoose is hard, 
+    // 1. Find listing and lock it (SELECT FOR UPDATE equivalent in Mongoose is hard,
     // so we use status check + transition within transaction)
     const listing = await NetworkListing.findById(listing_id).session(session);
     if (!listing) {
@@ -54,7 +57,9 @@ export const networks_reservation_create = async (
 
     // 2. Validate listing status
     if (listing.status !== "active") {
-      throw new ValidationError("Listing is no longer active and cannot be reserved");
+      throw new ValidationError(
+        "Listing is no longer active and cannot be reserved",
+      );
     }
 
     if (String(listing.dialist_id) === String(buyerId)) {
@@ -62,45 +67,48 @@ export const networks_reservation_create = async (
     }
 
     // 3. Find shipping cost for selected region
-    const shippingOption = listing.shipping?.find(s => s.region === shipping_region);
-    const shippingCost = shippingOption ? (shippingOption.shippingIncluded ? 0 : shippingOption.shippingCost) : 0;
-    
-    // Note: If shipping_region is International but not explicitly in options, 
+    const shippingOption = listing.shipping?.find(
+      (s) => s.region === shipping_region,
+    );
+    const shippingCost = shippingOption
+      ? shippingOption.shippingIncluded
+        ? 0
+        : shippingOption.shippingCost
+      : 0;
+
+    // Note: If shipping_region is International but not explicitly in options,
     // we might need fallback or error. For now, assuming UI only sends valid regions.
 
     // 4. Create Order (the Reservation)
     const expiresAt = new Date(Date.now() + 45 * 60 * 1000); // 45 minutes
-    
-    const order = await Order.create([{
-      listing_type: "NetworkListing",
-      listing_id: listing._id,
-      listing_snapshot: {
-        brand: listing.brand,
-        model: listing.model,
-        reference: listing.reference,
-        condition: listing.condition,
-        price: listing.price,
-        thumbnail: listing.thumbnail,
-        images: listing.images,
-      },
-      seller_snapshot: {
-        _id: listing.author._id,
-        display_name: listing.author.name,
-        email: "", // User model email usually not in listing author snapshot
-        avatar: listing.author.avatar,
-      },
-      buyer_id: buyerId,
-      seller_id: listing.dialist_id,
-      amount: (listing.price || 0) + shippingCost,
-      status: "reserved",
-      reserved_at: new Date(),
-      reservation_expires_at: expiresAt,
-      metadata: {
-        shipping_region,
-        shipping_cost: shippingCost,
-        buy_type: "direct_buy",
-      }
-    }], { session });
+
+    const order = await Order.create(
+      [
+        {
+          listing_type: "NetworkListing",
+          listing_id: listing._id,
+          listing_snapshot: {
+            brand: listing.brand,
+            model: listing.model,
+            reference: listing.reference,
+            price: listing.price,
+            thumbnail: listing.thumbnail,
+          },
+          buyer_id: buyerId,
+          seller_id: listing.dialist_id,
+          amount: (listing.price || 0) + shippingCost,
+          status: "reserved",
+          reserved_at: new Date(),
+          reservation_expires_at: expiresAt,
+          metadata: {
+            shipping_region,
+            shipping_cost: shippingCost,
+            buy_type: "direct_buy",
+          },
+        },
+      ],
+      { session },
+    );
 
     const createdOrder = order[0];
 
@@ -123,33 +131,38 @@ export const networks_reservation_create = async (
       await channel.save({ session });
     } else {
       // Create channel if it doesn't exist (though usually they inquired first)
-      channel = await NetworkListingChannel.create([{
-        listing_id: listing._id,
-        buyer_id: buyerId,
-        seller_id: listing.dialist_id,
-        status: "open",
-        created_from: "reservation",
-        last_event_type: "order",
-        buyer_snapshot: {
-          _id: buyerId,
-          name: (req as any).user.display_name,
-          avatar: (req as any).user.display_avatar,
-        },
-        seller_snapshot: {
-           _id: listing.author._id,
-           name: listing.author.name,
-           avatar: listing.author.avatar,
-        },
-        listing_snapshot: {
-          brand: listing.brand,
-          model: listing.model,
-          reference: listing.reference,
-          price: listing.price,
-          condition: listing.condition,
-          thumbnail: listing.thumbnail,
-        },
-        order_id: createdOrder._id as any,
-      }], { session }) as any;
+      channel = (await NetworkListingChannel.create(
+        [
+          {
+            listing_id: listing._id,
+            buyer_id: buyerId,
+            seller_id: listing.dialist_id,
+            status: "open",
+            created_from: "reservation",
+            last_event_type: "order",
+            buyer_snapshot: {
+              _id: buyerId,
+              name: (req as any).user.display_name,
+              avatar: (req as any).user.display_avatar,
+            },
+            seller_snapshot: {
+              _id: listing.author._id,
+              name: listing.author.name,
+              avatar: listing.author.avatar,
+            },
+            listing_snapshot: {
+              brand: listing.brand,
+              model: listing.model,
+              reference: listing.reference,
+              price: listing.price,
+              condition: listing.condition,
+              thumbnail: listing.thumbnail,
+            },
+            order_id: createdOrder._id as any,
+          },
+        ],
+        { session },
+      )) as any;
     }
 
     // 7. Update Order with channel reference
@@ -188,7 +201,7 @@ export const networks_reservation_create = async (
     });
   } catch (err: any) {
     await session.abortTransaction();
-    console.error("Error creating reservation:", err);
+    logger.error("Error creating reservation", { error: err });
     if (err instanceof AppError || err instanceof ValidationError) {
       next(err);
     } else {
@@ -206,12 +219,12 @@ export const networks_reservation_create = async (
 export const networks_reservation_get = async (
   req: Request<{ id: string }>,
   res: Response<ApiResponse<IOrder>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
     const order = await Order.findById(id).lean();
-    
+
     if (!order) {
       throw new NotFoundError("Reservation not found");
     }

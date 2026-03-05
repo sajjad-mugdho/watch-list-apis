@@ -51,7 +51,7 @@ export interface InventoryMetadata {
 export const networks_user_get = async (
   req: Request,
   res: Response<ApiResponse<{ platform: "networks" }>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const response: ApiResponse<{ platform: "networks" }> = {
@@ -74,7 +74,7 @@ export const networks_user_get = async (
 export const networks_user_inventory_get = async (
   req: Request,
   res: Response<ApiResponse<INetworkListing[], InventoryMetadata>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user)
@@ -161,7 +161,7 @@ export const networks_user_inventory_get = async (
 export const networks_user_public_profile_get = async (
   req: Request<{ id: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -170,7 +170,11 @@ export const networks_user_public_profile_get = async (
       throw new ValidationError("Invalid user ID");
     }
 
-    const user = await User.findById(id).select("display_name avatar first_name last_name location bio website createdAt").lean();
+    const user = await User.findById(id)
+      .select(
+        "display_name avatar first_name last_name location bio website createdAt",
+      )
+      .lean();
     if (!user) {
       throw new NotFoundError("User not found");
     }
@@ -189,7 +193,12 @@ export const networks_user_public_profile_get = async (
 
     // 2. Get Reference Check metrics
     const referenceStats = await ReferenceCheck.aggregate([
-      { $match: { target_id: new mongoose.Types.ObjectId(id), status: "completed" } },
+      {
+        $match: {
+          target_id: new mongoose.Types.ObjectId(id),
+          status: "completed",
+        },
+      },
       {
         $group: {
           _id: null,
@@ -236,9 +245,14 @@ export const networks_user_public_profile_get = async (
  * GET /api/v1/networks/user/:id/listings
  */
 export const networks_user_listings_get = async (
-  req: Request<GetUserPublicProfileInput["params"], {}, {}, GetUserPublicProfileInput["query"]>,
+  req: Request<
+    GetUserPublicProfileInput["params"],
+    {},
+    {},
+    GetUserPublicProfileInput["query"]
+  >,
   res: Response<ApiResponse<INetworkListing[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { id } = req.params;
@@ -260,7 +274,9 @@ export const networks_user_listings_get = async (
     } else if (status === "active" || status === "sold") {
       filters.status = status;
     } else {
-      throw new ValidationError("Can only view active or sold listings publicly");
+      throw new ValidationError(
+        "Can only view active or sold listings publicly",
+      );
     }
 
     const listings = await NetworkListing.find(filters)
@@ -296,7 +312,7 @@ export const networks_user_listings_get = async (
 export const networks_user_block = async (
   req: Request<{}, {}, BlockUserInput["body"]>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -310,7 +326,7 @@ export const networks_user_block = async (
     await Block.findOneAndUpdate(
       { blocker_id, blocked_id },
       { blocker_id, blocked_id, reason },
-      { upsert: true, new: true }
+      { upsert: true, new: true },
     );
 
     res.json({
@@ -329,7 +345,7 @@ export const networks_user_block = async (
 export const networks_user_report = async (
   req: Request<{}, {}, CreateReportInput["body"]>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -347,6 +363,66 @@ export const networks_user_report = async (
 
     res.status(201).json({
       data: report,
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * List blocked users for the current user
+ * GET /api/v1/networks/user/blocks
+ */
+export const networks_user_blocks_get = async (
+  req: Request,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const blocker_id = (req as any).user.dialist_id;
+
+    const blocks = await Block.find({ blocker_id })
+      .populate("blocked_id", "first_name last_name avatar display_name")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    res.json({
+      data: blocks,
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Unblock a user
+ * DELETE /api/v1/networks/user/blocks/:blocked_id
+ */
+export const networks_user_unblock = async (
+  req: Request<{ blocked_id: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const blocker_id = (req as any).user.dialist_id;
+    const { blocked_id } = req.params;
+
+    const result = await Block.findOneAndDelete({ blocker_id, blocked_id });
+
+    if (!result) {
+      res.status(404).json({
+        error: { code: "NOT_FOUND", message: "Block not found" },
+        requestId: req.headers["x-request-id"] as string,
+      } as any);
+      return;
+    }
+
+    res.json({
+      data: { success: true, message: "User unblocked successfully" },
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err) {

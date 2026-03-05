@@ -3,7 +3,6 @@ import { Router } from "express";
 import * as hubHandlers from "../handlers/SocialHubHandlers";
 import * as groupHandlers from "../handlers/SocialGroupHandlers";
 import * as inviteHandlers from "../handlers/SocialInviteHandlers";
-import * as reportHandlers from "../handlers/ReportHandlers";
 
 import {
   createGroupSchema,
@@ -25,7 +24,7 @@ const router = Router();
 router.get(
   "/inbox",
   validateRequest(getSocialInboxSchema),
-  hubHandlers.social_inbox_get
+  hubHandlers.social_inbox_get as any,
 );
 
 /**
@@ -38,7 +37,7 @@ router.get(
 router.get(
   "/search",
   validateRequest(searchSocialSchema),
-  hubHandlers.social_search_get
+  hubHandlers.social_search_get,
 );
 
 /**
@@ -51,7 +50,10 @@ router.get(
 router.get("/discover", hubHandlers.social_discover_get);
 router.get("/conversations/:id/content", hubHandlers.social_shared_content_get);
 router.get("/conversations/:id/search", hubHandlers.social_chat_search_get);
-router.get("/conversations/:id/events", hubHandlers.social_conversation_events_get);
+router.get(
+  "/conversations/:id/events",
+  hubHandlers.social_conversation_events_get,
+);
 router.get("/chat-profile/:userId", hubHandlers.social_chat_profile_get);
 
 /**
@@ -64,7 +66,7 @@ router.get("/chat-profile/:userId", hubHandlers.social_chat_profile_get);
 router.post(
   "/groups",
   validateRequest(createGroupSchema),
-  groupHandlers.social_group_create
+  groupHandlers.social_group_create,
 );
 
 /**
@@ -77,7 +79,7 @@ router.post(
 router.post(
   "/groups/:group_id/join",
   validateRequest(joinGroupSchema),
-  groupHandlers.social_group_join
+  groupHandlers.social_group_join,
 );
 
 /**
@@ -90,11 +92,17 @@ router.post(
 router.delete(
   "/groups/:group_id/leave",
   validateRequest(joinGroupSchema),
-  groupHandlers.social_group_leave
+  groupHandlers.social_group_leave,
 );
 router.post("/groups/:id/members", groupHandlers.social_group_members_add);
-router.delete("/groups/:id/members/:userId", groupHandlers.social_group_members_remove);
-router.patch("/groups/:id/members/:userId/role", groupHandlers.social_group_member_role_update);
+router.delete(
+  "/groups/:id/members/:userId",
+  groupHandlers.social_group_members_remove,
+);
+router.patch(
+  "/groups/:id/members/:userId/role",
+  groupHandlers.social_group_member_role_update,
+);
 router.post("/groups/:id/mute", groupHandlers.social_group_mute);
 
 /**
@@ -114,14 +122,5 @@ router.post("/invites", inviteHandlers.social_invite_create);
  *     tags: [Social Hub | Invites]
  */
 router.get("/invites/:token", inviteHandlers.social_invite_get);
-
-/**
- * @swagger
- * /api/v1/networks/social/reports:
- *   post:
- *     summary: Create a report
- *     tags: [Social Hub | Reports]
- */
-router.post("/reports", reportHandlers.networks_report_create);
 
 export default router;

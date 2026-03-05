@@ -20,19 +20,21 @@ jest.mock("../../src/utils/finix", () => {
       instrument_type: "BANK_ACCOUNT",
       card_type: null,
       last_four: "1234",
-      brand: null
+      brand: null,
     }),
-    createTransfer: jest.fn().mockImplementation((params) => Promise.resolve({
-      transfer_id: "TR_ACH_TEST_123", // Corrected property name
-      state: "PENDING",
-      amount: params.amount,
-      currency: params.currency || "USD",
-    })),
+    createTransfer: jest.fn().mockImplementation((params) =>
+      Promise.resolve({
+        transfer_id: "TR_ACH_TEST_123", // Corrected property name
+        state: "PENDING",
+        amount: params.amount,
+        currency: params.currency || "USD",
+      }),
+    ),
     getPaymentInstrument: jest.fn().mockResolvedValue({
       id: "PI_BANK_ACCOUNT_123",
       type: "BANK_ACCOUNT",
       address_verification_result: "MATCH",
-      security_code_verification: "MATCH"
+      security_code_verification: "MATCH",
     }),
   };
 });
@@ -47,7 +49,10 @@ import { MerchantOnboarding } from "../../src/models/MerchantOnboarding";
 import { User } from "../../src/models/User";
 import { Watch } from "../../src/models/Watches";
 import mongoose from "mongoose";
-import { createTestMarketplaceListing, createTestOrder } from "../helpers/fixtures";
+import {
+  createTestMarketplaceListing,
+  createTestOrder,
+} from "../helpers/fixtures";
 import { webhookQueue } from "../../src/queues/webhookQueue";
 import { processWebhookJob } from "../../src/workers/webhookProcessor";
 
@@ -130,7 +135,6 @@ describe("Bank Tokenization Flow", () => {
       condition: "like-new",
       status: "active",
     });
-
   });
 
   describe("1. Reserve Listing (Create Order)", () => {
@@ -307,14 +311,14 @@ describe("Bank Tokenization Flow", () => {
         buyer_id: buyerUser._id,
         seller_id: sellerUser._id,
         amount: listing.price,
-        status: "processing",
+        status: "authorized",
         finix_buyer_identity_id: "ID_TEST_BUYER_123",
         finix_payment_instrument_id: "PI_BANK_ACCOUNT_123",
         finix_transfer_id: "TR_ACH_TEST_123",
-        finix_authorization_id: null, // Explicitly null for Bank/ACH
+        // No finix_authorization_id for Bank/ACH
         metadata: {
-          instrument_type: "BANK_ACCOUNT"
-        }
+          instrument_type: "BANK_ACCOUNT",
+        },
       });
       order.order_id = order._id.toString();
     });
@@ -338,7 +342,7 @@ describe("Bank Tokenization Flow", () => {
         buyer_id: buyerUser._id,
         seller_id: sellerUser._id,
         amount: listing.price,
-        status: "processing",
+        status: "authorized",
         finix_buyer_identity_id: "ID_TEST_BUYER_123",
         finix_payment_instrument_id: "PI_BANK_ACCOUNT_123",
         finix_transfer_id: "TR_ACH_TEST_123", // Matches webhook ID
@@ -367,7 +371,10 @@ describe("Bank Tokenization Flow", () => {
 
       const response = await request(app)
         .post("/api/v1/webhooks/finix")
-        .set("Authorization", `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`)
+        .set(
+          "Authorization",
+          `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
+        )
         .set("Finix-Signature", "test_signature")
         .send(webhookPayload);
 
@@ -407,12 +414,15 @@ describe("Bank Tokenization Flow", () => {
 
       const response = await request(app)
         .post("/api/v1/webhooks/finix")
-        .set("Authorization", `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`)
+        .set(
+          "Authorization",
+          `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
+        )
         .set("Finix-Signature", "test_signature")
         .send(webhookPayload);
 
       expect(response.status).toBe(200);
-      
+
       const jobId2 = response.body.jobId;
       if (jobId2) {
         const job = await webhookQueue.getJob(jobId2);
@@ -455,7 +465,10 @@ describe("Bank Tokenization Flow", () => {
 
       const response = await request(app)
         .post("/api/v1/webhooks/finix")
-        .set("Authorization", `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`)
+        .set(
+          "Authorization",
+          `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
+        )
         .set("Finix-Signature", "test_signature")
         .send(webhookPayload);
 
@@ -494,7 +507,10 @@ describe("Bank Tokenization Flow", () => {
 
       const response = await request(app)
         .post("/api/v1/webhooks/finix")
-        .set("Authorization", `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`)
+        .set(
+          "Authorization",
+          `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
+        )
         .set("Finix-Signature", "test_signature")
         .send(webhookPayload);
 
@@ -520,7 +536,10 @@ describe("Bank Tokenization Flow", () => {
 
       const response = await request(app)
         .post("/api/v1/webhooks/finix")
-        .set("Authorization", `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`)
+        .set(
+          "Authorization",
+          `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
+        )
         .set("Finix-Signature", "test_signature")
         .send(webhookPayload);
 
@@ -546,7 +565,10 @@ describe("Bank Tokenization Flow", () => {
 
       const response = await request(app)
         .post("/api/v1/webhooks/finix")
-        .set("Authorization", `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`)
+        .set(
+          "Authorization",
+          `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
+        )
         .set("Finix-Signature", "test_signature")
         .send(webhookPayload);
 
@@ -561,13 +583,13 @@ describe("Bank Tokenization Flow", () => {
         buyer_id: buyerUser._id,
         seller_id: sellerUser._id,
         amount: listing.price,
-        status: "processing",
+        status: "pending",
         finix_buyer_identity_id: "ID_TEST_BUYER_123",
         reservation_expires_at: new Date(Date.now() + 3600000),
       });
       // order object IS the mongoose document so save() works.
       // But we also need order_id property for URL interpolation
-      (order as any).order_id = order._id.toString(); 
+      (order as any).order_id = order._id.toString();
     });
     it("should support USD ACH transfers", async () => {
       const response = await request(app)

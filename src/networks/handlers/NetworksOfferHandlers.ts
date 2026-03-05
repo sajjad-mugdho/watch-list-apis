@@ -23,8 +23,12 @@ import { chatService } from "../../services/ChatService";
 import { Notification } from "../../models/Notification";
 import logger from "../../utils/logger";
 import { transitionListingStatus } from "../../utils/listingStatusMachine";
-import { INetworkListingChannel, NetworkListingChannel } from "../../models/ListingChannel";
+import {
+  INetworkListingChannel,
+  NetworkListingChannel,
+} from "../../models/ListingChannel";
 import { INetworkListing, NetworkListing } from "../../models/Listings";
+import { networksOfferService } from "./../../networks/services/NetworksOfferService";
 
 // ----------------------------------------------------------
 // Helper Functions
@@ -33,7 +37,7 @@ import { INetworkListing, NetworkListing } from "../../models/Listings";
 function validateOfferEligibility(
   listing: INetworkListing,
   buyerId: string,
-  amount: number
+  amount: number,
 ): void {
   if (listing.status !== "active") {
     throw new ValidationError("Listing is not active");
@@ -59,7 +63,7 @@ function validateOfferEligibility(
 function validateCounterAmount(
   channel: INetworkListingChannel,
   userId: string,
-  newAmount: number
+  newAmount: number,
 ): void {
   const lastOffer = channel.last_offer;
   if (!lastOffer) throw new ValidationError("No offer to counter");
@@ -86,7 +90,7 @@ function validateCounterAmount(
 export const networks_offer_send = async (
   req: Request<SendOfferInput["params"], {}, SendOfferInput["body"]>,
   res: Response<ApiResponse<INetworkListingChannel>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -112,10 +116,19 @@ export const networks_offer_send = async (
     });
 
     if (isBlocked) {
-      throw new AuthorizationError("Cannot interact with this user due to a block", {});
+      throw new AuthorizationError(
+        "Cannot interact with this user due to a block",
+        {},
+      );
     }
 
-    const { amount, message, shipping_region, request_free_shipping, reservation_terms_snapshot } = req.body;
+    const {
+      amount,
+      message,
+      shipping_region,
+      request_free_shipping,
+      reservation_terms_snapshot,
+    } = req.body;
 
     validateOfferEligibility(listing, buyerId, amount);
 
@@ -124,8 +137,8 @@ export const networks_offer_send = async (
     const existingChannel = await NetworkListingChannel.findOne({
       $or: [
         { buyer_id: buyerId, seller_id: sellerId },
-        { buyer_id: sellerId, seller_id: buyerId }
-      ]
+        { buyer_id: sellerId, seller_id: buyerId },
+      ],
     });
 
     if (existingChannel) {
@@ -135,7 +148,7 @@ export const networks_offer_send = async (
 
       if (existingChannel.hasActiveOffer()) {
         throw new ValidationError(
-          "An active offer already exists on this channel"
+          "An active offer already exists on this channel",
         );
       }
 
@@ -147,7 +160,8 @@ export const networks_offer_send = async (
         message: message || null,
         shipping_region: shipping_region || null,
         request_free_shipping: !!request_free_shipping,
-        reservation_terms_snapshot: reservation_terms_snapshot || listing.reservation_terms || null,
+        reservation_terms_snapshot:
+          reservation_terms_snapshot || listing.reservation_terms || null,
         offer_type: "initial",
         status: "sent",
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -174,11 +188,17 @@ export const networks_offer_send = async (
         try {
           await chatService.sendSystemMessage(
             existingChannel.getstream_channel_id,
-            { type: "offer", amount, offer_id: (existingChannel._id as any).toString() },
-            buyerId
+            {
+              type: "offer",
+              amount,
+              offer_id: (existingChannel._id as any).toString(),
+            },
+            buyerId,
           );
         } catch (chatError) {
-          logger.warn("Failed to send networks offer message to Stream", { chatError });
+          logger.warn("Failed to send networks offer message to Stream", {
+            chatError,
+          });
         }
       }
 
@@ -197,7 +217,9 @@ export const networks_offer_send = async (
           action_url: `/networks/offers/${(existingChannel._id as any).toString()}`,
         });
       } catch (notifError) {
-        logger.warn("Failed to create networks offer notification", { notifError });
+        logger.warn("Failed to create networks offer notification", {
+          notifError,
+        });
       }
 
       const response: ApiResponse<INetworkListingChannel> = {
@@ -245,7 +267,8 @@ export const networks_offer_send = async (
         message: message || null,
         shipping_region: shipping_region || null,
         request_free_shipping: !!request_free_shipping,
-        reservation_terms_snapshot: reservation_terms_snapshot || listing.reservation_terms || null,
+        reservation_terms_snapshot:
+          reservation_terms_snapshot || listing.reservation_terms || null,
         offer_type: "initial",
         status: "sent",
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
@@ -257,12 +280,17 @@ export const networks_offer_send = async (
     // Create Stream Chat channel for this conversation
     try {
       const { channelId: getstreamChannelId } =
-        await chatService.getOrCreateChannel(buyerId, sellerId, {
-          listing_id: listingId,
-          listing_title: `${listing.brand} ${listing.model}`,
-          listing_price: listing.price,
-          ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
-        }, false); // listingUnique = false for Networks
+        await chatService.getOrCreateChannel(
+          buyerId,
+          sellerId,
+          {
+            listing_id: listingId,
+            listing_title: `${listing.brand} ${listing.model}`,
+            listing_price: listing.price,
+            ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
+          },
+          false,
+        ); // listingUnique = false for Networks
 
       // Store the Stream channel ID in our channel document
       channel.getstream_channel_id = getstreamChannelId;
@@ -272,7 +300,7 @@ export const networks_offer_send = async (
       await chatService.sendSystemMessage(
         getstreamChannelId,
         { type: "offer", amount, offer_id: (channel._id as any).toString() },
-        buyerId
+        buyerId,
       );
 
       logger.info("Stream Chat channel created for offer", {
@@ -303,7 +331,9 @@ export const networks_offer_send = async (
         action_url: `/networks/offers/${(channel._id as any).toString()}`,
       });
     } catch (notifError) {
-      logger.warn("Failed to create networks offer notification", { notifError });
+      logger.warn("Failed to create networks offer notification", {
+        notifError,
+      });
     }
 
     const response: ApiResponse<INetworkListingChannel> = {
@@ -313,7 +343,7 @@ export const networks_offer_send = async (
 
     res.status(201).json(response);
   } catch (err: any) {
-    console.error("Error sending offer:", err);
+    logger.error("Error sending offer", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -329,7 +359,7 @@ export const networks_offer_send = async (
 export const networks_offer_counter = async (
   req: Request<CounterOfferInput["params"], {}, CounterOfferInput["body"]>,
   res: Response<ApiResponse<INetworkListingChannel>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -358,7 +388,7 @@ export const networks_offer_counter = async (
     if (!role) {
       throw new AuthorizationError(
         "Not authorized to counter on this channel",
-        {}
+        {},
       );
     }
 
@@ -402,17 +432,24 @@ export const networks_offer_counter = async (
       try {
         await chatService.sendSystemMessage(
           channel.getstream_channel_id,
-          { type: "counter_offer", amount, offer_id: (channel._id as any).toString() },
-          dialist_id
+          {
+            type: "counter_offer",
+            amount,
+            offer_id: (channel._id as any).toString(),
+          },
+          dialist_id,
         );
       } catch (chatError) {
-        logger.warn("Failed to send networks counter offer message to Stream", { chatError });
+        logger.warn("Failed to send networks counter offer message to Stream", {
+          chatError,
+        });
       }
     }
 
     // Create in-app notification for recipient
     try {
-      const recipientId = role === "buyer" ? channel.seller_id : channel.buyer_id;
+      const recipientId =
+        role === "buyer" ? channel.seller_id : channel.buyer_id;
       await Notification.create({
         user_id: recipientId,
         type: "counter_offer",
@@ -426,7 +463,9 @@ export const networks_offer_counter = async (
         action_url: `/networks/offers/${(channel._id as any).toString()}`,
       });
     } catch (notifError) {
-      logger.warn("Failed to create networks counter offer notification", { notifError });
+      logger.warn("Failed to create networks counter offer notification", {
+        notifError,
+      });
     }
 
     const response: ApiResponse<INetworkListingChannel> = {
@@ -436,7 +475,7 @@ export const networks_offer_counter = async (
 
     res.status(201).json(response);
   } catch (err: any) {
-    console.error("Error countering offer:", err);
+    logger.error("Error countering offer", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -452,11 +491,8 @@ export const networks_offer_counter = async (
 export const networks_offer_accept = async (
   req: Request<ChannelActionInput["params"], {}, {}>,
   res: Response<ApiResponse<INetworkListingChannel>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
-  const session = await mongoose.startSession();
-  session.startTransaction();
-
   try {
     if (!(req as any).user) throw new MissingUserContextError();
 
@@ -467,145 +503,12 @@ export const networks_offer_accept = async (
       throw new ValidationError("Invalid channel ID");
     }
 
-    const channel = await NetworkListingChannel.findById(channelId).session(
-      session
-    );
+    // Delegate to service layer - handles all state transitions, EventOutbox, notifications
+    await networksOfferService.acceptOffer(channelId, userId);
+
+    // Fetch updated channel
+    const channel = await NetworkListingChannel.findById(channelId);
     if (!channel) throw new NotFoundError("Channel");
-
-    if (channel.status === "closed") {
-      throw new ValidationError("Channel is closed");
-    }
-
-    // Must have active offer
-    if (!channel.hasActiveOffer()) {
-      throw new ValidationError("No active offer to accept");
-    }
-
-    const lastOffer = channel.last_offer;
-    if (!lastOffer) throw new ValidationError("No offer to accept");
-
-    // Must be a member of the channel
-    const userRole = channel.getUserRole(userId);
-    if (!userRole) {
-      throw new AuthorizationError("Not authorized to act on this channel", {});
-    }
-
-    // Cannot accept own offer
-    if (String(lastOffer.sender_id) === String(userId)) {
-      throw new ValidationError("Cannot accept your own offer");
-    }
-
-    // Get listing
-    const listing = await NetworkListing.findById(channel.listing_id).session(
-      session
-    );
-    if (!listing || listing.status !== "active") {
-      throw new ValidationError("Listing is not available");
-    }
-
-    // Update offer history - add accepted offer to history
-    const historyEntry: any = {
-      sender_id: lastOffer.sender_id,
-      amount: lastOffer.amount,
-      message: lastOffer.message,
-      offer_type: lastOffer.offer_type,
-      status: "accepted",
-      expiresAt: lastOffer.expiresAt,
-      createdAt: lastOffer.createdAt,
-    };
-    if (lastOffer._id) {
-      historyEntry._id = lastOffer._id;
-    }
-    channel.offer_history.push(historyEntry);
-
-    // Update last_offer in-place to show accepted status
-    const updatedOffer: any = {
-      sender_id: lastOffer.sender_id,
-      amount: lastOffer.amount,
-      message: lastOffer.message,
-      offer_type: lastOffer.offer_type,
-      status: "accepted",
-      expiresAt: lastOffer.expiresAt,
-      createdAt: lastOffer.createdAt,
-    };
-    if (lastOffer._id) {
-      updatedOffer._id = lastOffer._id;
-    }
-    channel.last_offer = updatedOffer;
-
-    channel.last_offer = updatedOffer;
-
-    // Create Order document
-    const expiresAt = new Date(Date.now() + 45 * 60 * 1000); // 45 minutes
-    const order = await Order.create([{
-      listing_type: "NetworkListing",
-      listing_id: listing._id,
-      listing_snapshot: {
-        brand: listing.brand,
-        model: listing.model,
-        reference: listing.reference,
-        condition: listing.condition,
-        price: lastOffer.amount, // Record the agreed amount
-        thumbnail: listing.thumbnail,
-        images: listing.images,
-      },
-      offer_id: lastOffer._id as any,
-      buyer_id: channel.buyer_id,
-      seller_id: channel.seller_id,
-      amount: lastOffer.amount,
-      status: "reserved",
-      reserved_at: new Date(),
-      reservation_expires_at: expiresAt,
-      metadata: { reservation_terms_snapshot: (lastOffer as any).reservation_terms_snapshot || null },
-      channel_id: channel._id as any,
-      channel_type: "NetworkListingChannel",
-    }], { session });
-
-    channel.order_id = (order[0] as any)._id;
-    channel.last_event_type = "order";
-
-    await channel.save({ session });
-
-    // Update listing status to reserved
-    await transitionListingStatus(listing, "reserved");
-    await listing.save({ session });
-
-    await session.commitTransaction();
-
-    // Send system message to Stream Chat channel if it exists
-    if (channel.getstream_channel_id) {
-      try {
-        await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
-          { 
-            type: "offer_accepted", 
-            amount: lastOffer.amount, 
-            offer_id: (channel._id as any).toString() 
-          },
-          userId
-        );
-      } catch (chatError) {
-        logger.warn("Failed to send networks offer accepted message to Stream", { chatError });
-      }
-    }
-
-    // Create in-app notification for the offer sender
-    try {
-      await Notification.create({
-        user_id: lastOffer.sender_id,
-        type: "offer_accepted",
-        title: "Offer Accepted!",
-        body: `Your offer of $${lastOffer.amount.toLocaleString()} for ${channel.listing_snapshot.brand} ${channel.listing_snapshot.model} was accepted!`,
-        data: {
-          listing_id: channel.listing_id.toString(),
-          channel_id: (channel._id as any).toString(),
-          amount: lastOffer.amount,
-        },
-        action_url: `/networks/offers/${(channel._id as any).toString()}`,
-      });
-    } catch (notifError) {
-      logger.warn("Failed to create networks offer accepted notification", { notifError });
-    }
 
     const response: ApiResponse<INetworkListingChannel> = {
       data: channel.toJSON() as any,
@@ -614,15 +517,12 @@ export const networks_offer_accept = async (
 
     res.json(response);
   } catch (err: any) {
-    await session.abortTransaction();
-    console.error("Error accepting offer:", err);
+    logger.error("Error accepting offer", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
       next(new DatabaseError("Failed to accept offer", err));
     }
-  } finally {
-    session.endSession();
   }
 };
 
@@ -633,7 +533,7 @@ export const networks_offer_accept = async (
 export const networks_offer_reject = async (
   req: Request<ChannelActionInput["params"], {}, {}>,
   res: Response<ApiResponse<INetworkListingChannel>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -645,63 +545,12 @@ export const networks_offer_reject = async (
       throw new ValidationError("Invalid channel ID");
     }
 
+    // Delegate to service layer - handles state transitions, notifications, EventOutbox
+    await networksOfferService.declineOffer(channelId, userId);
+
+    // Fetch updated channel
     const channel = await NetworkListingChannel.findById(channelId);
     if (!channel) throw new NotFoundError("Channel");
-
-    // Must be member of channel
-    const role = channel.getUserRole(userId);
-    if (!role) {
-      throw new AuthorizationError("Not authorized to act on this channel", {});
-    }
-
-    // Must have active offer
-    if (!channel.hasActiveOffer()) {
-      throw new ValidationError("No active offer to reject");
-    }
-
-    const lastOffer = channel.last_offer;
-    if (!lastOffer) throw new ValidationError("No offer to reject");
-
-    // Cannot reject own offer
-    if (String(lastOffer.sender_id) === String(userId)) {
-      throw new ValidationError("Cannot reject your own offer");
-    }
-
-    // Resolve offer as declined
-    await channel.resolveLastOffer("declined");
-
-    // Send system message to Stream Chat channel if it exists
-    if (channel.getstream_channel_id) {
-      try {
-        await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
-          { 
-            type: "offer_rejected", 
-            offer_id: (channel._id as any).toString() 
-          },
-          userId
-        );
-      } catch (chatError) {
-        logger.warn("Failed to send networks offer rejected message to Stream", { chatError });
-      }
-    }
-
-    // Create in-app notification for the offer sender
-    try {
-      await Notification.create({
-        user_id: lastOffer.sender_id,
-        type: "offer_rejected",
-        title: "Offer Declined",
-        body: `Your offer for ${channel.listing_snapshot.brand} ${channel.listing_snapshot.model} was declined.`,
-        data: {
-          listing_id: channel.listing_id.toString(),
-          channel_id: (channel._id as any).toString(),
-        },
-        action_url: `/networks/offers/${(channel._id as any).toString()}`,
-      });
-    } catch (notifError) {
-      logger.warn("Failed to create networks offer rejected notification", { notifError });
-    }
 
     const response: ApiResponse<INetworkListingChannel> = {
       data: channel.toJSON() as any,
@@ -710,7 +559,7 @@ export const networks_offer_reject = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error rejecting offer:", err);
+    logger.error("Error rejecting offer", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -726,7 +575,7 @@ export const networks_offer_reject = async (
 export const networks_offer_get = async (
   req: Request<ChannelActionInput["params"], {}, {}>,
   res: Response<ApiResponse<INetworkListingChannel & { role: string }>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -757,7 +606,7 @@ export const networks_offer_get = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error fetching channel:", err);
+    logger.error("Error fetching channel", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -773,7 +622,7 @@ export const networks_offer_get = async (
 export const networks_user_offers_get = async (
   req: Request<{}, {}, {}, GetUserChannelsInput["query"]>,
   res: Response<ApiResponse<INetworkListingChannel[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -808,7 +657,7 @@ export const networks_user_offers_get = async (
       } else {
         // Filter by historical offer status (accepted, declined)
         channels = channels.filter((c) =>
-          c.offer_history.some((o) => o.status === status)
+          c.offer_history.some((o) => o.status === status),
         );
       }
     }
@@ -817,7 +666,7 @@ export const networks_user_offers_get = async (
     const total = channels.length;
     const paginatedChannels = channels.slice(
       Number(offset),
-      Number(offset) + Number(limit)
+      Number(offset) + Number(limit),
     );
 
     const response: ApiResponse<INetworkListingChannel[]> = {
@@ -832,7 +681,7 @@ export const networks_user_offers_get = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error fetching user channels:", err);
+    logger.error("Error fetching user channels", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
@@ -848,7 +697,7 @@ export const networks_user_offers_get = async (
 export const networks_listing_offers_get = async (
   req: Request<GetListingChannelsInput["params"], {}, {}>,
   res: Response<ApiResponse<INetworkListingChannel[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -880,7 +729,7 @@ export const networks_listing_offers_get = async (
 
     res.json(response);
   } catch (err: any) {
-    console.error("Error fetching listing channels:", err);
+    logger.error("Error fetching listing channels", { error: err });
     if (err instanceof AppError) {
       next(err);
     } else {
