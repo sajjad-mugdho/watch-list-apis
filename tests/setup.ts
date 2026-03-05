@@ -3,10 +3,14 @@
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 // Set default environment variables for testing
-process.env.AWS_SQS_WEBHOOK_URL = process.env.AWS_SQS_WEBHOOK_URL || "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue";
+process.env.AWS_SQS_WEBHOOK_URL =
+  process.env.AWS_SQS_WEBHOOK_URL ||
+  "https://sqs.us-east-1.amazonaws.com/123456789012/test-queue";
 process.env.AWS_REGION = process.env.AWS_REGION || "us-east-1";
-process.env.AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID || "test-access-key";
-process.env.AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY || "test-secret-key";
+process.env.AWS_ACCESS_KEY_ID =
+  process.env.AWS_ACCESS_KEY_ID || "test-access-key";
+process.env.AWS_SECRET_ACCESS_KEY =
+  process.env.AWS_SECRET_ACCESS_KEY || "test-secret-key";
 process.env.AWS_S3_BUCKET = process.env.AWS_S3_BUCKET || "test-bucket";
 
 // Mock uuid before importing anything else
@@ -29,14 +33,14 @@ jest.mock("bull", () => {
           opts: { attempts: 3 },
           finished: jest.fn().mockResolvedValue(undefined),
         };
-        
+
         // Execute processor if registered
         if (processor) {
           try {
             await processor(job);
           } catch (e) {
             console.error("Job processing failed in mock:", e);
-            throw e; 
+            throw e;
           }
         }
         return job;
@@ -44,7 +48,9 @@ jest.mock("bull", () => {
       process: jest.fn().mockImplementation((fn) => {
         processor = fn;
       }),
-      getJob: jest.fn().mockResolvedValue({ finished: jest.fn().mockResolvedValue(undefined) }),
+      getJob: jest.fn().mockResolvedValue({
+        finished: jest.fn().mockResolvedValue(undefined),
+      }),
       getJobCounts: jest.fn().mockResolvedValue({}),
       close: jest.fn().mockResolvedValue(undefined),
     };
@@ -75,18 +81,22 @@ jest.mock("ioredis", () => {
 // Mock Clerk globally to avoid initialization hangs/network calls
 jest.mock("@clerk/express", () => {
   return {
-    clerkMiddleware: jest.fn().mockImplementation(() => (req: any, res: any, next: any) => {
-      req.auth = {
+    clerkMiddleware: jest
+      .fn()
+      .mockImplementation(() => (req: any, res: any, next: any) => {
+        req.auth = {
+          userId: req.headers["x-test-user"] || null,
+          sessionClaims: {},
+        };
+        next();
+      }),
+    requireAuth: jest
+      .fn()
+      .mockImplementation(() => (req: any, res: any, next: any) => next()),
+    getAuth: jest.fn().mockImplementation((req: any) => {
+      const auth = {
         userId: req.headers["x-test-user"] || null,
         sessionClaims: {},
-      };
-      next();
-    }),
-    requireAuth: jest.fn().mockImplementation(() => (req: any, res: any, next: any) => next()),
-    getAuth: jest.fn().mockImplementation((req: any) => {
-      const auth = { 
-        userId: req.headers["x-test-user"] || null,
-        sessionClaims: {} 
       };
       if (!req.auth) req.auth = auth;
       return auth;
@@ -147,13 +157,15 @@ jest.mock("../src/utils/user", () => {
     ...actual,
     fetchAndSyncLocalUser: jest.fn().mockImplementation(async (input: any) => {
       const { external_id } = input;
-      
+
       // Attempt to find user in database
       try {
         const mongoose = require("mongoose");
         const User = mongoose.model("User");
-        const user = await User.findOne({ external_id }).select('+external_id +location +onboarding +first_name +last_name +email +phone');
-        
+        const user = await User.findOne({ external_id }).select(
+          "+external_id +location +onboarding +first_name +last_name +email +phone",
+        );
+
         if (user) {
           return {
             dialist_id: user._id.toString(),
@@ -183,7 +195,7 @@ jest.mock("../src/utils/user", () => {
       } else if (external_id === "merchant_approved") {
         dialist_id = "ddd333333333333333333333";
       } else if (external_id === "user_onboarded_buyer") {
-        dialist_id = "677a2222222222222222bbb2"; 
+        dialist_id = "677a2222222222222222bbb2";
       } else if (external_id === "user_new_incomplete") {
         dialist_id = "677a1111111111111111aaa1";
       }
@@ -195,7 +207,6 @@ jest.mock("../src/utils/user", () => {
         display_name = "TestUserCustom";
       }
 
-
       return {
         dialist_id,
         external_id: external_id || external_id_fallback,
@@ -206,7 +217,8 @@ jest.mock("../src/utils/user", () => {
         location_country: "US",
         location_region: "California",
         isMerchant: external_id === "merchant_approved",
-        onboarding_state: external_id === "merchant_approved" ? "APPROVED" : undefined,
+        onboarding_state:
+          external_id === "merchant_approved" ? "APPROVED" : undefined,
         networks_accessed: false,
         networks_application_id: null,
       };
@@ -222,6 +234,14 @@ beforeAll(async () => {
   try {
     mongoServer = await MongoMemoryReplSet.create({
       replSet: { count: 1, name: "rs0" },
+      instanceOpts: [
+        {
+          // Increase default 5ms lock timeout to prevent IX lock contention
+          // between afterEach deleteMany and concurrent multi-document transactions
+          launchTimeout: 30000,
+          args: ["--setParameter=maxTransactionLockRequestTimeoutMillis=5000"],
+        },
+      ],
     });
     const mongoUri = mongoServer.getUri();
 

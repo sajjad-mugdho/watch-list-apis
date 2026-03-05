@@ -10,9 +10,9 @@
     "type-check": "tsc --noEmit",
     "import-data": "ts-node scripts/import-production-data.ts",
     "import-data:shell": "./scripts/import-production-data.sh",
-    "test": "NODE_ENV=development jest",
-    "test:watch": "NODE_ENV=development jest --watch",
-    "test:coverage": "NODE_ENV=development jest --coverage",
+    "test": "NODE_ENV=development jest --runInBand",
+    "test:watch": "NODE_ENV=development jest --watch --runInBand",
+    "test:coverage": "NODE_ENV=development jest --coverage --runInBand",
     "clear-reservations": "node clear-reservations.js"
   },
   "dependencies": {
