@@ -71,8 +71,13 @@ export interface ApiError {
  * Standard API success response
  */
 export interface ApiResponse<TData = unknown, TMeta = ResponseMeta> {
-  data: TData;
-  requestId: string;
+  data?: TData;
+  error?: {
+    message: string;
+    code?: string;
+    details?: unknown;
+  };
+  requestId?: string;
   message?: string;
   _metadata?: TMeta;
 }

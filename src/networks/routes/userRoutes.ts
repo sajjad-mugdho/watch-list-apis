@@ -16,7 +16,7 @@ import {
   blockUserSchema,
   createReportSchema,
 } from "../../validation/schemas";
-import { validateRequest } from "../../middleware/validateRequest";
+import { validateRequest } from "../../middleware/validation";
 
 const router = Router();
 

@@ -10,6 +10,7 @@ import { RequestUserFromAuthSchema } from "../validation/schemas";
 import { fetchAndSyncLocalUser } from "../utils/user";
 import { User } from "../models/User";
 import logger from "../utils/logger";
+import { isTestUser } from "./customClerkMw";
 
 const SKIP_PATHS: string[] = ["/health", "/public"];
 
@@ -29,6 +30,16 @@ export function requirePlatformAuth() {
 
       const auth = customGetAuth(req) as any;
       if (!auth?.userId) throw new AuthenticationError("Unauthorized");
+
+      // DEV-ONLY: If this is a mock user, we MUST force a DB lookup because the
+      // hardcoded dialist_id in session claims might not match the DB _id.
+      if (isTestUser(req)) {
+        logger.info(`[auth] Mock user detected (${auth.userId}), forcing DB sync`);
+        const user_claims = await fetchAndSyncLocalUser({ external_id: auth.userId });
+        (req as any).user = { userId: auth.userId, ...user_claims };
+        (req as any).dialistUserId = user_claims.dialist_id;
+        return next();
+      }
 
       const forceRefresh =
         req.headers["x-refresh-session"] === "1" ||

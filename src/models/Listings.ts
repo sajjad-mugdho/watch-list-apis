@@ -190,6 +190,16 @@ const networkListingSchema = new Schema<INetworkListing>(
     ships_from: {
       country: { type: String, required: true },
     },
+    shipping: {
+      type: [
+        {
+          region: { type: String, required: true },
+          shippingIncluded: { type: Boolean, required: true },
+          shippingCost: { type: Number, required: true },
+        },
+      ],
+      default: [],
+    },
   },
   { timestamps: true }
 );

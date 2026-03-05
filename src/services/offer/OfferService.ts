@@ -18,7 +18,7 @@ import {
   channelRepository,
 } from "../../repositories";
 
-import { MarketplaceListingChannel, MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
+import { MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
 import { Order } from "../../models/Order";
 import { Offer, IOffer } from "../../models/Offer";
 import { OfferRevision, IOfferRevision } from "../../models/OfferRevision";
@@ -768,9 +768,9 @@ export class OfferService {
     session?: any
   ): Promise<void> {
     const ChannelModel =
-      platform === "marketplace"
+      (platform === "marketplace"
         ? MarketplaceListingChannel
-        : NetworkListingChannel;
+        : NetworkListingChannel) as Model<any>;
 
     try {
       await ChannelModel.findByIdAndUpdate(

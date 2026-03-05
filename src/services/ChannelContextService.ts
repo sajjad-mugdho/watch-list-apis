@@ -142,7 +142,7 @@ export class ChannelContextService {
     platform: Platform
   ): Promise<ChannelContext | null> {
     const ChannelModel =
-      platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
+      (platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel) as Model<any>;
 
     const channel = await ChannelModel.findById(channelId)
       .populate("buyer_id", "_id display_name avatar")
@@ -207,7 +207,7 @@ export class ChannelContextService {
     const { limit = 20, offset = 0 } = options;
 
     const ChannelModel =
-      platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
+      (platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel) as Model<any>;
 
     // Find channels where user is buyer or seller
     const channels = await ChannelModel.find({
@@ -280,7 +280,7 @@ export class ChannelContextService {
     platform: Platform
   ): Promise<ConversationListItem[]> {
     const ChannelModel =
-      platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel;
+      (platform === "marketplace" ? MarketplaceListingChannel : NetworkListingChannel) as Model<any>;
 
     // Find all user's channels first
     const channels = await ChannelModel.find({

@@ -5,6 +5,7 @@ import { clerkClient } from "@clerk/express";
 import { getCurrentUserByExternalID, getCurrentUserByID } from "./frequentQueries";
 import { userLogger } from "./logger";
 import { events } from "./events";
+import { getMockUser } from "../middleware/customClerkMw";
 
 type StepKey = "location" | "display_name" | "avatar" | "acknowledgements";
 
@@ -247,21 +248,64 @@ export async function fetchAndSyncLocalUser(input: {
   dialist_id?: string;
 }): Promise<ValidatedUserClaims> {
   const { dialist_id, external_id } = input;
-  // If we have a dialist_id, prefer it — it's the most direct lookup
-  const user = dialist_id
-    ? await getCurrentUserByID(dialist_id)
-    : await getCurrentUserByExternalID(external_id);
+  
+  let user: IUser | null = null;
+  
+  try {
+    user = dialist_id
+      ? await getCurrentUserByID(dialist_id)
+      : await getCurrentUserByExternalID(external_id);
+  } catch (err) {
+    // If user not found, check if it's a mock user in dev/test
+    if ((config.nodeEnv === "development" || config.nodeEnv === "test")) {
+      const mockUser = getMockUser(external_id);
+      if (mockUser) {
+        userLogger.info(`Auto-provisioning missing mock user ${external_id}`);
+        // Simple provisioning for mock users
+        const claims = mockUser.auth.sessionClaims;
+        const displayParts = claims.display_name?.split(" ") || ["Mock", "User"];
+        const firstName = displayParts[0] || "Mock";
+        const lastName = displayParts.length > 1 ? displayParts.slice(1).join(" ") : "User";
+        
+        user = new User({
+          _id: dialist_id || claims.dialist_id,
+          external_id: external_id,
+          email: `${external_id}@test.dialist.com`,
+          first_name: firstName,
+          last_name: lastName,
+          display_name: claims.display_name,
+          avatar: claims.display_avatar,
+          onboarding: {
+            status: claims.onboarding_status,
+            steps: {
+              location: { country: claims.location_country as any, region: claims.location_region },
+              display_name: { confirmed: claims.onboarding_status === "completed", value: claims.display_name, user_provided: !!claims.display_name },
+              avatar: { confirmed: claims.onboarding_status === "completed", url: claims.display_avatar, user_provided: !!claims.display_avatar },
+              acknowledgements: { tos: claims.onboarding_status === "completed", privacy: claims.onboarding_status === "completed", rules: claims.onboarding_status === "completed" }
+            }
+          }
+        });
+        await user.save();
+      }
+    }
+    
+    if (!user) throw err;
+  }
+
   const claims = await buildClaimsFromDbUser(user);
   // Attempt to sync back to Clerk (async, non-blocking)
-  attemptClerkSync(external_id, claims).catch((err) => {
-    userLogger.error(`Background Clerk sync failed`, {
-      external_id,
-      dialist_id,
-      error: (err as Error).message,
-      stack: (err as Error).stack,
-      operation: "background_clerk_sync",
+  // Skip clerk sync for mock users
+  if (!getMockUser(external_id)) {
+    attemptClerkSync(external_id, claims).catch((err) => {
+      userLogger.error(`Background Clerk sync failed`, {
+        external_id,
+        dialist_id,
+        error: (err as Error).message,
+        stack: (err as Error).stack,
+        operation: "background_clerk_sync",
+      });
     });
-  });
+  }
 
   return claims;
 }
