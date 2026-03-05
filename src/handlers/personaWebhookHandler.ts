@@ -11,7 +11,7 @@ export async function handlePersonaWebhook(
   try {
     // Step 1 — Verify signature
     const signature = req.headers["persona-signature"] as string;
-    const rawBody = (req as any).rawBody; // captured by captureRawBody middleware
+    const rawBody = (req as any).rawBody; // set by express.json verify callback
 
     if (!verifyPersonaWebhookSignature(rawBody, signature)) {
       logger.warn("[Persona] Invalid webhook signature");
@@ -55,19 +55,11 @@ async function handleInquiryApproved(event: any): Promise<void> {
   const inquiry = event.data.attributes;
   const externalId = inquiry.reference_id; // mapped from clerkId
 
-  // Validate reference_id is present and looks like a valid Clerk userId
-  if (!externalId) {
-    logger.warn("[Persona] No reference_id in approved inquiry", {
+  // Validate reference_id is present
+  if (!externalId || externalId.trim().length === 0) {
+    logger.warn("[Persona] Missing or empty reference_id in approved inquiry", {
       inquiryId: event.data.id,
     });
-    return;
-  }
-
-  if (!externalId || externalId.trim().length === 0) {
-    logger.warn(
-      "[Persona] Invalid reference_id (empty string) in approved inquiry",
-      { inquiryId: event.data.id },
-    );
     return;
   }
 

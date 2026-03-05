@@ -14,7 +14,6 @@ import {
 import { customClerkMw } from "./middleware/customClerkMw";
 import { webhooksRoutes } from "./routes/webhooksRoutes";
 import { swaggerSpec } from "./config/swagger";
-import { captureRawBody } from "./middleware/rawBody";
 import logger from "./utils/logger";
 
 const app = express();
@@ -101,17 +100,12 @@ app.use(requestId);
 app.use(requestLogger);
 app.use(rateLimit);
 
-// Webhook routes: preserve raw body for signature verification
-app.use(
-  "/api/v1/webhooks/persona",
-  captureRawBody
-);
-
+// Webhook routes: express.json verify callback captures raw body for signature
+// verification (works for both Clerk HMAC and Persona HMAC-SHA256)
 app.use(
   "/api/v1/webhooks",
   express.json({
     verify: (req: any, _res, buf) => {
-      // Attach raw body for signature verification
       req.rawBody = buf.toString("utf8");
     },
   }),
