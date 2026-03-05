@@ -13,14 +13,16 @@
  */
 
 import { Types } from "mongoose";
-import { MarketplaceListing, NetworkListing } from "../models/Listings";
+
 import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
-import { NetworkListingChannel } from "../models/ListingChannel";
+
 import { Order } from "../models/Order";
 import { Offer } from "../models/Offer";
 import { OfferRevision } from "../models/OfferRevision";
 import { chatService } from "./ChatService";
 import logger from "../utils/logger";
+import { NetworkListingChannel } from "../models/ListingChannel";
+import { MarketplaceListing, NetworkListing } from "../models/Listings";
 
 // ============================================================
 // Types
@@ -388,7 +390,7 @@ export class ChannelContextService {
     buyerId: string,
     platform: Platform
   ): Promise<OfferContext | null> {
-    const offer = await Offer.findActiveByListingAndBuyer(listingId, buyerId, platform);
+    const offer = await (Offer as any).findActiveByListingAndBuyer(listingId, buyerId, platform);
     if (!offer) return null;
 
     const revision = await OfferRevision.getLatestRevision(offer._id.toString());
@@ -474,7 +476,7 @@ export class ChannelContextService {
         }
         status = orderStatus;
       } else {
-        const offer = await Offer.findActiveByListingAndBuyer(
+        const offer = await (Offer as any).findActiveByListingAndBuyer(
           channel.listing_id.toString(),
           channel.buyer_id._id.toString(),
           platform

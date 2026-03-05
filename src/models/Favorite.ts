@@ -116,7 +116,7 @@ FavoriteSchema.statics.isFavorited = async function (
     user_id: userId,
     item_type: itemType,
     item_id: itemId,
-    platform,
+    $or: [{ platform: platform }, { platform: null }, { platform: { $exists: false } }],
   });
   return !!favorite;
 };
@@ -128,7 +128,10 @@ FavoriteSchema.statics.getFavorites = async function (
   limit: number = 20,
   offset: number = 0
 ): Promise<IFavorite[]> {
-  const query: Record<string, any> = { user_id: userId, platform };
+  const query: Record<string, any> = { 
+    user_id: userId, 
+    $or: [{ platform: platform }, { platform: null }, { platform: { $exists: false } }] 
+  };
   if (itemType) query.item_type = itemType;
 
   return this.find(query)
@@ -142,7 +145,10 @@ FavoriteSchema.statics.countFavorites = async function (
   platform: Platform,
   itemType?: FavoriteType
 ): Promise<number> {
-  const query: Record<string, any> = { user_id: userId, platform };
+  const query: Record<string, any> = { 
+    user_id: userId,
+    $or: [{ platform: platform }, { platform: null }, { platform: { $exists: false } }] 
+  };
   if (itemType) query.item_type = itemType;
 
   return this.countDocuments(query);

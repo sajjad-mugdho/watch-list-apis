@@ -321,7 +321,7 @@ async function processFinixWebhook(
       { new: true }
     );
 
-    finixLogger.info("Merchant ${type} processed", {
+    finixLogger.info(`Merchant ${type} processed`, {
       userId: merchantOnboarding.dialist_user_id.toString(),
       userEmail: user?.email || "unknown",
       merchantId: merchant.id,
@@ -762,7 +762,7 @@ async function processFinixWebhook(
       order.dispute_id = disputeId;
       order.dispute_reason = reason;
       order.dispute_amount = amount;
-      order.dispute_respond_by = respondBy ? new Date(respondBy) : null;
+      order.dispute_respond_by = respondBy ? new Date(respondBy) : undefined;
 
       if (type === "created") {
         order.dispute_created_at = new Date();

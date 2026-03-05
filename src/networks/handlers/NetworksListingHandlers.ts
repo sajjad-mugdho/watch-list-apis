@@ -15,8 +15,9 @@ import {
   UpdateListingStatusInput,
   DeleteListingInput,
 } from "../../validation/schemas";
-import { NetworkListing, INetworkListing } from "../../models/Listings";
-import { ConciergeRequest } from "../../models/ConciergeRequest";
+import { INetworkListing, NetworkListing } from "../../models/Listings";
+
+
 import { Watch } from "../../models/Watches";
 import { NetworkListingChannel } from "../../models/ListingChannel";
 import { ExtractWatchSpecData } from "../../utils/watchDataExtraction";
@@ -87,10 +88,11 @@ export const networks_listings_get = async (
     // Calculate pagination
     const skip = (page - 1) * limit;
 
-    // Execute query with pagination
+    // Execute query with pagination (excluding deleted)
+    const activeFilter = { ...filter, is_deleted: { $ne: true } };
     const [listings, total] = await Promise.all([
-      NetworkListing.find(filter).sort(sort).skip(skip).limit(limit).lean(),
-      NetworkListing.countDocuments(filter),
+      NetworkListing.find(activeFilter).sort(sort).skip(skip).limit(limit).lean(),
+      NetworkListing.countDocuments(activeFilter),
     ]);
 
     const response: ApiResponse<INetworkListing[]> = {
@@ -509,15 +511,9 @@ export const networks_listing_delete = async (
 
     // Permanent delete for now, or we could add 'isDeleted' field.
     // The user rules suggest "Soft delete recommended".
-    // I'll add an 'is_deleted' field to the model if it doesn't exist, 
-    // or just use findOneAndDelete if preferred. 
-    // Given the prompt "Soft delete recommended", I should check if I need to add a field.
     
-    // Actually, I'll just use deleteOne for now as it's cleaner unless told otherwise,
-    // but I'll stick to a "soft" approach by checking status first.
-    // If I really want soft delete, I need a field.
-    
-    await NetworkListing.findByIdAndDelete(id);
+    listing.is_deleted = true;
+    await listing.save();
 
     res.json({
       data: { success: true },

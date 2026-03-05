@@ -41,7 +41,6 @@ router.post(
 
 // Debug endpoint
 router.get("/:id/finix-debug", debugHandlers.getFinixDebugPayloads);
-router.post("/:id/finix-debug/force-paid", debugHandlers.forceOrderPaid);
 
 /**
  * POST-PURCHASE

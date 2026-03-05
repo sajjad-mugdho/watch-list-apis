@@ -27,14 +27,14 @@ router.get(
   networks_user_inventory_get as any
 );
 router.get(
-  "/:id/profile",
-  validateRequest(getUserPublicProfileSchema),
-  networks_user_public_profile_get as any
+  "/dashboard/stats",
+  networks_dashboard_stats_get as any
 );
 
 router.get(
-  "/dashboard/stats",
-  networks_dashboard_stats_get as any
+  "/:id/profile",
+  validateRequest(getUserPublicProfileSchema),
+  networks_user_public_profile_get as any
 );
 
 router.get(

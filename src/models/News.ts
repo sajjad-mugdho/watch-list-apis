@@ -8,8 +8,8 @@ export interface INews extends Document {
   action_url?: string;
   type: "event" | "news" | "promotion";
   status: "draft" | "published" | "expired";
-  start_date?: Date;
-  end_date?: Date;
+  start_date: Date | null;
+  end_date: Date | null;
   is_active: boolean;
   priority: number; // For sorting on dashboard
   createdAt: Date;

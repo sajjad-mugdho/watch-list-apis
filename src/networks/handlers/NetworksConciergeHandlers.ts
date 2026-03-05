@@ -11,7 +11,7 @@ import {
 } from "../../utils/errors";
 import { ConciergeRequestInput } from "../../validation/schemas";
 import logger from "../../utils/logger";
-import { Notification } from "../../models/Notification";
+
 
 /**
  * Request concierge service for a listing

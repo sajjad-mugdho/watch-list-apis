@@ -1,9 +1,9 @@
 // src/networks/handlers/NetworksReservationHandlers.ts
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
-import { NetworkListing, INetworkListing } from "../../models/Listings";
+
 import { Order, IOrder } from "../../models/Order";
-import { NetworkListingChannel } from "../../models/ListingChannel";
+
 import { ApiResponse } from "../../types";
 import {
   AppError,
@@ -16,8 +16,10 @@ import {
 import { CreateReservationInput } from "../../validation/schemas";
 import { transitionListingStatus } from "../../utils/listingStatusMachine";
 import logger from "../../utils/logger";
-import { chatService } from "../../services/ChatService";
+
 import { Notification } from "../../models/Notification";
+import { NetworkListingChannel } from "../../models/ListingChannel";
+import { NetworkListing } from "../../models/Listings";
 
 /**
  * Create a direct reservation (Buy Now)
@@ -34,6 +36,10 @@ export const networks_reservation_create = async (
   try {
     if (!(req as any).user) {
       throw new MissingUserContextError();
+    }
+
+    if (!(req as any).user.isMerchant) {
+      throw new AuthorizationError("Only approved merchants can reserve items on Networks", {});
     }
 
     const { listing_id, shipping_region } = req.body;

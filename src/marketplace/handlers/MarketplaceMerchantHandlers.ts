@@ -253,17 +253,6 @@ export const marketplace_merchant_onboard_post = async (
       return next(error);
     }
 
-    // Log detailed error for debugging
-    console.error("❌ DETAILED ERROR:", {
-      message: error.message,
-      name: error.name,
-      code: error.code,
-      keyPattern: error.keyPattern,
-      keyValue: error.keyValue,
-      errors: error.errors,
-      stack: error.stack,
-    });
-
     merchantLogger.error(`Merchant onboard error`, {
       user_id: (req as any).user?.dialist_id,
       error: error.message,

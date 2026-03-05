@@ -22,6 +22,12 @@ const blockSchema = new Schema<IBlock>(
       ref: "User",
       required: true,
       index: true,
+      validate: {
+        validator: function (this: IBlock, value: Types.ObjectId) {
+          return String(this.blocker_id) !== String(value);
+        },
+        message: "Users cannot block themselves",
+      },
     },
     reason: {
       type: String,

@@ -1,4 +1,4 @@
-import { BaseRepository } from './base/BaseRepository';
+import { BaseRepository } from '../shared/repositories/base/BaseRepository';
 import { RecentSearch, IRecentSearch, Platform, SearchContext } from '../models/RecentSearch';
 import { FilterQuery } from 'mongoose';
 

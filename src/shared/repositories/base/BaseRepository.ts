@@ -10,7 +10,7 @@
  * - Type-safe operations
  */
 
-import { Model, Document, FilterQuery, UpdateQuery } from 'mongoose';
+import { Model, FilterQuery, UpdateQuery } from 'mongoose';
 import logger from '../../../utils/logger';
 
 
@@ -31,7 +31,7 @@ export interface PaginatedResult<T> {
   hasMore: boolean;
 }
 
-export abstract class BaseRepository<T extends Document> {
+export abstract class BaseRepository<T> {
   protected readonly modelName: string;
 
   constructor(protected model: Model<T>) {

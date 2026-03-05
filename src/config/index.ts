@@ -42,6 +42,14 @@ interface Config {
     s3Bucket: string;
     cloudFrontDomain?: string; // Optional CDN domain
   };
+
+  persona: {
+    apiKey: string;
+    webhookSecret: string;
+    templateId: string;
+    baseUrl: string;
+    environment: string;
+  };
 }
 
 const requiredEnvVars = [
@@ -69,6 +77,11 @@ const requiredEnvVars = [
   "AWS_ACCESS_KEY_ID",
   "AWS_SECRET_ACCESS_KEY",
   "AWS_S3_BUCKET",
+
+  // Persona
+  "PERSONA_API_KEY",
+  "PERSONA_TEMPLATE_ID",
+  "PERSONA_WEBHOOK_SECRET"
 ] as const;
 
 for (const envVar of requiredEnvVars) {
@@ -146,6 +159,14 @@ export const config: Config = {
       ? { cloudFrontDomain: process.env.AWS_CLOUDFRONT_DOMAIN }
       : {}),
   },
+
+  persona: {
+    apiKey: process.env.PERSONA_API_KEY!,
+    webhookSecret: process.env.PERSONA_WEBHOOK_SECRET!,
+    templateId: process.env.PERSONA_TEMPLATE_ID!,
+    baseUrl: 'https://withpersona.com/api/v1',
+    environment: process.env.NODE_ENV === 'production' ? 'production' : 'sandbox',
+  }
 };
 
 console.log("Configuration validated successfully");

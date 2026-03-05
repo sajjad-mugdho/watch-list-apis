@@ -14,13 +14,13 @@ const router = Router();
 // Validation Schemas
 const offerIdParamSchema = z.object({
   params: z.object({
-    id: z.string().min(1),
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid channel ID"),
   }),
 });
 
 const counterOfferSchema = z.object({
   params: z.object({
-    id: z.string().min(1),
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid channel ID"),
   }),
   body: z.object({
     amount: z.number().positive(),

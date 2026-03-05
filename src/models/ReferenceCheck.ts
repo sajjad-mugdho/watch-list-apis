@@ -166,10 +166,10 @@ const ReferenceCheckSchema = new Schema<IReferenceCheck>(
       type: ReferenceSummarySchema,
       default: null,
     },
-    confirmed_by: [{
-      type: Schema.Types.ObjectId,
-      ref: "User",
-    }],
+    confirmed_by: {
+      type: [{ type: Schema.Types.ObjectId, ref: "User" }],
+      default: [],
+    },
     transaction_value: {
       type: Number,
       default: 0,

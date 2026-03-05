@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema, Types } from "mongoose";
+import mongoose, { Model, Schema, Types } from "mongoose";
 
 // ----------------------------------------------------------
 // Constants
@@ -32,6 +32,9 @@ export interface IOffer {
   status: (typeof OFFER_STATUS_VALUES)[number];
   expiresAt?: Date;
   createdAt: Date;
+  shipping_region?: string | null;
+  request_free_shipping?: boolean;
+  reservation_terms_snapshot?: any;
 }
 
 export interface IUserSnapshot {
@@ -44,7 +47,7 @@ export interface IListingSnapshot {
   brand: string;
   model: string;
   reference: string;
-  price?: number;
+  price?: number | undefined;
   condition?: string;
   contents?: string;
   thumbnail?: string;
@@ -54,7 +57,8 @@ export interface IListingSnapshot {
 /**
  * Network listing channel interface (User-to-User centric)
  */
-export interface INetworkListingChannel extends Document {
+export interface INetworkListingChannel {
+  _id: Types.ObjectId;
   // Refs
   listing_id: Schema.Types.ObjectId;
   buyer_id: Schema.Types.ObjectId;
@@ -91,9 +95,28 @@ export interface INetworkListingChannel extends Document {
   isOfferExpired(): boolean;
   hasActiveOffer(): boolean;
   getUserRole(userId: string | Schema.Types.ObjectId): "buyer" | "seller" | null;
+  supersedeLastOffer(): void;
+  resolveLastOffer(status: "accepted" | "declined"): Promise<void>;
+
+  toJSON?(): Record<string, any>;
+  toObject?(): Record<string, any>;
 }
 
-export interface INetworkListingChannelModel extends Model<INetworkListingChannel> {}
+export interface INetworkListingChannelModel extends Model<INetworkListingChannel> {
+  findByListingAndBuyer(
+    listingId: string,
+    buyerId: string
+  ): Promise<INetworkListingChannel | null>;
+
+  findByUserId(
+    userId: string,
+    role?: "buyer" | "seller"
+  ): Promise<INetworkListingChannel[]>;
+
+  findActiveOffersForSeller(
+    sellerId: string
+  ): Promise<INetworkListingChannel[]>;
+}
 
 // ----------------------------------------------------------
 // Schema
@@ -183,6 +206,64 @@ networkListingChannelSchema.methods.getUserRole = function (userId: string | Sch
   if (String(this.buyer_id) === uid) return "buyer";
   if (String(this.seller_id) === uid) return "seller";
   return null;
+};
+
+networkListingChannelSchema.methods.supersedeLastOffer = function (): void {
+  if (!this.last_offer) return;
+  const superseded = {
+    ...(this.last_offer.toObject?.() ?? this.last_offer),
+    status: "superseded" as const,
+  };
+  this.offer_history.push(superseded);
+  this.last_offer = null;
+};
+
+networkListingChannelSchema.methods.resolveLastOffer = async function (
+  status: "accepted" | "declined"
+): Promise<void> {
+  if (!this.last_offer) throw new Error("No active offer to resolve");
+  const resolved = {
+    ...(this.last_offer.toObject?.() ?? this.last_offer),
+    status,
+  };
+  this.offer_history.push(resolved);
+  this.last_offer = null;
+  this.last_event_type = "offer";
+  await this.save();
+};
+
+networkListingChannelSchema.statics.findByListingAndBuyer = function (
+  listingId: string | Schema.Types.ObjectId,
+  buyerId: string | Schema.Types.ObjectId
+) {
+  return this.findOne({ listing_id: listingId, buyer_id: buyerId });
+};
+
+networkListingChannelSchema.statics.findByUserId = function (
+  userId: string | Schema.Types.ObjectId,
+  role?: "buyer" | "seller"
+) {
+  if (role === "buyer")
+    return this.find({ buyer_id: userId }).sort({ updatedAt: -1 });
+  if (role === "seller")
+    return this.find({ seller_id: userId }).sort({ updatedAt: -1 });
+  return this.find({
+    $or: [{ buyer_id: userId }, { seller_id: userId }],
+  }).sort({ updatedAt: -1 });
+};
+
+networkListingChannelSchema.statics.findActiveOffersForSeller = function (
+  sellerId: string | Schema.Types.ObjectId
+) {
+  return this.find({
+    seller_id: sellerId,
+    status: "open",
+    "last_offer.status": "sent",
+    $or: [
+      { "last_offer.expiresAt": { $exists: false } },
+      { "last_offer.expiresAt": { $gt: new Date() } },
+    ],
+  }).sort({ updatedAt: -1 });
 };
 
 export const NetworkListingChannel = mongoose.model<INetworkListingChannel, INetworkListingChannelModel>(

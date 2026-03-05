@@ -205,6 +205,38 @@ router.get(
 );
 
 /**
+ * @route GET /api/v1/user/verification
+ * @desc Get current user's Persona verification status
+ */
+router.get(
+  "/verification",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = getUserId(req);
+
+      const user = await User.findById(userId).select(
+        "identityVerified identityVerifiedAt personaStatus"
+      );
+
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      res.json({
+        data: {
+          status: user.personaStatus ?? "unverified",
+          identityVerified: user.identityVerified,
+          verifiedAt: user.identityVerifiedAt,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
+);
+
+/**
  * @route PATCH /api/v1/user/status
  * @desc Deactivate/Reactivate current user's account
  */

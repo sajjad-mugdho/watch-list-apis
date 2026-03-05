@@ -1,9 +1,10 @@
-import mongoose, { Document, Model, Schema, Types } from "mongoose";
+import mongoose, { Model, Schema, Types } from "mongoose";
 
 // ----------------------------------------------------------
 // Interfaces
 // ----------------------------------------------------------
-export interface IOfferRevision extends Document {
+export interface IOfferRevision {
+  _id: Types.ObjectId;
   offer_id: Types.ObjectId;
   amount: number;
   currency: string;
@@ -13,7 +14,6 @@ export interface IOfferRevision extends Document {
   revision_number: number;
   
   createdAt: Date;
-  updatedAt: Date;
 }
 
 export interface IOfferRevisionModel extends Model<IOfferRevision> {
@@ -33,8 +33,11 @@ const offerRevisionSchema = new Schema<IOfferRevision>(
     created_by: { type: Schema.Types.ObjectId, ref: "User", required: true },
     revision_number: { type: Number, required: true },
   },
-  { timestamps: true }
+  { timestamps: { createdAt: true, updatedAt: false } }
 );
+
+// Prevent duplicate revision numbers for the same offer
+offerRevisionSchema.index({ offer_id: 1, revision_number: 1 }, { unique: true });
 
 // Statics
 offerRevisionSchema.statics.getLatestRevision = function (offerId: string) {

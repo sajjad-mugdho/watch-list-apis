@@ -4,14 +4,14 @@ import { ApiResponse } from "../../types";
 import {
   MissingUserContextError,
   ValidationError,
-  NotFoundError,
-} from "../../utils/errors";
+  } from "../../utils/errors";
 import { friendshipService } from "../../services/friendship/FriendshipService";
 import {
   FriendRequestInput,
   RespondFriendRequestInput,
 } from "../../validation/schemas";
-import mongoose from "mongoose";
+import { feedService } from "../../services/FeedService";
+
 
 /**
  * Send a friend request

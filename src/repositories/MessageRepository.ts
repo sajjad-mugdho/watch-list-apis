@@ -6,7 +6,7 @@
  */
 
 import { Types } from 'mongoose';
-import { BaseRepository, QueryOptions } from './base/BaseRepository';
+import { BaseRepository, QueryOptions } from '../shared/repositories/base/BaseRepository';
 import { ChatMessage, IChatMessage } from '../models/ChatMessage';
 
 export interface FindMessagesParams {

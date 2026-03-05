@@ -134,6 +134,10 @@ export const marketplace_listing_get_by_id = async (
   try {
     const { id } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ValidationError("Invalid listing id");
+    }
+
     const listing = await MarketplaceListing.findById(id).lean();
 
     if (!listing) {
@@ -147,7 +151,7 @@ export const marketplace_listing_get_by_id = async (
 
     res.json(response);
   } catch (error: any) {
-    if (error instanceof NotFoundError) {
+    if (error instanceof NotFoundError || error instanceof ValidationError) {
       next(error);
     } else {
       console.error("Error fetching listing by ID:", error);
@@ -266,7 +270,8 @@ export const marketplace_listing_create = async (
     if (
       err instanceof NotFoundError ||
       err instanceof MissingUserContextError ||
-      err instanceof AuthorizationError
+      err instanceof AuthorizationError ||
+      err instanceof ValidationError
     ) {
       next(err);
     } else {

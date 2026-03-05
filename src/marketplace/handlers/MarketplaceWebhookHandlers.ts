@@ -32,23 +32,26 @@ export const webhook_finix_post = async (
 ): Promise<void> => {
   const startTime = Date.now();
 
-  // TEMPORARY: Log all incoming requests to debug webhook issues
-  console.log(`🔥 [WEBHOOK_DEBUG] Incoming Finix webhook request:`, {
-    method: req.method,
-    url: req.url,
-    headers: {
-      "content-type": req.headers["content-type"],
-      "finix-signature": req.headers["finix-signature"]
-        ? "[PRESENT]"
-        : "[MISSING]",
-      authorization: req.headers["authorization"] ? "[PRESENT]" : "[MISSING]",
-      "x-request-id": req.headers["x-request-id"],
-    },
-    bodyKeys: req.body ? Object.keys(req.body) : "no body",
-    bodySize: req.body ? JSON.stringify(req.body).length : 0,
-    ip: req.ip,
-    timestamp: new Date().toISOString(),
-  });
+  // Optional debug logging for incoming Finix webhook requests (non-production only)
+  if (process.env.NODE_ENV !== "production") {
+    webhookLogger.debug("Incoming Finix webhook request", {
+      method: req.method,
+      url: req.url,
+      headers: {
+        "content-type": req.headers["content-type"],
+        "finix-signature": req.headers["finix-signature"] ? "[PRESENT]" : "[MISSING]",
+        authorization: req.headers["authorization"] ? "[PRESENT]" : "[MISSING]",
+        "x-request-id": req.headers["x-request-id"],
+        "content-length": req.headers["content-length"],
+      },
+      bodyKeys:
+        req.body && typeof req.body === "object"
+          ? Object.keys(req.body)
+          : [],
+      ip: req.ip,
+      timestamp: new Date().toISOString(),
+    });
+  }
 
   try {
     // Step 1: Verify Basic Auth (legacy)

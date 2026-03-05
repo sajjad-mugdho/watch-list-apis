@@ -71,6 +71,12 @@ export interface IUser extends Document {
   marketplace_last_accessed: Date | null;
   networks_last_accessed: Date | null;
 
+  // Persona Identity Verification
+  identityVerified: boolean;
+  identityVerifiedAt: Date | null;
+  personaInquiryId: string | null;
+  personaStatus: "pending" | "approved" | "failed" | "expired" | null;
+
   // Marketplace merchant account / status (Finix onboarding)
   merchant?: {
     // Finix resource IDs (for linking webhook events)
@@ -396,6 +402,25 @@ const userSchema = new Schema<IUser>(
         enum: ["country", "country_region", "city", "full"],
         default: "country_region",
       },
+    },
+
+    // Persona Identity Verification
+    identityVerified: {
+      type: Boolean,
+      default: false,
+    },
+    identityVerifiedAt: {
+      type: Date,
+      default: null,
+    },
+    personaInquiryId: {
+      type: String,
+      default: null,
+    },
+    personaStatus: {
+      type: String,
+      enum: ["pending", "approved", "failed", "expired", null],
+      default: null,
     },
 
     // ❌ REMOVED: merchant field - now using MerchantOnboarding collection as single source of truth

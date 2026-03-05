@@ -5,7 +5,7 @@
  */
 
 import { Types } from 'mongoose';
-import { BaseRepository, PaginatedResult } from './base/BaseRepository';
+import { BaseRepository, PaginatedResult } from '../shared/repositories/base/BaseRepository';
 import { Notification, INotification } from '../models/Notification';
 
 export interface FindNotificationsParams {

@@ -17,12 +17,8 @@ import {
   Platform,
   channelRepository,
 } from "../../repositories";
-import { 
-  MarketplaceListing, 
-  NetworkListing 
-} from "../../models/Listings";
-import { NetworkListingChannel } from "../../models/ListingChannel";
-import { MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
+
+import { MarketplaceListingChannel, MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
 import { Order } from "../../models/Order";
 import { Offer, IOffer } from "../../models/Offer";
 import { OfferRevision, IOfferRevision } from "../../models/OfferRevision";
@@ -30,6 +26,8 @@ import { ReservationTerms } from "../../models/ReservationTerms";
 import { EventOutbox, EventType } from "../../models/EventOutbox";
 import { chatService } from "../ChatService";
 import logger from "../../utils/logger";
+import { MarketplaceListing, NetworkListing } from "../../models/Listings";
+import { NetworkListingChannel } from "../../models/ListingChannel";
 
 // ----------------------------------------------------------
 // Types

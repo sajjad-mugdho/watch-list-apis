@@ -5,8 +5,7 @@ import {
   MissingUserContextError,
   NotFoundError,
   ValidationError,
-  DatabaseError,
-} from "../../utils/errors";
+  } from "../../utils/errors";
 import { SocialGroup } from "../../models/SocialGroup";
 import { SocialGroupMember } from "../../models/SocialGroupMember";
 import { chatService } from "../../services/ChatService";
@@ -241,7 +240,7 @@ export const social_group_members_add = async (
     // Verify requester is admin/mod
     const requester = await SocialGroupMember.findOne({ group_id: id, user_id: adminId });
     if (!requester || (requester.role !== "admin" && requester.role !== "moderator")) {
-      res.status(403).json({ error: { message: "Only admins or moderators can add members" } });
+      res.status(403).json({ error: { message: "Only admins or moderators can add members" }, requestId: req.headers["x-request-id"] as string });
       return;
     }
 
@@ -265,7 +264,7 @@ export const social_group_members_add = async (
       await channel.addMembers([String(user_id)]);
     }
 
-    res.json({ data: { success: true } });
+    res.json({ data: { success: true }, requestId: req.headers["x-request-id"] as string });
   } catch (err) {
     next(err);
   }
@@ -286,14 +285,14 @@ export const social_group_members_remove = async (
     const { id, userId } = req.params;
 
     if (String(adminId) === String(userId)) {
-      res.status(400).json({ error: { message: "Use leave endpoint to remove yourself" } });
+      res.status(400).json({ error: { message: "Use leave endpoint to remove yourself" }, requestId: req.headers["x-request-id"] as string });
       return;
     }
 
     // Verify requester is admin/mod
     const requester = await SocialGroupMember.findOne({ group_id: id, user_id: adminId });
     if (!requester || (requester.role !== "admin" && requester.role !== "moderator")) {
-      res.status(403).json({ error: { message: "Only admins or moderators can remove members" } });
+      res.status(403).json({ error: { message: "Only admins or moderators can remove members" }, requestId: req.headers["x-request-id"] as string });
       return;
     }
 
@@ -313,7 +312,7 @@ export const social_group_members_remove = async (
       await channel.removeMembers([String(userId)]);
     }
 
-    res.json({ data: { success: true } });
+    res.json({ data: { success: true }, requestId: req.headers["x-request-id"] as string });
   } catch (err) {
     next(err);
   }
@@ -335,7 +334,7 @@ export const social_group_mute = async (
 
     const membership = await SocialGroupMember.findOne({ group_id: id, user_id: userId });
     if (!membership) {
-      res.status(404).json({ error: { message: "Not a member of this group" } });
+      res.status(404).json({ error: { message: "Not a member of this group" }, requestId: req.headers["x-request-id"] as string });
       return;
     }
 
@@ -349,13 +348,13 @@ export const social_group_mute = async (
       const client = chatService.getClient();
       const channel = client.channel("messaging", group.getstream_channel_id);
       if (membership.muted) {
-        await channel.mute(String(userId));
+        await channel.mute({ user_id: String(userId) });
       } else {
-        await channel.unmute(String(userId));
+        await channel.unmute({ user_id: String(userId) });
       }
     }
 
-    res.json({ data: { muted: membership.muted } });
+    res.json({ data: { muted: membership.muted }, requestId: req.headers["x-request-id"] as string });
   } catch (err) {
     next(err);
   }
@@ -382,7 +381,7 @@ export const social_group_member_role_update = async (
 
     const requester = await SocialGroupMember.findOne({ group_id: id, user_id: adminId });
     if (!requester || requester.role !== "admin") {
-      res.status(403).json({ error: { message: "Only admins can change roles" } });
+      res.status(403).json({ error: { message: "Only admins can change roles" }, requestId: req.headers["x-request-id"] as string });
       return;
     }
 
@@ -392,7 +391,7 @@ export const social_group_member_role_update = async (
     membership.role = role;
     await membership.save();
 
-    res.json({ data: { success: true, role: membership.role } });
+    res.json({ data: { success: true, role: membership.role }, requestId: req.headers["x-request-id"] as string });
   } catch (err) {
     next(err);
   }

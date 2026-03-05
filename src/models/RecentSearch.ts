@@ -27,7 +27,7 @@ export interface IRecentSearch extends Document {
   user_id: Types.ObjectId;
   query: string;
   platform: Platform;  // NEW: Platform scoping
-  context?: SearchContext;  // NEW: Search context (for-sale, profiles, wtb-iso)
+  context?: SearchContext;  // NEW: Search context (listing, iso, user)
   filters?: Record<string, any>;
   result_count?: number;
   createdAt: Date;

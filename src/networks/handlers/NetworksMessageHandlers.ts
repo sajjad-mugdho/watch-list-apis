@@ -43,8 +43,8 @@ export const sendMessage = (_platform: any) => async (req: Request, res: Respons
 
     const { channel_id, text, type = "regular", attachments, custom_data, parent_id, parent_message_id } = req.body;
 
-    if (!channel_id || !text?.trim()) {
-      res.status(400).json({ error: { message: "channel_id and text are required" } });
+    if (!channel_id || (!text?.trim() && (!attachments || attachments.length === 0))) {
+      res.status(400).json({ error: { message: "channel_id and either text or attachments are required" } });
       return;
     }
 
@@ -79,7 +79,7 @@ export const sendMessage = (_platform: any) => async (req: Request, res: Respons
     const dbMessage = await ChatMessage.create({
       _id: messageId,
       stream_channel_id: channel_id,
-      text: text.trim(),
+      text: text?.trim() || "",
       sender_id: user._id,
       sender_clerk_id: auth.userId,
       type: type as MessageType,
@@ -98,7 +98,7 @@ export const sendMessage = (_platform: any) => async (req: Request, res: Respons
       const client = chatService.getClient();
       const streamChannel = client.channel("messaging", channel_id);
       const msgPayload: any = {
-        text: text.trim(),
+        text: text?.trim() || "",
         user_id: auth.userId,
         parent_id: parent_id || undefined,
         attachments: attachments || undefined,

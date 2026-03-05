@@ -29,7 +29,7 @@ type MessageType = (typeof MESSAGE_TYPES)[number];
 
 const getAuth = (req: Request) => (req as any).auth as { userId: string } | undefined;
 
-export const sendMessage = (_platform: any) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const sendMessage = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -84,7 +84,7 @@ export const sendMessage = (_platform: any) => async (req: Request, res: Respons
       parent_message_id: parent_id || null,
       custom_data: custom_data || {},
       status: "sent",
-      platform: _platform || "marketplace",
+      platform: _platform,
     });
 
     let streamResponse: any = null;
@@ -151,7 +151,7 @@ export const sendMessage = (_platform: any) => async (req: Request, res: Respons
   }
 };
 
-export const getChannelMessages = (_platform: any) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getChannelMessages = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -324,7 +324,7 @@ export const deleteMessage = (_platform: "marketplace" | "networks") => async (r
   }
 };
 
-export const markAsRead = (platform: any) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const markAsRead = (platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -366,7 +366,7 @@ export const markAsRead = (platform: any) => async (req: Request, res: Response,
   }
 };
 
-export const markAllAsRead = (platform: any) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const markAllAsRead = (platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -401,7 +401,7 @@ export const markAllAsRead = (platform: any) => async (req: Request, res: Respon
   }
 };
 
-export const reactToMessage = (platform: any) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const reactToMessage = (platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -463,7 +463,7 @@ export const reactToMessage = (platform: any) => async (req: Request, res: Respo
   }
 };
 
-export const archiveChannel = (platform: any) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const archiveChannel = (platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {

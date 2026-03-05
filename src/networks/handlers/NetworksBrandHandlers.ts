@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { NetworkListing } from "../../models/Listings";
-
+  
 /**
  * Discovery: Popular Brands
  * GET /v1/networks/brands/popular

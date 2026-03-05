@@ -6,7 +6,7 @@
  */
 
 import { Types, FilterQuery } from 'mongoose';
-import { BaseRepository, PaginatedResult } from './base/BaseRepository';
+import { BaseRepository, PaginatedResult } from '../shared/repositories/base/BaseRepository';
 import { ISO, IISO, ISOStatus } from '../models/ISO';
 
 export interface FindISOsParams {

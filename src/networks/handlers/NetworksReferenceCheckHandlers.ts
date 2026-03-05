@@ -96,7 +96,7 @@ export const networks_reference_check_create = async (req: Request, res: Respons
       network_id: network_id || null,
       order_id: order._id,
       reason: reason?.trim() || null,
-      status: "active",
+      status: "pending",
       transaction_value: order.amount,
     });
 
@@ -378,14 +378,6 @@ export const networks_reference_check_complete = async (req: Request, res: Respo
     const hasTargetConfirmed = check.confirmed_by.includes(check.target_id as any);
 
     if (hasRequesterConfirmed && hasTargetConfirmed) {
-      const summary = {
-        total_responses: check.responses.length,
-        positive_count: check.responses.filter((r: any) => r.rating === "positive").length,
-        neutral_count: check.responses.filter((r: any) => r.rating === "neutral").length,
-        negative_count: check.responses.filter((r: any) => r.rating === "negative").length,
-      };
-
-      check.summary = summary;
       check.status = "completed";
       check.completed_at = new Date();
     }
@@ -479,10 +471,24 @@ export const networks_reference_check_vouch = async (req: Request, res: Response
       vouchForUserId: vouch_for_user_id,
     });
 
+    let actorRole = "system" as any;
+    try {
+      const check = await ReferenceCheck.findById(id);
+      if (check && check.order_id) {
+        const order = await Order.findById(check.order_id);
+        if (order) {
+          if (order.buyer_id.toString() === user._id.toString()) actorRole = "buyer";
+          else if (order.seller_id.toString() === user._id.toString()) actorRole = "seller";
+        }
+      }
+    } catch (e) {
+      logger.warn("Could not resolve actor role for vouch audit log", e);
+    }
+
     auditService.logVouchEvent({
       action: "VOUCH_CREATED",
       actorId: user._id.toString(),
-      actorRole: "buyer",
+      actorRole,
       vouchId: vouch.id,
       referenceCheckId: id,
       vouchForUserId: vouch_for_user_id,
@@ -542,7 +548,7 @@ export const networks_reference_check_suspend = async (req: Request, res: Respon
     const { id } = req.params;
 
     // Admin/Moderator check
-    if (user.role !== "admin" && user.role !== "moderator") {
+    if (!user.isAdmin) {
       throw new AuthorizationError("Only admins or moderators can suspend reference checks", {});
     }
 

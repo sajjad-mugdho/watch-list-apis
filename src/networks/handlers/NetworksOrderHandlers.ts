@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import { Order } from "../../models/Order";
-import { NetworkListingChannel } from "../../models/ListingChannel";
+
 import {
   AppError,
   NotFoundError,

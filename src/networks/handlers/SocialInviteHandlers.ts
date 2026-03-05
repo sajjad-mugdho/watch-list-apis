@@ -7,7 +7,7 @@ import {
   ValidationError,
 } from "../../utils/errors";
 import SocialInvite from "../../models/SocialInvite";
-import { User } from "../../models/User";
+
 import crypto from "crypto";
 
 /**

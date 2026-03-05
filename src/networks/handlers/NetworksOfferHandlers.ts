@@ -1,10 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
-import {
-  NetworkListingChannel,
-  INetworkListingChannel,
-} from "../../models/ListingChannel";
-import { NetworkListing, INetworkListing } from "../../models/Listings";
+
 import { Order } from "../../models/Order";
 import { Block } from "../../models/Block";
 import {
@@ -27,6 +23,8 @@ import { chatService } from "../../services/ChatService";
 import { Notification } from "../../models/Notification";
 import logger from "../../utils/logger";
 import { transitionListingStatus } from "../../utils/listingStatusMachine";
+import { INetworkListingChannel, NetworkListingChannel } from "../../models/ListingChannel";
+import { INetworkListing, NetworkListing } from "../../models/Listings";
 
 // ----------------------------------------------------------
 // Helper Functions
@@ -152,7 +150,7 @@ export const networks_offer_send = async (
         reservation_terms_snapshot: reservation_terms_snapshot || listing.reservation_terms || null,
         offer_type: "initial",
         status: "sent",
-        expiresAt: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         createdAt: new Date(),
       };
       // For reused channels, update the listing snapshot to the current inquiry
@@ -380,7 +378,7 @@ export const networks_offer_counter = async (
     validateCounterAmount(channel, dialist_id, amount);
 
     const prevAmount = lastOffer.amount;
-    const price_delta = amount - prevAmount;
+    // const price_delta = amount - prevAmount;
 
     // Supersede last offer
     channel.supersedeLastOffer();
@@ -558,7 +556,7 @@ export const networks_offer_accept = async (
       status: "reserved",
       reserved_at: new Date(),
       reservation_expires_at: expiresAt,
-      reservation_terms_snapshot: lastOffer.reservation_terms_snapshot || null,
+      metadata: { reservation_terms_snapshot: (lastOffer as any).reservation_terms_snapshot || null },
       channel_id: channel._id as any,
       channel_type: "NetworkListingChannel",
     }], { session });
@@ -571,6 +569,8 @@ export const networks_offer_accept = async (
     // Update listing status to reserved
     await transitionListingStatus(listing, "reserved");
     await listing.save({ session });
+
+    await session.commitTransaction();
 
     // Send system message to Stream Chat channel if it exists
     if (channel.getstream_channel_id) {
@@ -606,8 +606,6 @@ export const networks_offer_accept = async (
     } catch (notifError) {
       logger.warn("Failed to create networks offer accepted notification", { notifError });
     }
-
-    await session.commitTransaction();
 
     const response: ApiResponse<INetworkListingChannel> = {
       data: channel.toJSON() as any,
@@ -823,7 +821,7 @@ export const networks_user_offers_get = async (
     );
 
     const response: ApiResponse<INetworkListingChannel[]> = {
-      data: paginatedChannels.map((c) => c.toJSON()) as any,
+      data: paginatedChannels.map((c) => c.toJSON?.() ?? c) as any,
       requestId: req.headers["x-request-id"] as string,
       _metadata: {
         total,

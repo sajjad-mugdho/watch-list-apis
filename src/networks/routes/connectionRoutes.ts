@@ -1,7 +1,7 @@
 // src/networks/routes/connectionRoutes.ts
 import { Router } from "express";
 import * as handlers from "../handlers/NetworksConnectionHandlers";
-import { validateRequest } from "../../middleware/validateRequest";
+import { validateRequest } from "../../middleware/validation";
 import {
   friendRequestSchema,
   respondFriendRequestSchema,

@@ -5,7 +5,7 @@
  * These are injected into services via the DI container.
  */
 
-export { BaseRepository, QueryOptions, PaginatedResult } from './base/BaseRepository';
+export { BaseRepository, QueryOptions, PaginatedResult } from '../shared/repositories/base/BaseRepository';
 export { channelRepository, ChannelRepository, Platform, Channel } from './ChannelRepository';
 export { messageRepository, MessageRepository } from './MessageRepository';
 export { notificationRepository, NotificationRepository } from './NotificationRepository';

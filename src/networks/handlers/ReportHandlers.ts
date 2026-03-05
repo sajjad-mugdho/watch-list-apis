@@ -3,7 +3,6 @@ import { NextFunction, Request, Response } from "express";
 import { ApiResponse } from "../../types";
 import { MissingUserContextError } from "../../utils/errors";
 import { Report } from "../../models/Report";
-import { createReportSchema } from "../../validation/schemas";
 
 /**
  * Report a user, listing, group, or message

@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema, Types } from "mongoose";
+import mongoose, { Model, Schema, Types } from "mongoose";
 
 // ----------------------------------------------------------
 // Constants
@@ -16,7 +16,8 @@ export type OfferState = (typeof OFFER_STATE_VALUES)[number];
 // ----------------------------------------------------------
 // Interfaces
 // ----------------------------------------------------------
-export interface IOffer extends Document {
+export interface IOffer {
+  _id: Types.ObjectId;
   listing_id: Types.ObjectId;
   channel_id: Types.ObjectId;
   buyer_id: Types.ObjectId;
@@ -33,13 +34,16 @@ export interface IOffer extends Document {
     brand: string;
     model: string;
     reference: string;
-    price?: number;
+    price?: number | undefined;
     condition?: string;
     thumbnail?: string;
   };
   
   createdAt: Date;
   updatedAt: Date;
+
+  shipping_region?: string;
+  reservation_terms_snapshot?: any;
 
   // Methods
   isActive(): boolean;
@@ -80,13 +84,19 @@ const offerSchema = new Schema<IOffer>(
   { timestamps: true }
 );
 
+// Prevent multiple active offers between the same buyer and seller for the same listing
+offerSchema.index(
+  { listing_id: 1, buyer_id: 1, seller_id: 1 },
+  { unique: true, partialFilterExpression: { state: { $in: ["CREATED", "COUNTERED"] } } }
+);
+
 // Methods
 offerSchema.methods.isActive = function (): boolean {
   return (this.state === "CREATED" || this.state === "COUNTERED") && !this.isExpired();
 };
 
 offerSchema.methods.isExpired = function (): boolean {
-  return this.expires_at <= new Date();
+  return this.expires_at < new Date();
 };
 
 offerSchema.methods.canBeAccepted = function (): boolean {

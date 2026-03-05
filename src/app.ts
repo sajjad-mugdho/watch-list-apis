@@ -14,6 +14,7 @@ import {
 import { customClerkMw } from "./middleware/customClerkMw";
 import { webhooksRoutes } from "./routes/webhooksRoutes";
 import { swaggerSpec } from "./config/swagger";
+import { captureRawBody } from "./middleware/rawBody";
 import logger from "./utils/logger";
 
 const app = express();
@@ -101,6 +102,11 @@ app.use(requestLogger);
 app.use(rateLimit);
 
 // Webhook routes: preserve raw body for signature verification
+app.use(
+  "/api/v1/webhooks/persona",
+  captureRawBody
+);
+
 app.use(
   "/api/v1/webhooks",
   express.json({

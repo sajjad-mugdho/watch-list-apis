@@ -8,6 +8,7 @@
  * Networks: Channel is unique per (buyer, seller) - reused across listings
  */
 
+import mongoose from "mongoose";
 import { Request, Response, NextFunction } from "express";
 import { MarketplaceListing } from "../../models/Listings";
 import { MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
@@ -38,9 +39,13 @@ export const marketplace_listing_inquire = async (
       throw new ValidationError("User not authenticated");
     }
 
+    const buyerId = (req as any).user.dialist_id;
     const { id: listingId } = req.params;
     const { message } = req.body;
-    const buyerId = (req as any).user.dialist_id;
+
+    if (!mongoose.Types.ObjectId.isValid(listingId)) {
+      throw new ValidationError("Invalid listing id");
+    }
 
     // 1. Get listing
     const listing = await MarketplaceListing.findById(listingId);

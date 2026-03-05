@@ -1,4 +1,4 @@
-import mongoose, { Document, Model, Schema, Types } from "mongoose";
+import mongoose, { Model, Schema, Types } from "mongoose";
 
 // ----------------------------------------------------------
 // Constants
@@ -44,7 +44,7 @@ export interface IListingSnapshot {
   brand: string;
   model: string;
   reference: string;
-  price?: number;
+  price?: number | undefined;
   condition?: string;
   contents?: string;
   thumbnail?: string;
@@ -54,7 +54,8 @@ export interface IListingSnapshot {
 /**
  * Marketplace listing channel interface
  */
-export interface IMarketplaceListingChannel extends Document {
+export interface IMarketplaceListingChannel {
+  _id: Types.ObjectId;
   // Refs
   listing_id: Schema.Types.ObjectId;
   buyer_id: Schema.Types.ObjectId;
@@ -95,6 +96,9 @@ export interface IMarketplaceListingChannel extends Document {
   ): "buyer" | "seller" | null;
   supersedeLastOffer(): void;
   resolveLastOffer(status: "accepted" | "declined"): Promise<void>;
+  
+  toJSON?(): Record<string, any>;
+  toObject?(): Record<string, any>;
 }
 
 export interface IMarketplaceListingChannelModel

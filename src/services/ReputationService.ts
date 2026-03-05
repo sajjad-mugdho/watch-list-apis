@@ -1,8 +1,8 @@
 import { Types } from "mongoose";
-import { User } from "../../models/User";
-import { Review } from "../../models/Review";
-import { Vouch } from "../../models/Vouch";
-import logger from "../../utils/logger";
+import { User } from "../models/User";
+import { Review } from "../models/Review";
+import { Vouch } from "../models/Vouch";
+import logger from "../utils/logger";
 
 export interface UserReputation {
   rating_average: number;

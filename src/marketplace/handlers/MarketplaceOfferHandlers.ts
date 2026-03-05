@@ -477,7 +477,7 @@ export const marketplace_offer_accept = async (
     listing.status = "reserved";
     listing.order = {
       channel_id: channel._id as any,
-      buyer_id: channel.buyer_id,
+      buyer_id: channel.buyer_id as any,
       buyer_name: channel.buyer_snapshot.name,
       reserved_at: new Date(),
     };
@@ -724,7 +724,7 @@ export const marketplace_user_offers_get = async (
     );
 
     const response: ApiResponse<IMarketplaceListingChannel[]> = {
-      data: paginatedChannels.map((c) => c.toJSON()) as any,
+      data: paginatedChannels.map((c) => c.toJSON?.() ?? c) as any,
       requestId: req.headers["x-request-id"] as string,
       _metadata: {
         total,

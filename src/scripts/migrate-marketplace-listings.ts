@@ -41,11 +41,11 @@ async function migrateMarketplaceListings() {
           brand: listing.brand,
           model: listing.model,
           reference: listing.reference,
-          diameter: listing.diameter,
-          bezel: listing.bezel,
-          materials: listing.materials,
-          bracelet: listing.bracelet,
-          color: listing.color,
+          // diameter: listing.diameter,
+          // bezel: listing.bezel,
+          // materials: listing.materials,
+          // bracelet: listing.bracelet,
+          // color: listing.color,
         };
 
         // Validate that required fields exist

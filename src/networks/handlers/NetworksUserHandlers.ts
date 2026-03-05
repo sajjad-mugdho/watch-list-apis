@@ -6,10 +6,10 @@ import {
   ValidationError,
   NotFoundError,
 } from "../../utils/errors";
-import { NetworkListing, INetworkListing } from "../../models/Listings";
+
 import { Review } from "../../models/Review";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
-import { User, IUser } from "../../models/User";
+import { User } from "../../models/User";
 import { Block } from "../../models/Block";
 import { Report } from "../../models/Report";
 import {
@@ -18,6 +18,7 @@ import {
   CreateReportInput,
 } from "../../validation/schemas";
 import mongoose from "mongoose";
+import { INetworkListing, NetworkListing } from "../../models/Listings";
 
 // ----------------------------------------------------------
 // Types
@@ -256,8 +257,10 @@ export const networks_user_listings_get = async (
 
     if (status === "all") {
       filters.status = { $in: ["active", "sold"] };
-    } else {
+    } else if (status === "active" || status === "sold") {
       filters.status = status;
+    } else {
+      throw new ValidationError("Can only view active or sold listings publicly");
     }
 
     const listings = await NetworkListing.find(filters)

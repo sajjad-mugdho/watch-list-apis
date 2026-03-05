@@ -4,13 +4,14 @@ import * as hubHandlers from "../handlers/SocialHubHandlers";
 import * as groupHandlers from "../handlers/SocialGroupHandlers";
 import * as inviteHandlers from "../handlers/SocialInviteHandlers";
 import * as reportHandlers from "../handlers/ReportHandlers";
-import { validateRequest } from "../../middleware/validateRequest";
+
 import {
   createGroupSchema,
   joinGroupSchema,
   getSocialInboxSchema,
   searchSocialSchema,
 } from "../../validation/schemas";
+import { validateRequest } from "../../middleware/validation";
 
 const router = Router();
 

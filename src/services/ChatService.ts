@@ -64,9 +64,9 @@ export interface ChatUserData {
 
 export interface ChatChannelMetadata {
   listing_id: string;
-  listing_title?: string;
-  listing_price?: number;
-  listing_thumbnail?: string;
+  listing_title?: string | undefined;
+  listing_price?: number | undefined;
+  listing_thumbnail?: string | undefined;
 }
 
 export interface SystemMessageData {
