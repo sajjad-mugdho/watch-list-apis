@@ -2,6 +2,48 @@
 
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
+
+// Pre-import all models so they are registered before any test runs.
+// This allows syncIndexes() to create all collections + indexes in beforeAll,
+// preventing implicit DDL (createCollection / createIndex) during
+// multi-document transactions which would cause "catalog changes" errors.
+import "../src/models/AuditLog";
+import "../src/models/Block";
+import "../src/models/ChatMessage";
+import "../src/models/ConciergeRequest";
+import "../src/models/DeviceToken";
+import "../src/models/EventOutbox";
+import "../src/models/Favorite";
+import "../src/models/FinixWebhookEvent";
+import "../src/models/Follow";
+import "../src/models/Friendship";
+import "../src/models/GetstreamWebhookEvent";
+import "../src/models/ISO";
+import "../src/models/ListingChannel";
+import "../src/models/Listings";
+import "../src/models/MarketplaceListingChannel";
+import "../src/models/MerchantOnboarding";
+import "../src/models/News";
+import "../src/models/Notification";
+import "../src/models/Offer";
+import "../src/models/OfferRevision";
+import "../src/models/Order";
+import "../src/models/RecentSearch";
+import "../src/models/ReferenceCheck";
+import "../src/models/RefundRequest";
+import "../src/models/Report";
+import "../src/models/ReservationTerms";
+import "../src/models/Review";
+import "../src/models/SocialGroup";
+import "../src/models/SocialGroupMember";
+import "../src/models/SocialInvite";
+import "../src/models/Subscription";
+import "../src/models/SupportTicket";
+import "../src/models/TrustCase";
+import "../src/models/User";
+import "../src/models/Vouch";
+import "../src/models/Watches";
+import "../src/models/WebhookEvent";
 // Set default environment variables for testing
 process.env.AWS_SQS_WEBHOOK_URL =
   process.env.AWS_SQS_WEBHOOK_URL ||
@@ -248,6 +290,12 @@ beforeAll(async () => {
     await mongoose.connect(mongoUri, {
       dbName: "dialist_test",
     });
+
+    // Ensure all collections and indexes exist before any transaction runs.
+    // Pre-importing all models above (lines 6-49) registers their schemas.
+    // syncIndexes() creates all collections + indexes, preventing implicit DDL
+    // during multi-document transactions (which would cause "catalog changes").
+    await mongoose.connection.syncIndexes();
 
     console.log("✅ Test database connected");
   } catch (error) {

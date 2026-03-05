@@ -32,6 +32,7 @@ describe('Networks Channels Integration', () => {
     const commonListingData = {
       dialist_id: userB._id,
       clerk_id: userB.clerk_id,
+      title: 'Rolex Submariner',
       brand: 'Rolex',
       model: 'Submariner',
       price: 15000,

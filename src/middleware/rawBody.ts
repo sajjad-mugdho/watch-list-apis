@@ -6,7 +6,7 @@ import { Request, Response, NextFunction } from 'express';
  */
 export function captureRawBody(
   req: Request,
-  res: Response,
+  _res: Response,
   next: NextFunction
 ): void {
   let data = '';

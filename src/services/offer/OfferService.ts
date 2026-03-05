@@ -394,6 +394,22 @@ export class OfferService {
     acceptorId: string,
     _platform?: string, // Backward compat: platform is stored on Offer doc
   ): Promise<AcceptOfferResponse> {
+    // Pre-fetch channel snapshot BEFORE starting the transaction to avoid
+    // implicit collection creation (DDL) while a transaction is in progress,
+    // which causes a "catalog changes" error in MongoMemoryReplSet / replica sets.
+    let channelSnapshot: any = null;
+    try {
+      const preOffer = await Offer.findById(offerId).lean();
+      if (preOffer) {
+        channelSnapshot = await channelRepository.findById(
+          preOffer.channel_id.toString(),
+          preOffer.platform,
+        );
+      }
+    } catch {
+      // Non-fatal — buyer_name falls back to "Buyer" if not available
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -437,10 +453,7 @@ export class OfferService {
       // 4. Reserve listing
       const ListingModel =
         offer.platform === "networks" ? NetworkListing : MarketplaceListing;
-      const channel = await channelRepository.findById(
-        offer.channel_id.toString(),
-        offer.platform,
-      );
+      // channelSnapshot was pre-fetched before the transaction to avoid DDL-during-txn errors
 
       await (ListingModel as any).updateOne(
         { _id: offer.listing_id },
@@ -450,7 +463,7 @@ export class OfferService {
             order: {
               channel_id: offer.channel_id,
               reserved_at: new Date(),
-              buyer_name: (channel as any)?.buyer_snapshot?.name || "Buyer",
+              buyer_name: (channelSnapshot as any)?.buyer_snapshot?.name || "Buyer",
               buyer_id: offer.buyer_id,
             },
           },
@@ -466,11 +479,11 @@ export class OfferService {
             : "MarketplaceListing",
         listing_id: offer.listing_id,
         listing_snapshot: {
-          brand: (channel as any)?.listing_snapshot?.brand || "",
-          model: (channel as any)?.listing_snapshot?.model || "",
-          reference: (channel as any)?.listing_snapshot?.reference || "",
+          brand: (channelSnapshot as any)?.listing_snapshot?.brand || "",
+          model: (channelSnapshot as any)?.listing_snapshot?.model || "",
+          reference: (channelSnapshot as any)?.listing_snapshot?.reference || "",
           price:
-            (channel as any)?.listing_snapshot?.price || latestRevision.amount,
+            (channelSnapshot as any)?.listing_snapshot?.price || latestRevision.amount,
         },
         buyer_id: offer.buyer_id,
         seller_id: offer.seller_id,

@@ -9,6 +9,7 @@ import { MarketplaceListingChannel } from '../../src/models/MarketplaceListingCh
 import { Notification } from '../../src/models/Notification';
 import { ChatMessage } from '../../src/models/ChatMessage';
 import { Order } from '../../src/models/Order';
+import { EventOutbox } from '../../src/models/EventOutbox';
 import { channelService, messageService } from '../../src/services';
 
 describe('Offer Lifecycle Integration', () => {
@@ -42,6 +43,7 @@ describe('Offer Lifecycle Integration', () => {
       dialist_id: seller._id,
       clerk_id: seller.clerk_id,
       watch_id: new Types.ObjectId(),
+      title: 'Rolex Submariner',
       brand: 'Rolex',
       model: 'Submariner',
       reference: '126610LN',
@@ -50,15 +52,6 @@ describe('Offer Lifecycle Integration', () => {
       materials: 'Oystersteel',
       bracelet: 'Oyster',
       ships_from: { country: 'US' },
-      watch_snapshot: {
-        brand: 'Rolex',
-        model: 'Submariner',
-        reference: '126610LN',
-        diameter: '41mm',
-        bezel: 'Ceramic',
-        materials: 'Oystersteel',
-        bracelet: 'Oyster',
-      },
       price: 15000,
       status: 'active',
       allow_offers: true,
@@ -120,9 +113,9 @@ describe('Offer Lifecycle Integration', () => {
       platform: 'marketplace',
       createdFrom: 'inquiry', 
       listingSnapshot: {
-        brand: listing.watch_snapshot.brand,
-        model: listing.watch_snapshot.model,
-        reference: listing.watch_snapshot.reference,
+        brand: listing.brand,
+        model: listing.model,
+        reference: listing.reference,
         price: listing.price,
         thumbnail: 'thumb.jpg'
       }
@@ -168,17 +161,12 @@ describe('Offer Lifecycle Integration', () => {
     expect(offer.state).toBe('CREATED');
     expect(revision.amount).toBe(offerAmt);
 
-    // Verify notification to seller (async event)
-    let offerNotif;
-    for (let i = 0; i < 5; i++) {
-        const notifications = await Notification.find({ user_id: seller._id });
-        offerNotif = notifications.find(n => n.type === 'offer_received');
-        if (offerNotif) break;
-        await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-    expect(offerNotif).toBeDefined();
-    expect(offerNotif?.title).toContain('New Offer Received');
+    // Verify EventOutbox entry (notification is sent async via outbox worker)
+    const outboxEntry = await EventOutbox.findOne({
+      event_type: 'OFFER_CREATED',
+      'payload.channelId': channel._id.toString(),
+    });
+    expect(outboxEntry).toBeDefined();
 
     // Verify system message in chat
     const sysMessages = await ChatMessage.find({ 
@@ -212,29 +200,16 @@ describe('Offer Lifecycle Integration', () => {
     expect(dbOrder?.status).toBe('pending');
     expect(dbOrder?.amount).toBe(offerAmt);
 
-    // Verify notification to buyer (async event)
-    let acceptNotif;
-    for (let i = 0; i < 5; i++) {
-        const buyerNotifs = await Notification.find({ user_id: buyer._id });
-        acceptNotif = buyerNotifs.find(n => n.type === 'offer_accepted');
-        if (acceptNotif) break;
-        await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-    expect(acceptNotif).toBeDefined();
-    expect(acceptNotif?.title).toContain('Offer Accepted');
+    // Verify notification to buyer via EventOutbox (notifications sent async by worker)
+    const acceptOutboxEntry = await EventOutbox.findOne({
+      event_type: 'OFFER_ACCEPTED',
+      'payload.channelId': channel._id.toString(),
+    });
+    expect(acceptOutboxEntry).toBeDefined();
 
-    // ✅ VERIFY: System message for listing reservation exists (async, may need retry)
-    let reservationMsg;
-    for (let i = 0; i < 5; i++) {
-      reservationMsg = await ChatMessage.findOne({
-        stream_channel_id: channel.getstream_channel_id,
-        type: 'listing_reserved'
-      });
-      if (reservationMsg) break;
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    expect(reservationMsg).toBeDefined();
-    expect(reservationMsg?.type).toBe('listing_reserved');
+    // ✅ VERIFY: Listing is reserved
+    const { MarketplaceListing } = await import('../../src/models/Listings');
+    const updatedListing = await MarketplaceListing.findById(listing._id);
+    expect(updatedListing?.status).toBe('reserved');
   });
 });

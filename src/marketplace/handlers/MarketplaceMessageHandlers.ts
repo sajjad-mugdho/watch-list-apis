@@ -323,7 +323,7 @@ export const deleteMessage = (_platform: "marketplace" | "networks") => async (r
   }
 };
 
-export const markAsRead = (platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const markAsRead = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -364,7 +364,7 @@ export const markAsRead = (platform: "marketplace" | "networks") => async (req: 
   }
 };
 
-export const markAllAsRead = (platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const markAllAsRead = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -398,7 +398,7 @@ export const markAllAsRead = (platform: "marketplace" | "networks") => async (re
   }
 };
 
-export const reactToMessage = (platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const reactToMessage = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {
@@ -459,7 +459,7 @@ export const reactToMessage = (platform: "marketplace" | "networks") => async (r
   }
 };
 
-export const archiveChannel = (platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const archiveChannel = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const auth = getAuth(req);
     if (!auth?.userId) {

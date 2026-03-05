@@ -2,7 +2,7 @@ import { offerService } from '../../../src/services/offer/OfferService';
 import { MarketplaceListingChannel } from '../../../src/models/MarketplaceListingChannel';
 import { MarketplaceListing } from '../../../src/models/Listings';
 import { Offer } from '../../../src/models/Offer';
-import { events } from '../../../src/utils/events';
+import { EventOutbox } from '../../../src/models/EventOutbox';
 import { Types } from 'mongoose';
 
 describe('OfferService', () => {
@@ -29,6 +29,8 @@ describe('OfferService', () => {
       bezel: 'Ceramic',
       materials: 'Oystersteel',
       bracelet: 'Oyster',
+      title: 'Rolex Submariner',
+      author: { _id: new Types.ObjectId(sellerId), name: 'Test Seller' },
       ships_from: { country: 'US' },
       watch_snapshot: {
         brand: 'Rolex',
@@ -60,9 +62,7 @@ describe('OfferService', () => {
   });
 
   describe('sendOffer', () => {
-    it('should successfully send an initial offer and emit an event', async () => {
-      const emitSpy = jest.spyOn(events, 'emit');
-
+      it('should successfully send an initial offer and write to EventOutbox', async () => {
       // Execute
       const { offer, revision } = await offerService.sendOffer({
         channelId,
@@ -84,11 +84,15 @@ describe('OfferService', () => {
       const updatedChannel = await MarketplaceListingChannel.findById(channelId);
       expect(updatedChannel?.last_offer?.amount).toBe(14000);
 
-      // Verify event emission
-      expect(emitSpy).toHaveBeenCalledWith('offer:sent', expect.objectContaining({
-        amount: 14000,
-        platform: 'marketplace'
-      }));
+      // Verify EventOutbox entry (OfferService uses outbox pattern;
+      // events.emit('offer:sent') is called by outboxPublisherWorker, not here)
+      const outboxEntry = await EventOutbox.findOne({
+        event_type: 'OFFER_CREATED',
+        'payload.channelId': channelId,
+      });
+      expect(outboxEntry).toBeDefined();
+      expect(outboxEntry?.payload.amount).toBe(14000);
+      expect(outboxEntry?.payload.platform).toBe('marketplace');
     });
 
     it('should throw error if amount is above asking price', async () => {
@@ -119,7 +123,7 @@ describe('OfferService', () => {
   });
 
   describe('acceptOffer', () => {
-    it('should accept offer, reserve listing, and emit event', async () => {
+      it('should accept offer, reserve listing, and write to EventOutbox', async () => {
       // 1. Send an offer first
       const { offer } = await offerService.sendOffer({
         channelId,
@@ -130,8 +134,6 @@ describe('OfferService', () => {
         platform: 'marketplace',
         getstreamChannelId: 'gs_channel_123'
       });
-
-      const emitSpy = jest.spyOn(events, 'emit');
 
       // 2. Accept (by seller)
       const { amount, channelId: respChannelId } = await offerService.acceptOffer(offer._id.toString(), sellerId, 'marketplace');
@@ -147,9 +149,14 @@ describe('OfferService', () => {
       const dbOffer = await Offer.findById(offer._id);
       expect(dbOffer?.state).toBe('ACCEPTED');
 
-      expect(emitSpy).toHaveBeenCalledWith('offer:accepted', expect.objectContaining({
-        amount: 14000
-      }));
+      // Verify EventOutbox entry (events.emit('offer:accepted') is called by
+      // outboxPublisherWorker when it processes this entry, not by OfferService)
+      const outboxEntry = await EventOutbox.findOne({
+        event_type: 'OFFER_ACCEPTED',
+        'payload.channelId': channelId,
+      });
+      expect(outboxEntry).toBeDefined();
+      expect(outboxEntry?.payload.amount).toBe(14000);
     });
   });
 });

@@ -1,7 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 
-import { Order } from "../../models/Order";
+// Order model imported for potential future use in offer flow
+// import { Order } from "../../models/Order";
 import { Block } from "../../models/Block";
 import {
   AppError,
@@ -22,7 +23,7 @@ import {
 import { chatService } from "../../services/ChatService";
 import { Notification } from "../../models/Notification";
 import logger from "../../utils/logger";
-import { transitionListingStatus } from "../../utils/listingStatusMachine";
+
 import {
   INetworkListingChannel,
   NetworkListingChannel,
@@ -407,7 +408,7 @@ export const networks_offer_counter = async (
     // Validate counter amount
     validateCounterAmount(channel, dialist_id, amount);
 
-    const prevAmount = lastOffer.amount;
+    // const prevAmount = lastOffer.amount;
     // const price_delta = amount - prevAmount;
 
     // Supersede last offer

@@ -4,7 +4,6 @@ import { ApiResponse } from "../../types";
 import {
   MissingUserContextError,
   ValidationError,
-  DatabaseError,
   NotFoundError,
 } from "../../utils/errors";
 import { ChatMessage } from "../../models/ChatMessage";
@@ -311,8 +310,6 @@ export const social_shared_content_get = async (
       .skip(Number(offset))
       .limit(Number(limit))
       .lean();
-
-    const total = await ChatMessage.countDocuments(query);
 
     const data = messages.map((m) => ({
       message_id: m._id,

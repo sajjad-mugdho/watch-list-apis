@@ -6,7 +6,7 @@ import { NetworkListing } from "../../models/Listings";
  * GET /v1/networks/brands/popular
  */
 export const getPopularBrands = async (
-  req: Request,
+  _req: Request,
   res: Response,
   next: NextFunction
 ): Promise<void> => {
