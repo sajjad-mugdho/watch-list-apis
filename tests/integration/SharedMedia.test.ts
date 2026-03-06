@@ -52,6 +52,7 @@ describe('Shared Media Integration', () => {
     listing = await MarketplaceListing.create({
       dialist_id: seller._id,
       clerk_id: seller.clerk_id,
+      title: 'Rolex Submariner',
       watch_id: new Types.ObjectId(),
       brand: 'Rolex',
       model: 'Submariner',

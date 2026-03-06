@@ -209,6 +209,18 @@ jest.mock("../src/utils/user", () => {
         );
 
         if (user) {
+          // Also query MerchantOnboarding to get isMerchant status
+          let isMerchant = false;
+          let onboarding_state: string | undefined = undefined;
+          try {
+            const MerchantOnboarding = mongoose.model("MerchantOnboarding");
+            const mo = await MerchantOnboarding.findOne({ dialist_user_id: user._id });
+            if (mo) {
+              isMerchant = mo.onboarding_state === "APPROVED";
+              onboarding_state = mo.onboarding_state;
+            }
+          } catch (_e) { /* ignore */ }
+
           return {
             dialist_id: user._id.toString(),
             external_id: user.external_id,
@@ -219,7 +231,8 @@ jest.mock("../src/utils/user", () => {
             location_country: user.location?.country || undefined,
             location_region: user.location?.region || undefined,
             location: user.location,
-            isMerchant: false,
+            isMerchant,
+            onboarding_state,
             networks_accessed: false,
             networks_application_id: null,
           };

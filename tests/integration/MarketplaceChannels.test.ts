@@ -32,6 +32,7 @@ describe('Marketplace Channels Integration', () => {
     const commonListingData = {
       dialist_id: seller._id,
       clerk_id: seller.clerk_id,
+      title: 'Rolex Submariner',
       brand: 'Rolex',
       model: 'Submariner',
       price: 15000,

@@ -45,6 +45,7 @@ describe("Profile and Wishlist Endpoints Integration", () => {
       watch_id: watch._id,
       status: "active",
       type: "for_sale",
+      title: "Rolex Submariner",
       brand: "Rolex",
       model: "Submariner",
       reference: "126610LN",
@@ -54,6 +55,7 @@ describe("Profile and Wishlist Endpoints Integration", () => {
       bracelet: "Oyster",
       ships_from: { country: "US" },
       price: 10000,
+      author: { _id: userA._id, name: "Buyer" },
     });
   });
 

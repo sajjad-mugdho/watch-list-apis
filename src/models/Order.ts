@@ -41,8 +41,8 @@ export interface IOrder {
   offer_id?: Types.ObjectId;
   offer_revision_id?: Types.ObjectId;
   
-  channel_id: Types.ObjectId;
-  channel_type: "MarketplaceListingChannel" | "NetworkListingChannel";
+  channel_id?: Types.ObjectId;
+  channel_type?: "MarketplaceListingChannel" | "NetworkListingChannel";
   getstream_channel_id?: string;
   
   // Platform specific (Finix)
@@ -100,11 +100,11 @@ const orderSchema = new Schema<IOrder>(
     status: { type: String, enum: ORDER_STATUS_VALUES, default: "pending", index: true },
     offer_id: { type: Schema.Types.ObjectId, ref: "Offer" },
     offer_revision_id: { type: Schema.Types.ObjectId, ref: "OfferRevision" },
-    channel_id: { type: Schema.Types.ObjectId, required: true, index: true },
+    channel_id: { type: Schema.Types.ObjectId, required: false, index: true },
     channel_type: { 
       type: String, 
       enum: ["MarketplaceListingChannel", "NetworkListingChannel"], 
-      required: true 
+      required: false 
     },
     getstream_channel_id: { type: String, index: true },
     finix_transfer_id: { type: String, index: true },

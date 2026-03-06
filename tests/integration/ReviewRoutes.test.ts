@@ -60,6 +60,7 @@ describe("Review Endpoints Integration", () => {
       dialist_id: seller._id,
       clerk_id: "seller_test",
       watch_id: watch._id,
+      title: `${watch.brand} ${watch.model}`,
       brand: watch.brand,
       model: watch.model,
       reference: watch.reference,
@@ -85,6 +86,7 @@ describe("Review Endpoints Integration", () => {
       listing_snapshot: {
         brand: watch.brand,
         model: watch.model,
+        reference: watch.reference || '126610LN',
         price: 10000,
       },
       amount: 10000,
@@ -102,7 +104,7 @@ describe("Review Endpoints Integration", () => {
         seller_id: seller._id,
         listing_id: listing._id,
         listing_type: "NetworkListing",
-        listing_snapshot: { brand: watch.brand, model: watch.model, price: 10000 },
+        listing_snapshot: { brand: watch.brand, model: watch.model, reference: watch.reference || '126610LN', price: 10000 },
         amount: 10000,
         status: "completed",
       });
@@ -137,6 +139,7 @@ describe("Review Endpoints Integration", () => {
         listing_snapshot: {
           brand: watch.brand,
           model: watch.model,
+          reference: watch.reference || '126610LN',
           price: 10000,
         },
         amount: 10000,
@@ -164,7 +167,7 @@ describe("Review Endpoints Integration", () => {
         seller_id: seller._id,
         listing_id: listing._id,
         listing_type: "NetworkListing",
-        listing_snapshot: { brand: watch.brand, model: watch.model, price: 10000 },
+        listing_snapshot: { brand: watch.brand, model: watch.model, reference: watch.reference || '126610LN', price: 10000 },
         amount: 10000,
         status: "completed",
       });

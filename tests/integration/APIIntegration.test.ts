@@ -234,12 +234,15 @@ describe('Reference Check Order Requirement', () => {
     // Create a completed order
     order = await Order.create({
       listing_id: new Types.ObjectId(),
+      listing_type: 'MarketplaceListing',
       buyer_id: requester._id,
       seller_id: target._id,
       amount: 10000,
       currency: 'USD',
       status: 'completed',
-      listing_snapshot: { brand: 'Rolex', model: 'Submariner', price: 10000 }
+      channel_id: new Types.ObjectId(),
+      channel_type: 'MarketplaceListingChannel',
+      listing_snapshot: { brand: 'Rolex', model: 'Submariner', reference: '126610LN', price: 10000 }
     });
   });
 

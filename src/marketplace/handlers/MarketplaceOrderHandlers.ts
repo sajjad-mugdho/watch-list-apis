@@ -4,7 +4,6 @@ import mongoose from "mongoose";
 import { Order } from "../../models/Order";
 import { MarketplaceListing } from "../../models/Listings";
 import { User } from "../../models/User";
-import { IWatch } from "../../models/Watches";
 import { RefundRequest } from "../../models/RefundRequest";
 import { createAuditLog } from "../../models/AuditLog";
 import {
@@ -60,9 +59,7 @@ export const reserveListing = async (
       throw new ValidationError("listing_id is required");
     }
 
-    const listing = await MarketplaceListing.findById(listing_id)
-      .populate<{ watch_id: IWatch }>("watch_id")
-      .lean();
+    const listing = await MarketplaceListing.findById(listing_id).lean();
 
     if (!listing) {
       logger.warn("[Order] Reserve failed: listing not found", {
@@ -116,8 +113,6 @@ export const reserveListing = async (
     // Generate fraud_session_id
     const fraud_session_id = `fs_${crypto.randomBytes(16).toString("hex")}`;
 
-    const watch = listing.watch_id;
-
     logger.info("[Order] Creating order with reservation", {
       listing_id,
       buyer_user_id,
@@ -130,16 +125,16 @@ export const reserveListing = async (
     // Create order with snapshot of listing data
     const order = await Order.create({
       listing_id: listing._id,
+      listing_type: 'MarketplaceListing',
       buyer_id: buyer_user_id,
       seller_id: listing.dialist_id, // ✅ Use dialist_id, not seller_user_id
       listing_snapshot: {
-        brand: watch.brand,
-        model: watch.model,
-        reference: watch.reference,
+        brand: listing.brand,
+        model: listing.model,
+        reference: listing.reference,
         condition: listing.condition,
         price: listing.price,
-        images: listing.images || [],
-        thumbnail: listing.thumbnail || listing.images?.[0],
+        thumbnail: listing.thumbnail || (listing.images || [])[0],
       },
       amount: listing.price,
       currency: "USD",
@@ -238,7 +233,7 @@ export const reserveListing = async (
         reservation_expires_at: order.reservation_expires_at,
         fraud_session_id: fraud_session_id,
         listing: {
-          title: `${watch.brand || "Watch"} ${watch.model || ""}`.trim(),
+          title: `${listing.brand || "Watch"} ${listing.model || ""}`.trim(),
           image: listing.images?.[0] || null,
           price: listing.price,
           condition: listing.condition,

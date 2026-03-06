@@ -324,9 +324,12 @@ export async function createTestMarketplaceListing(
 ): Promise<any> {
   const { MarketplaceListing } = await import("../../src/models/Listings");
 
+  const defaultId = new mongoose.Types.ObjectId();
   const defaultListing = {
     dialist_id: new mongoose.Types.ObjectId(),
     clerk_id: "clerk_test_123",
+    title: "Rolex Submariner",
+    author: { _id: defaultId, name: "Test Seller" },
     brand: "Rolex",
     model: "Submariner",
     reference: "116610LN",
@@ -359,9 +362,12 @@ export async function createTestNetworkListing(
 ): Promise<any> {
   const { NetworkListing } = await import("../../src/models/Listings");
 
+  const defaultNetworkId = new mongoose.Types.ObjectId();
   const defaultListing = {
     dialist_id: new mongoose.Types.ObjectId(),
     clerk_id: "clerk_test_network_123",
+    title: "Omega Speedmaster",
+    author: { _id: defaultNetworkId, name: "Test Network Seller" },
     brand: "Omega",
     model: "Speedmaster",
     reference: "311.30.42.30.01.005",

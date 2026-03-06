@@ -53,6 +53,7 @@ export interface IOffer {
 
 export interface IOfferModel extends Model<IOffer> {
   findExpiredOffers(platform?: string): Promise<IOffer[]>;
+  findActiveByListingAndBuyer(listingId: string, buyerId: string, platform: string): Promise<IOffer | null>;
 }
 
 // ----------------------------------------------------------
@@ -111,6 +112,15 @@ offerSchema.statics.findExpiredOffers = function (platform?: string) {
   };
   if (platform) query.platform = platform;
   return this.find(query);
+};
+
+offerSchema.statics.findActiveByListingAndBuyer = function (listingId: string, buyerId: string, platform: string) {
+  return this.findOne({
+    listing_id: listingId,
+    buyer_id: buyerId,
+    platform,
+    state: { $in: ["CREATED", "COUNTERED", "ACCEPTED"] },
+  });
 };
 
 export const Offer = mongoose.model<IOffer, IOfferModel>("Offer", offerSchema, "offers");

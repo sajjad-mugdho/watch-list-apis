@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
 import { ApiResponse } from "../../types";
 import {
+  AppError,
   AuthorizationError,
   DatabaseError,
   MissingUserContextError,
@@ -138,7 +139,7 @@ export const marketplace_listing_get_by_id = async (
     const { id } = req.params;
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
-      throw new ValidationError("Invalid listing id");
+      throw new AppError("Invalid listing ID format", 400, "INVALID_ID");
     }
 
     const listing = await MarketplaceListing.findById(id).lean();
@@ -154,7 +155,7 @@ export const marketplace_listing_get_by_id = async (
 
     res.json(response);
   } catch (error: any) {
-    if (error instanceof NotFoundError || error instanceof ValidationError) {
+    if (error instanceof AppError) {
       next(error);
     } else {
       logger.error("Error fetching listing by ID", { error });

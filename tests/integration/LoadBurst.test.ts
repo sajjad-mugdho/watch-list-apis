@@ -64,6 +64,7 @@ describe('Load Burst Integration', () => {
     listing = await MarketplaceListing.create({
       dialist_id: seller._id,
       clerk_id: seller.clerk_id,
+      title: 'Rolex Sub',
       watch_id: new Types.ObjectId(),
       brand: 'Rolex',
       model: 'Sub',
@@ -91,6 +92,7 @@ describe('Load Burst Integration', () => {
       buyer_id: buyer._id,
       seller_id: seller._id,
       listing_id: listing._id,
+      listing_type: 'MarketplaceListing',
       amount: 10000,
       currency: 'USD',
       status: 'completed',
@@ -161,7 +163,7 @@ describe('Load Burst Integration', () => {
     const requests = vouchers.map(v => 
       request(createApp(v.external_id as string))
         .post(`/api/v1/reference-checks/${refCheck._id}/vouch`)
-        .send({ vouch_for_user_id: seller._id.toString(), comment: 'Great seller!' })
+        .send({ vouch_for_user_id: seller._id.toString(), comment: 'Great seller!', legal_consent_accepted: true })
     );
 
     const results = await Promise.all(requests);
@@ -200,8 +202,8 @@ describe('Load Burst Integration', () => {
 
     // Trigger two concurrent requests from the same user
     const results = await Promise.allSettled([
-      request(app).post(`/api/v1/reference-checks/${refCheck._id}/vouch`).send({ vouch_for_user_id: seller._id.toString() }),
-      request(app).post(`/api/v1/reference-checks/${refCheck._id}/vouch`).send({ vouch_for_user_id: seller._id.toString() })
+      request(app).post(`/api/v1/reference-checks/${refCheck._id}/vouch`).send({ vouch_for_user_id: seller._id.toString(), legal_consent_accepted: true }),
+      request(app).post(`/api/v1/reference-checks/${refCheck._id}/vouch`).send({ vouch_for_user_id: seller._id.toString(), legal_consent_accepted: true })
     ]);
 
     const fulfilled = results.filter(r => r.status === 'fulfilled') as any[];
@@ -267,7 +269,7 @@ describe('Load Burst Integration', () => {
     for (const check of checks) {
       const res = await request(app)
         .post(`/api/v1/reference-checks/${check._id}/vouch`)
-        .send({ vouch_for_user_id: check.target_id.toString() });
+        .send({ vouch_for_user_id: check.target_id.toString(), legal_consent_accepted: true });
       results.push(res);
     }
 

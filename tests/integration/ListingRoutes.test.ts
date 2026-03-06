@@ -125,6 +125,7 @@ describe('Listing Routes', () => {
         thumbnail: 'https://example.com/thumb.jpg',
         contents: 'box_papers',
         shipping: [{ region: 'US', shippingIncluded: true, shippingCost: 0 }],
+        reservation_terms: 'All sales final. Payment due within 48 hours.',
         title: 'Modern Classic'
       });
 

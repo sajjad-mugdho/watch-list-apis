@@ -248,6 +248,7 @@ export async function fetchAndSyncLocalUser(input: {
   dialist_id?: string;
 }): Promise<ValidatedUserClaims> {
   const { dialist_id, external_id } = input;
+
   
   let user: IUser | null = null;
   
