@@ -119,7 +119,7 @@ describe("Marketplace Listing Creation", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error.message).toContain(
-        "Only approved merchants can create marketplace listings"
+        "Only approved merchants can create marketplace listings",
       );
     });
 
@@ -146,7 +146,7 @@ describe("Marketplace Listing Creation", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error.message).toContain(
-        "Only approved merchants can create marketplace listings"
+        "Only approved merchants can create marketplace listings",
       );
     });
 
@@ -173,7 +173,7 @@ describe("Marketplace Listing Creation", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error.message).toContain(
-        "Only approved merchants can create marketplace listings"
+        "Only approved merchants can create marketplace listings",
       );
     });
 

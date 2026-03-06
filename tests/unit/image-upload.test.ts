@@ -140,7 +140,7 @@ describe("Image Upload Endpoints", () => {
       ];
 
       (imageService.uploadImages as jest.Mock).mockResolvedValue(
-        mockImageMetadata
+        mockImageMetadata,
       );
 
       const response = await request(app)

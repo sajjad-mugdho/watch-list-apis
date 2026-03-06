@@ -23,13 +23,13 @@ export interface IOffer {
   buyer_id: Types.ObjectId;
   seller_id: Types.ObjectId;
   platform: "marketplace" | "networks";
-  
+
   getstream_channel_id?: string;
   state: OfferState;
   expires_at: Date;
-  
+
   active_revision_id?: Types.ObjectId;
-  
+
   listing_snapshot?: {
     brand: string;
     model: string;
@@ -38,7 +38,7 @@ export interface IOffer {
     condition?: string;
     thumbnail?: string;
   };
-  
+
   createdAt: Date;
   updatedAt: Date;
 
@@ -53,7 +53,11 @@ export interface IOffer {
 
 export interface IOfferModel extends Model<IOffer> {
   findExpiredOffers(platform?: string): Promise<IOffer[]>;
-  findActiveByListingAndBuyer(listingId: string, buyerId: string, platform: string): Promise<IOffer | null>;
+  findActiveByListingAndBuyer(
+    listingId: string,
+    buyerId: string,
+    platform: string,
+  ): Promise<IOffer | null>;
 }
 
 // ----------------------------------------------------------
@@ -63,16 +67,36 @@ const offerSchema = new Schema<IOffer>(
   {
     listing_id: { type: Schema.Types.ObjectId, required: true, index: true },
     channel_id: { type: Schema.Types.ObjectId, required: true, index: true },
-    buyer_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    seller_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    platform: { type: String, enum: ["marketplace", "networks"], required: true, index: true },
-    
+    buyer_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    seller_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    platform: {
+      type: String,
+      enum: ["marketplace", "networks"],
+      required: true,
+      index: true,
+    },
+
     getstream_channel_id: { type: String, index: true },
-    state: { type: String, enum: OFFER_STATE_VALUES, default: "CREATED", index: true },
+    state: {
+      type: String,
+      enum: OFFER_STATE_VALUES,
+      default: "CREATED",
+      index: true,
+    },
     expires_at: { type: Date, required: true, index: true },
-    
+
     active_revision_id: { type: Schema.Types.ObjectId, ref: "OfferRevision" },
-    
+
     listing_snapshot: {
       brand: { type: String },
       model: { type: String },
@@ -82,18 +106,24 @@ const offerSchema = new Schema<IOffer>(
       thumbnail: { type: String },
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Prevent multiple active offers between the same buyer and seller for the same listing
 offerSchema.index(
   { listing_id: 1, buyer_id: 1, seller_id: 1 },
-  { unique: true, partialFilterExpression: { state: { $in: ["CREATED", "COUNTERED"] } } }
+  {
+    unique: true,
+    partialFilterExpression: { state: { $in: ["CREATED", "COUNTERED"] } },
+  },
 );
 
 // Methods
 offerSchema.methods.isActive = function (): boolean {
-  return (this.state === "CREATED" || this.state === "COUNTERED") && !this.isExpired();
+  return (
+    (this.state === "CREATED" || this.state === "COUNTERED") &&
+    !this.isExpired()
+  );
 };
 
 offerSchema.methods.isExpired = function (): boolean {
@@ -114,7 +144,11 @@ offerSchema.statics.findExpiredOffers = function (platform?: string) {
   return this.find(query);
 };
 
-offerSchema.statics.findActiveByListingAndBuyer = function (listingId: string, buyerId: string, platform: string) {
+offerSchema.statics.findActiveByListingAndBuyer = function (
+  listingId: string,
+  buyerId: string,
+  platform: string,
+) {
   return this.findOne({
     listing_id: listingId,
     buyer_id: buyerId,
@@ -123,4 +157,8 @@ offerSchema.statics.findActiveByListingAndBuyer = function (listingId: string, b
   });
 };
 
-export const Offer = mongoose.model<IOffer, IOfferModel>("Offer", offerSchema, "offers");
+export const Offer = mongoose.model<IOffer, IOfferModel>(
+  "Offer",
+  offerSchema,
+  "offers",
+);

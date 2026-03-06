@@ -125,7 +125,7 @@ export const reserveListing = async (
     // Create order with snapshot of listing data
     const order = await Order.create({
       listing_id: listing._id,
-      listing_type: 'MarketplaceListing',
+      listing_type: "MarketplaceListing",
       buyer_id: buyer_user_id,
       seller_id: listing.dialist_id, // ✅ Use dialist_id, not seller_user_id
       listing_snapshot: {

@@ -463,7 +463,8 @@ export class OfferService {
             order: {
               channel_id: offer.channel_id,
               reserved_at: new Date(),
-              buyer_name: (channelSnapshot as any)?.buyer_snapshot?.name || "Buyer",
+              buyer_name:
+                (channelSnapshot as any)?.buyer_snapshot?.name || "Buyer",
               buyer_id: offer.buyer_id,
             },
           },
@@ -481,9 +482,11 @@ export class OfferService {
         listing_snapshot: {
           brand: (channelSnapshot as any)?.listing_snapshot?.brand || "",
           model: (channelSnapshot as any)?.listing_snapshot?.model || "",
-          reference: (channelSnapshot as any)?.listing_snapshot?.reference || "",
+          reference:
+            (channelSnapshot as any)?.listing_snapshot?.reference || "",
           price:
-            (channelSnapshot as any)?.listing_snapshot?.price || latestRevision.amount,
+            (channelSnapshot as any)?.listing_snapshot?.price ||
+            latestRevision.amount,
         },
         buyer_id: offer.buyer_id,
         seller_id: offer.seller_id,

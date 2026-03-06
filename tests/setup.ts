@@ -214,12 +214,16 @@ jest.mock("../src/utils/user", () => {
           let onboarding_state: string | undefined = undefined;
           try {
             const MerchantOnboarding = mongoose.model("MerchantOnboarding");
-            const mo = await MerchantOnboarding.findOne({ dialist_user_id: user._id });
+            const mo = await MerchantOnboarding.findOne({
+              dialist_user_id: user._id,
+            });
             if (mo) {
               isMerchant = mo.onboarding_state === "APPROVED";
               onboarding_state = mo.onboarding_state;
             }
-          } catch (_e) { /* ignore */ }
+          } catch (_e) {
+            /* ignore */
+          }
 
           return {
             dialist_id: user._id.toString(),

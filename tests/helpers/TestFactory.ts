@@ -1,14 +1,19 @@
-import { Types } from 'mongoose';
-import { User, IUser } from '../../src/models/User';
-import { Watch, IWatch } from '../../src/models/Watches';
-import { MarketplaceListing, NetworkListing, IMarketplaceListing, INetworkListing } from '../../src/models/Listings';
-import { Subscription, ISubscription } from '../../src/models/Subscription';
-import { ISO, IISO } from '../../src/models/ISO';
-import { Order, IOrder } from '../../src/models/Order';
+import { Types } from "mongoose";
+import { User, IUser } from "../../src/models/User";
+import { Watch, IWatch } from "../../src/models/Watches";
+import {
+  MarketplaceListing,
+  NetworkListing,
+  IMarketplaceListing,
+  INetworkListing,
+} from "../../src/models/Listings";
+import { Subscription, ISubscription } from "../../src/models/Subscription";
+import { ISO, IISO } from "../../src/models/ISO";
+import { Order, IOrder } from "../../src/models/Order";
 
 /**
  * TestFactory
- * 
+ *
  * Centralized utility for generating mock data for integration/E2E tests.
  */
 export class TestFactory {
@@ -18,34 +23,34 @@ export class TestFactory {
   static async createMockUser(overrides: Partial<IUser> = {}): Promise<IUser> {
     const defaultUser = {
       external_id: `user_${Date.now()}_${Math.random().toString(36).substring(7)}`,
-      first_name: 'Test',
-      last_name: 'User',
+      first_name: "Test",
+      last_name: "User",
       email: `test_${Date.now()}@example.com`,
       location: {
-        country: 'US',
-        region: 'California',
-        postal_code: '94102',
+        country: "US",
+        region: "California",
+        postal_code: "94102",
       },
-      display_name: overrides.display_name || 'Test User',
+      display_name: overrides.display_name || "Test User",
       onboarding: {
-        status: 'completed',
-        version: '1.0',
+        status: "completed",
+        version: "1.0",
         steps: {
           location: {
-            country: 'US',
-            postal_code: '94102',
-            region: 'California',
+            country: "US",
+            postal_code: "94102",
+            region: "California",
             updated_at: new Date(),
           },
           display_name: {
             confirmed: true,
-            value: 'Test User',
+            value: "Test User",
             user_provided: true,
             updated_at: new Date(),
           },
           avatar: {
             confirmed: true,
-            url: 'https://example.com/avatar.jpg',
+            url: "https://example.com/avatar.jpg",
             user_provided: true,
             updated_at: new Date(),
           },
@@ -66,40 +71,44 @@ export class TestFactory {
   /**
    * Create a mock Marketplace Listing
    */
-  static async createMarketplaceListing(userId: string | Types.ObjectId, overrides: Partial<IMarketplaceListing> = {}): Promise<IMarketplaceListing> {
-    const dialist_id = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
-    
+  static async createMarketplaceListing(
+    userId: string | Types.ObjectId,
+    overrides: Partial<IMarketplaceListing> = {},
+  ): Promise<IMarketplaceListing> {
+    const dialist_id =
+      typeof userId === "string" ? new Types.ObjectId(userId) : userId;
+
     const defaultListing = {
       dialist_id,
       clerk_id: overrides.clerk_id || `clerk_${dialist_id}`,
       watch_id: new Types.ObjectId(),
-      title: 'Rolex Submariner',
-      status: 'active',
-      brand: 'Rolex',
-      model: 'Submariner',
-      reference: '126610LN',
-      diameter: '41mm',
-      bezel: 'Ceramic',
-      materials: 'Steel',
-      bracelet: 'Oyster',
+      title: "Rolex Submariner",
+      status: "active",
+      brand: "Rolex",
+      model: "Submariner",
+      reference: "126610LN",
+      diameter: "41mm",
+      bezel: "Ceramic",
+      materials: "Steel",
+      bracelet: "Oyster",
       price: 1500000, // $15,000.00
-      condition: 'new',
+      condition: "new",
       author: {
         _id: dialist_id,
-        name: 'Test User',
+        name: "Test User",
       },
-      ships_from: { country: 'US', region: 'California' },
+      ships_from: { country: "US", region: "California" },
       watch_snapshot: {
-        brand: 'Rolex',
-        model: 'Submariner',
-        reference: '126610LN',
-        diameter: '41mm',
-        bezel: 'Ceramic',
-        materials: 'Steel',
-        bracelet: 'Oyster',
+        brand: "Rolex",
+        model: "Submariner",
+        reference: "126610LN",
+        diameter: "41mm",
+        bezel: "Ceramic",
+        materials: "Steel",
+        bracelet: "Oyster",
       },
-      images: ['https://example.com/img1.jpg'],
-      thumbnail: 'https://example.com/thumb.jpg',
+      images: ["https://example.com/img1.jpg"],
+      thumbnail: "https://example.com/thumb.jpg",
       ...overrides,
     };
 
@@ -109,14 +118,18 @@ export class TestFactory {
   /**
    * Create a mock Subscription
    */
-  static async createSubscription(userId: string | Types.ObjectId, overrides: Partial<ISubscription> = {}): Promise<ISubscription> {
-    const dialist_id = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
+  static async createSubscription(
+    userId: string | Types.ObjectId,
+    overrides: Partial<ISubscription> = {},
+  ): Promise<ISubscription> {
+    const dialist_id =
+      typeof userId === "string" ? new Types.ObjectId(userId) : userId;
 
     const defaultSubscription = {
       user_id: dialist_id,
       clerk_id: overrides.clerk_id || `clerk_${dialist_id}`,
-      tier: 'free',
-      status: 'active',
+      tier: "free",
+      status: "active",
       price_cents: 0,
       current_period_start: new Date(),
       current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
@@ -131,14 +144,14 @@ export class TestFactory {
    */
   static async createWatch(overrides: Partial<IWatch> = {}): Promise<IWatch> {
     const defaultWatch = {
-      brand: 'Rolex',
-      model: 'Submariner',
-      reference: '126610LN',
-      diameter: '41mm',
-      bezel: 'Ceramic',
-      materials: 'Steel',
-      bracelet: 'Oyster',
-      category: 'Luxury',
+      brand: "Rolex",
+      model: "Submariner",
+      reference: "126610LN",
+      diameter: "41mm",
+      bezel: "Ceramic",
+      materials: "Steel",
+      bracelet: "Oyster",
+      category: "Luxury",
       ...overrides,
     };
 
@@ -148,29 +161,33 @@ export class TestFactory {
   /**
    * Create a mock Network Listing
    */
-  static async createNetworkListing(userId: string | Types.ObjectId, overrides: Partial<INetworkListing> = {}): Promise<INetworkListing> {
-    const dialist_id = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
-    
+  static async createNetworkListing(
+    userId: string | Types.ObjectId,
+    overrides: Partial<INetworkListing> = {},
+  ): Promise<INetworkListing> {
+    const dialist_id =
+      typeof userId === "string" ? new Types.ObjectId(userId) : userId;
+
     const defaultListing = {
       dialist_id,
       clerk_id: overrides.clerk_id || `clerk_${dialist_id}`,
       watch_id: new Types.ObjectId(),
-      title: `${overrides.brand || 'Rolex'} ${overrides.model || 'Submariner'}`,
-      status: 'active',
-      brand: 'Rolex',
-      model: 'Submariner',
-      reference: '126610LN',
-      diameter: '41mm',
-      bezel: 'Ceramic',
-      materials: 'Steel',
-      bracelet: 'Oyster',
+      title: `${overrides.brand || "Rolex"} ${overrides.model || "Submariner"}`,
+      status: "active",
+      brand: "Rolex",
+      model: "Submariner",
+      reference: "126610LN",
+      diameter: "41mm",
+      bezel: "Ceramic",
+      materials: "Steel",
+      bracelet: "Oyster",
       price: 1500000,
-      condition: 'new',
+      condition: "new",
       author: {
         _id: dialist_id,
-        name: 'Test User',
+        name: "Test User",
       },
-      ships_from: { country: 'US' },
+      ships_from: { country: "US" },
       ...overrides,
     };
 
@@ -180,15 +197,19 @@ export class TestFactory {
   /**
    * Create a mock ISO
    */
-  static async createISO(userId: string | Types.ObjectId, overrides: Partial<IISO> = {}): Promise<IISO> {
-    const dialist_id = typeof userId === 'string' ? new Types.ObjectId(userId) : userId;
-    
+  static async createISO(
+    userId: string | Types.ObjectId,
+    overrides: Partial<IISO> = {},
+  ): Promise<IISO> {
+    const dialist_id =
+      typeof userId === "string" ? new Types.ObjectId(userId) : userId;
+
     const defaultISO = {
       user_id: dialist_id,
       clerk_id: overrides.clerk_id || `clerk_${dialist_id}`,
-      title: 'Looking for GMT Master II',
-      status: 'active',
-      urgency: 'medium',
+      title: "Looking for GMT Master II",
+      status: "active",
+      urgency: "medium",
       is_public: true,
       ...overrides,
     };
@@ -199,24 +220,30 @@ export class TestFactory {
   /**
    * Create a mock Order
    */
-  static async createOrder(buyerId: string | Types.ObjectId, sellerId: string | Types.ObjectId, overrides: Partial<IOrder> = {}): Promise<IOrder> {
-    const buyer_id = typeof buyerId === 'string' ? new Types.ObjectId(buyerId) : buyerId;
-    const seller_id = typeof sellerId === 'string' ? new Types.ObjectId(sellerId) : sellerId;
-    
+  static async createOrder(
+    buyerId: string | Types.ObjectId,
+    sellerId: string | Types.ObjectId,
+    overrides: Partial<IOrder> = {},
+  ): Promise<IOrder> {
+    const buyer_id =
+      typeof buyerId === "string" ? new Types.ObjectId(buyerId) : buyerId;
+    const seller_id =
+      typeof sellerId === "string" ? new Types.ObjectId(sellerId) : sellerId;
+
     const defaultOrder = {
-      listing_type: 'MarketplaceListing',
+      listing_type: "MarketplaceListing",
       listing_id: new Types.ObjectId(),
       buyer_id,
       seller_id,
       amount: 1500000,
-      currency: 'USD',
-      status: 'reserved',
+      currency: "USD",
+      status: "reserved",
       channel_id: new Types.ObjectId(),
-      channel_type: 'MarketplaceListingChannel' as const,
+      channel_type: "MarketplaceListingChannel" as const,
       listing_snapshot: {
-        brand: 'Rolex',
-        model: 'Submariner',
-        reference: '126610LN',
+        brand: "Rolex",
+        model: "Submariner",
+        reference: "126610LN",
         price: 1500000,
       },
       ...overrides,

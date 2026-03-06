@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { NetworkListing } from "../../models/Listings";
-  
+
 /**
  * Discovery: Popular Brands
  * GET /v1/networks/brands/popular
@@ -8,7 +8,7 @@ import { NetworkListing } from "../../models/Listings";
 export const getPopularBrands = async (
   _req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     // Aggregate brands from active listings
@@ -17,11 +17,11 @@ export const getPopularBrands = async (
       { $group: { _id: "$brand", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 10 },
-      { $project: { name: "$_id", count: 1, _id: 0 } }
+      { $project: { name: "$_id", count: 1, _id: 0 } },
     ]);
 
     res.json({
-      data: popularBrands
+      data: popularBrands,
     });
   } catch (err) {
     next(err);

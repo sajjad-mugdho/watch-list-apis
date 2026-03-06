@@ -54,7 +54,7 @@ app.use(
       includeSubDomains: true,
       preload: true,
     },
-  })
+  }),
 );
 
 // API Documentation (before other middleware to avoid authentication on docs)
@@ -67,7 +67,7 @@ app.use(
     swaggerOptions: {
       persistAuthorization: true,
     },
-  })
+  }),
 );
 
 // CORS - Conditional based on environment
@@ -77,22 +77,24 @@ app.use(
       process.env.NODE_ENV === "development"
         ? true // Allow all origins in development
         : process.env.ALLOWED_ORIGINS &&
-          process.env.ALLOWED_ORIGINS.trim().length > 0
-        ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
-        : [
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "https://localhost:3000",
-            "https://localhost:3001",
-            "http://mackerel-needed-frequently.ngrok-free.app",
-            "https://mackerel-needed-frequently.ngrok-free.app",
-            "http://unappliable-darcey-projectively.ngrok-free.dev",
-            "https://unappliable-darcey-projectively.ngrok-free.dev",
-          ],
+            process.env.ALLOWED_ORIGINS.trim().length > 0
+          ? process.env.ALLOWED_ORIGINS.split(",").map((origin) =>
+              origin.trim(),
+            )
+          : [
+              "http://localhost:3000",
+              "http://localhost:3001",
+              "https://localhost:3000",
+              "https://localhost:3001",
+              "http://mackerel-needed-frequently.ngrok-free.app",
+              "https://mackerel-needed-frequently.ngrok-free.app",
+              "http://unappliable-darcey-projectively.ngrok-free.dev",
+              "https://unappliable-darcey-projectively.ngrok-free.dev",
+            ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
-  })
+  }),
 );
 
 // Operational middleware
@@ -109,7 +111,7 @@ app.use(
       req.rawBody = buf.toString("utf8");
     },
   }),
-  webhooksRoutes
+  webhooksRoutes,
 );
 
 app.use(
@@ -117,14 +119,14 @@ app.use(
     limit: "1mb",
     strict: true,
     type: "application/json",
-  })
+  }),
 );
 app.use(
   express.urlencoded({
     extended: true,
     limit: "1mb",
     parameterLimit: 20,
-  })
+  }),
 );
 
 app.disable("x-powered-by");
