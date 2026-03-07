@@ -164,7 +164,13 @@ export const getConversationMedia = async (
     }
 
     const { id } = req.params;
-    const VALID_MEDIA_TYPES = ["image", "video", "file", "url_enrichment", "all"] as const;
+    const VALID_MEDIA_TYPES = [
+      "image",
+      "video",
+      "file",
+      "url_enrichment",
+      "all",
+    ] as const;
     const rawType = req.query.type as string;
     const type = (
       VALID_MEDIA_TYPES.includes(rawType as any) ? rawType : "all"

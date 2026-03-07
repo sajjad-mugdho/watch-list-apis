@@ -56,11 +56,11 @@ const SocialGroupSchema = new Schema<ISocialGroup>(
       type: String,
       sparse: true,
       unique: true,
-    }
+    },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Transform for JSON
@@ -75,7 +75,7 @@ SocialGroupSchema.set("toJSON", {
 export const SocialGroup = mongoose.model<ISocialGroup>(
   "SocialGroup",
   SocialGroupSchema,
-  "social_groups"
+  "social_groups",
 );
 
 export default SocialGroup;

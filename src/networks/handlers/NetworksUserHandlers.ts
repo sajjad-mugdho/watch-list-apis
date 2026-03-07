@@ -473,7 +473,12 @@ export const networks_user_unblock = async (
  * GET /api/v1/networks/users/:id/references
  */
 export const networks_user_references_get = async (
-  req: Request<{ id: string }, {}, {}, { role?: string; limit?: string; offset?: string }>,
+  req: Request<
+    { id: string },
+    {},
+    {},
+    { role?: string; limit?: string; offset?: string }
+  >,
   res: Response<ApiResponse<any>>,
   next: NextFunction,
 ): Promise<void> => {
