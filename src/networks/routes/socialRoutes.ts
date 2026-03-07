@@ -59,6 +59,24 @@ router.get("/chat-profile/:userId", hubHandlers.social_chat_profile_get);
 /**
  * @swagger
  * /api/v1/networks/social/groups:
+ *   get:
+ *     summary: List public groups and groups the current user belongs to
+ *     tags: [Social Hub | Groups]
+ */
+router.get("/groups", groupHandlers.social_group_get_all);
+
+/**
+ * @swagger
+ * /api/v1/networks/social/groups/{id}:
+ *   get:
+ *     summary: Get a single social group
+ *     tags: [Social Hub | Groups]
+ */
+router.get("/groups/:id", groupHandlers.social_group_get);
+
+/**
+ * @swagger
+ * /api/v1/networks/social/groups:
  *   post:
  *     summary: Create a social group
  *     tags: [Social Hub | Groups]

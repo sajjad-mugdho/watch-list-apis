@@ -8,8 +8,10 @@ import {
   networks_user_report,
   networks_user_blocks_get,
   networks_user_unblock,
+  networks_user_references_get,
 } from "../handlers/NetworksUserHandlers";
 import { networks_dashboard_stats_get } from "../handlers/NetworksDashboardHandlers";
+import { social_common_groups_get } from "../handlers/SocialHubHandlers";
 import {
   getUserInventorySchema,
   getUserPublicProfileSchema,
@@ -55,5 +57,8 @@ router.post(
   validateRequest(createReportSchema),
   networks_user_report as any,
 );
+
+router.get("/:id/common-groups", social_common_groups_get as any);
+router.get("/:id/references", networks_user_references_get as any);
 
 export default router;

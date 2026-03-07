@@ -7,10 +7,10 @@ import {
   NotFoundError,
 } from "../../utils/errors";
 import { ChatMessage } from "../../models/ChatMessage";
-import { SocialGroup } from "../../models/SocialGroup";
-import { SocialGroupMember } from "../../models/SocialGroupMember";
+import { SocialGroup } from "../models/SocialGroup";
+import { SocialGroupMember } from "../models/SocialGroupMember";
 import { User } from "../../models/User";
-import { NetworkListingChannel } from "../../models/ListingChannel";
+import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
 import { Order } from "../../models/Order";
 import { Vouch } from "../../models/Vouch";
@@ -242,7 +242,7 @@ async function getStreamChannelIds(
     const networksChannels = await NetworkListingChannel.find({
       $or: [{ buyer_id: uid }, { seller_id: uid }],
     })
-      .select("stream_chat_channel_id")
+      .select("getstream_channel_id")
       .lean();
 
     // 2. Get social groups user belongs to
@@ -251,7 +251,7 @@ async function getStreamChannelIds(
       .lean();
 
     const channelIds: string[] = [
-      ...networksChannels.map((c) => (c as any).stream_chat_channel_id),
+      ...networksChannels.map((c) => (c as any).getstream_channel_id),
       ...groupMemberships
         .map((m: any) => m.group_id?.getstream_channel_id)
         .filter(Boolean),
@@ -576,6 +576,47 @@ export const social_conversation_events_get = async (
 
     res.json({
       data: events,
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get groups shared between the current user and another user
+ * GET /api/v1/networks/users/:id/common-groups
+ */
+export const social_common_groups_get = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const myId = (req as any).user.dialist_id;
+    const { id: userId } = req.params;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      throw new ValidationError("Invalid user ID");
+    }
+
+    const [myGroups, theirGroups] = await Promise.all([
+      SocialGroupMember.find({ user_id: myId }).select("group_id").lean(),
+      SocialGroupMember.find({ user_id: userId }).select("group_id").lean(),
+    ]);
+
+    const myGroupIds = new Set(myGroups.map((g) => g.group_id.toString()));
+    const commonGroupIds = theirGroups
+      .map((g) => g.group_id.toString())
+      .filter((id) => myGroupIds.has(id));
+
+    const groups = await SocialGroup.find({ _id: { $in: commonGroupIds } })
+      .limit(20)
+      .lean();
+
+    res.json({
+      data: groups,
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err) {

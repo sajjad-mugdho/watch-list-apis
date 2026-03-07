@@ -15,10 +15,10 @@ import {
   UpdateListingStatusInput,
   DeleteListingInput,
 } from "../../validation/schemas";
-import { INetworkListing, NetworkListing } from "../../models/Listings";
+import { INetworkListing, NetworkListing } from "../models/NetworkListing";
 
 import { Watch } from "../../models/Watches";
-import { NetworkListingChannel } from "../../models/ListingChannel";
+import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { ExtractWatchSpecData } from "../../utils/watchDataExtraction";
 import { validateListingCompleteness } from "../../utils/listingValidation";
 import {
@@ -514,17 +514,14 @@ export const networks_listing_delete = async (
       throw new AuthorizationError("Not authorized to delete this listing", {});
     }
 
-    // BLOCK Deletion if active binding counter-offer exists
-    const hasBindingOffer = await NetworkListingChannel.findOne({
+    // BLOCK Deletion if any active channel (ongoing negotiation/offer) exists
+    const hasActiveChannel = await NetworkListingChannel.findOne({
       listing_id: id,
       status: "open",
-      "last_offer.offer_type": "counter",
-      "last_offer.status": "sent",
-      "last_offer.expiresAt": { $gt: new Date() },
     });
-    if (hasBindingOffer) {
+    if (hasActiveChannel) {
       throw new ValidationError(
-        "Cannot delete listing while a binding counter-offer is active (24h period)",
+        "Cannot delete listing while there is an active offer or negotiation",
       );
     }
 
@@ -634,7 +631,7 @@ export const networks_listing_get = async (
     const userId = (req as any).user?.dialist_id;
 
     const listing = await NetworkListing.findById(id);
-    if (!listing) {
+    if (!listing || listing.is_deleted) {
       throw new NotFoundError("Listing not found");
     }
 

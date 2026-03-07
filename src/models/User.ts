@@ -13,7 +13,7 @@ function locationByGranularity(
     city?: string;
     postal_code?: string;
   },
-  mode: "country" | "country_region" | "city" | "full" = "country_region"
+  mode: "country" | "country_region" | "city" | "full" = "country_region",
 ) {
   const country = loc?.country ?? "";
   const region = loc?.region ?? "";
@@ -219,26 +219,7 @@ export interface IUser extends Document {
   networks_display_location?: string;
 }
 
-export interface IUserModel extends Model<IUser> {
-  getMarketplaceProfile(id: string): Promise<{
-    _id: string;
-    display_name: string | null;
-    location: string;
-    avatar?: string | undefined;
-    stats?: {
-      avg_rating: number;
-      rating_count: number;
-      follower_count: number;
-    };
-  } | null>;
-
-  getNetworksProfile(id: string): Promise<{
-    _id: string;
-    display_name: string | null;
-    location: string;
-    avatar?: string | undefined;
-  } | null>;
-}
+export interface IUserModel extends Model<IUser> {}
 
 // ----------------------------------------------------------
 // Schemas
@@ -255,7 +236,7 @@ const OBLocationSchema = new Schema(
     currency: { type: String, trim: true, default: null },
     updated_at: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 const OBDisplayNameSchema = new Schema(
   {
@@ -264,7 +245,7 @@ const OBDisplayNameSchema = new Schema(
     confirmed: { type: Boolean, default: false },
     updated_at: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 const OBAvatarSchema = new Schema(
   {
@@ -273,7 +254,7 @@ const OBAvatarSchema = new Schema(
     confirmed: { type: Boolean, default: false },
     updated_at: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 const OBAcksSchema = new Schema(
   {
@@ -282,7 +263,7 @@ const OBAcksSchema = new Schema(
     rules: { type: Boolean, default: false },
     updated_at: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Business Information Schema
@@ -295,7 +276,7 @@ const OBBusinessInfoSchema = new Schema(
     tax_id: { type: String, default: null, select: false }, // Encrypted, sensitive
     updated_at: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Personal Information Schema (for merchant verification)
@@ -310,7 +291,7 @@ const OBPersonalInfoSchema = new Schema(
     title: { type: String, default: null }, // Job title (e.g., "Owner", "CEO")
     updated_at: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const OnboardingSchema = new Schema(
@@ -333,7 +314,7 @@ const OnboardingSchema = new Schema(
     last_step: { type: String, default: null },
     completed_at: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 export const UserLocationSchema = new Schema<IUserLocation>(
@@ -347,7 +328,7 @@ export const UserLocationSchema = new Schema<IUserLocation>(
     time_zone: { type: String, required: false, trim: true },
     currency: { type: String, required: false, trim: true },
   },
-  { _id: false, timestamps: true }
+  { _id: false, timestamps: true },
 );
 
 const userSchema = new Schema<IUser>(
@@ -454,10 +435,12 @@ const userSchema = new Schema<IUser>(
     },
 
     // Wishlist of listings user wants to track
-    wishlist: [{
-      type: Schema.Types.ObjectId,
-      ref: 'NetworkListing',
-    }],
+    wishlist: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "NetworkListing",
+      },
+    ],
 
     // Cached stats (denormalized for performance)
     // Updated via ReviewService and FriendshipService
@@ -485,7 +468,7 @@ const userSchema = new Schema<IUser>(
   {
     strict: false, // per request
     timestamps: true,
-  }
+  },
 );
 
 // Transform _id to string in JSON responses
@@ -546,82 +529,6 @@ userSchema.virtual("isActive").get(function (this: any) {
 // Old implementation relied on user.merchant field which is being deprecated
 // New approach: await MerchantOnboarding.findOne({ dialist_user_id, onboarding_state: "APPROVED" })
 
-userSchema.statics.getMarketplaceProfile = async function (
-  this: Model<IUser>,
-  id: string
-) {
-  // NOTE: many fields in your schema are `select: false`, so we must include them explicitly.
-  const doc = await this.findOne({ _id: id, marketplace_published: true }) // <-- added condition
-    .select(
-      [
-        "_id",
-        "avatar",
-        "display_name",
-        "first_name",
-        "last_name",
-
-        "marketplace_profile_config.location",
-        "marketplace_profile_config.show_name",
-
-        "location.country",
-        "location.region",
-        "location.city",
-        "location.postal_code",
-        "stats",
-      ].join(" ")
-    )
-    .lean({ virtuals: true });
-  if (!doc) return null;
-  // Virtuals available on the lean doc now:
-  const location = (doc as any).marketplace_display_location ?? "";
-  return {
-    _id: String(doc._id),
-    location, // computed by virtual based on granularity
-    display_name: doc.display_name,
-    avatar: (doc as any).avatar,
-    stats: {
-      avg_rating: doc.stats?.avg_rating || 0,
-      rating_count: doc.stats?.rating_count || 0,
-      follower_count: doc.stats?.follower_count || 0,
-    },
-  };
-};
-userSchema.statics.getNetworksProfile = async function (
-  this: Model<IUser>,
-  id: string
-) {
-  // NOTE: many fields in your schema are `select: false`, so we must include them explicitly.
-  const doc = await this.findOne({ _id: id, networks_published: true }) // <-- added condition
-    .select(
-      [
-        "_id",
-        "avatar",
-        "display_name",
-        "first_name",
-        "last_name",
-        "networks_profile_config.location",
-        "networks_profile_config.show_name",
-        "location.country",
-        "location.region",
-        "location.city",
-        "location.postal_code",
-      ].join(" ")
-    )
-    .lean({ virtuals: true });
-
-  if (!doc) return null;
-
-  // Virtuals available on the lean doc now:
-  const location = (doc as any).networks_display_location ?? "";
-
-  return {
-    _id: String(doc._id),
-    location,
-    display_name: doc.display_name,
-    avatar: (doc as any).avatar,
-  };
-};
-
 /** Guard: prevent writing onboarding once completed (except by admin paths). */
 
 /** Default: Auto set display_name based on first_name and last_name */
@@ -659,5 +566,5 @@ userSchema.plugin(mongooseLeanVirtuals);
 export const User = mongoose.model<IUser, IUserModel>(
   "User",
   userSchema,
-  "users"
+  "users",
 );

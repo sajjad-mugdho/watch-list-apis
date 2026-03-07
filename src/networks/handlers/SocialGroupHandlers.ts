@@ -5,14 +5,11 @@ import {
   MissingUserContextError,
   NotFoundError,
   ValidationError,
-  } from "../../utils/errors";
-import { SocialGroup } from "../../models/SocialGroup";
-import { SocialGroupMember } from "../../models/SocialGroupMember";
+} from "../../utils/errors";
+import { SocialGroup } from "../models/SocialGroup";
+import { SocialGroupMember } from "../models/SocialGroupMember";
 import { chatService } from "../../services/ChatService";
-import {
-  CreateGroupInput,
-  JoinGroupInput,
-} from "../../validation/schemas";
+import { CreateGroupInput, JoinGroupInput } from "../../validation/schemas";
 import mongoose from "mongoose";
 import logger from "../../utils/logger";
 
@@ -23,7 +20,7 @@ import logger from "../../utils/logger";
 export const social_group_create = async (
   req: Request<{}, {}, CreateGroupInput["body"]>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -44,7 +41,7 @@ export const social_group_create = async (
           member_count: members.length + 1,
         },
       ],
-      { session }
+      { session },
     );
 
     // 2. Add creator and initial members
@@ -68,7 +65,7 @@ export const social_group_create = async (
       await chatService.ensureConnected();
       const client = chatService.getClient();
       const channelId = `group_${group._id}`;
-      
+
       const channel = client.channel("messaging", channelId, {
         name,
         image: avatar,
@@ -80,12 +77,15 @@ export const social_group_create = async (
       } as any);
 
       await channel.create();
-      
+
       // Update group with stream ID
       group.getstream_channel_id = channelId;
       await group.save({ session });
     } catch (chatError) {
-      logger.error("Failed to create GetStream channel for group", { chatError, groupId: group._id });
+      logger.error("Failed to create GetStream channel for group", {
+        chatError,
+        groupId: group._id,
+      });
       // We continue since DB is source of truth, but this might need manual sync
     }
 
@@ -110,7 +110,7 @@ export const social_group_create = async (
 export const social_group_join = async (
   req: Request<JoinGroupInput["params"]>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -120,15 +120,17 @@ export const social_group_join = async (
     const group = await SocialGroup.findById(group_id);
     if (!group) throw new NotFoundError("Social group not found");
 
-    if (group.is_private) {
-      throw new ValidationError("Cannot join a private group without an invite");
+    if (group.privacy !== "public") {
+      throw new ValidationError(
+        "Cannot join a private group without an invite",
+      );
     }
 
     // Add member in DB
     await SocialGroupMember.findOneAndUpdate(
       { group_id, user_id: userId },
       { group_id, user_id: userId, role: "member" },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Update member count
@@ -144,7 +146,11 @@ export const social_group_join = async (
         await channel.addMembers([String(userId)]);
       }
     } catch (chatError) {
-      logger.error("Failed to add member to GetStream channel", { chatError, group_id, userId });
+      logger.error("Failed to add member to GetStream channel", {
+        chatError,
+        group_id,
+        userId,
+      });
     }
 
     res.json({
@@ -163,7 +169,7 @@ export const social_group_join = async (
 export const social_group_leave = async (
   req: Request<JoinGroupInput["params"]>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -173,7 +179,10 @@ export const social_group_leave = async (
     const group = await SocialGroup.findById(group_id);
     if (!group) throw new NotFoundError("Social group not found");
 
-    const membership = await SocialGroupMember.findOne({ group_id, user_id: userId });
+    const membership = await SocialGroupMember.findOne({
+      group_id,
+      user_id: userId,
+    });
     if (!membership) throw new NotFoundError("Not a member of this group");
 
     if (membership.role === "admin") {
@@ -190,7 +199,9 @@ export const social_group_leave = async (
         });
 
         if (otherMembers > 0) {
-          throw new ValidationError("You are the last admin. Please transfer ownership or promote another member before leaving.");
+          throw new ValidationError(
+            "You are the last admin. Please transfer ownership or promote another member before leaving.",
+          );
         }
       }
     }
@@ -210,7 +221,11 @@ export const social_group_leave = async (
         await channel.removeMembers([String(userId)]);
       }
     } catch (chatError) {
-      logger.error("Failed to remove member from GetStream channel", { chatError, group_id, userId });
+      logger.error("Failed to remove member from GetStream channel", {
+        chatError,
+        group_id,
+        userId,
+      });
     }
 
     res.json({
@@ -229,7 +244,7 @@ export const social_group_leave = async (
 export const social_group_members_add = async (
   req: Request<{ id: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -238,9 +253,18 @@ export const social_group_members_add = async (
     const { user_id } = req.body;
 
     // Verify requester is admin/mod
-    const requester = await SocialGroupMember.findOne({ group_id: id, user_id: adminId });
-    if (!requester || (requester.role !== "admin" && requester.role !== "moderator")) {
-      res.status(403).json({ error: { message: "Only admins or moderators can add members" }, requestId: req.headers["x-request-id"] as string });
+    const requester = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: adminId,
+    });
+    if (
+      !requester ||
+      (requester.role !== "admin" && requester.role !== "moderator")
+    ) {
+      res.status(403).json({
+        error: { message: "Only admins or moderators can add members" },
+        requestId: req.headers["x-request-id"] as string,
+      });
       return;
     }
 
@@ -250,10 +274,12 @@ export const social_group_members_add = async (
     await SocialGroupMember.findOneAndUpdate(
       { group_id: id, user_id },
       { group_id: id, user_id, role: "member" },
-      { upsert: true }
+      { upsert: true },
     );
 
-    group.member_count = await SocialGroupMember.countDocuments({ group_id: id });
+    group.member_count = await SocialGroupMember.countDocuments({
+      group_id: id,
+    });
     await group.save();
 
     // Stream sync
@@ -264,7 +290,10 @@ export const social_group_members_add = async (
       await channel.addMembers([String(user_id)]);
     }
 
-    res.json({ data: { success: true }, requestId: req.headers["x-request-id"] as string });
+    res.json({
+      data: { success: true },
+      requestId: req.headers["x-request-id"] as string,
+    });
   } catch (err) {
     next(err);
   }
@@ -277,7 +306,7 @@ export const social_group_members_add = async (
 export const social_group_members_remove = async (
   req: Request<{ id: string; userId: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -285,14 +314,26 @@ export const social_group_members_remove = async (
     const { id, userId } = req.params;
 
     if (String(adminId) === String(userId)) {
-      res.status(400).json({ error: { message: "Use leave endpoint to remove yourself" }, requestId: req.headers["x-request-id"] as string });
+      res.status(400).json({
+        error: { message: "Use leave endpoint to remove yourself" },
+        requestId: req.headers["x-request-id"] as string,
+      });
       return;
     }
 
     // Verify requester is admin/mod
-    const requester = await SocialGroupMember.findOne({ group_id: id, user_id: adminId });
-    if (!requester || (requester.role !== "admin" && requester.role !== "moderator")) {
-      res.status(403).json({ error: { message: "Only admins or moderators can remove members" }, requestId: req.headers["x-request-id"] as string });
+    const requester = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: adminId,
+    });
+    if (
+      !requester ||
+      (requester.role !== "admin" && requester.role !== "moderator")
+    ) {
+      res.status(403).json({
+        error: { message: "Only admins or moderators can remove members" },
+        requestId: req.headers["x-request-id"] as string,
+      });
       return;
     }
 
@@ -301,7 +342,9 @@ export const social_group_members_remove = async (
 
     await SocialGroupMember.findOneAndDelete({ group_id: id, user_id: userId });
 
-    group.member_count = await SocialGroupMember.countDocuments({ group_id: id });
+    group.member_count = await SocialGroupMember.countDocuments({
+      group_id: id,
+    });
     await group.save();
 
     // Stream sync
@@ -312,7 +355,10 @@ export const social_group_members_remove = async (
       await channel.removeMembers([String(userId)]);
     }
 
-    res.json({ data: { success: true }, requestId: req.headers["x-request-id"] as string });
+    res.json({
+      data: { success: true },
+      requestId: req.headers["x-request-id"] as string,
+    });
   } catch (err) {
     next(err);
   }
@@ -325,16 +371,22 @@ export const social_group_members_remove = async (
 export const social_group_mute = async (
   req: Request<{ id: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = (req as any).user.dialist_id;
     const { id } = req.params;
 
-    const membership = await SocialGroupMember.findOne({ group_id: id, user_id: userId });
+    const membership = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: userId,
+    });
     if (!membership) {
-      res.status(404).json({ error: { message: "Not a member of this group" }, requestId: req.headers["x-request-id"] as string });
+      res.status(404).json({
+        error: { message: "Not a member of this group" },
+        requestId: req.headers["x-request-id"] as string,
+      });
       return;
     }
 
@@ -354,7 +406,10 @@ export const social_group_mute = async (
       }
     }
 
-    res.json({ data: { muted: membership.muted }, requestId: req.headers["x-request-id"] as string });
+    res.json({
+      data: { muted: membership.muted },
+      requestId: req.headers["x-request-id"] as string,
+    });
   } catch (err) {
     next(err);
   }
@@ -367,7 +422,7 @@ export const social_group_mute = async (
 export const social_group_member_role_update = async (
   req: Request<{ id: string; userId: string }>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -379,19 +434,112 @@ export const social_group_member_role_update = async (
       throw new ValidationError("Invalid role");
     }
 
-    const requester = await SocialGroupMember.findOne({ group_id: id, user_id: adminId });
+    const requester = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: adminId,
+    });
     if (!requester || requester.role !== "admin") {
-      res.status(403).json({ error: { message: "Only admins can change roles" }, requestId: req.headers["x-request-id"] as string });
+      res.status(403).json({
+        error: { message: "Only admins can change roles" },
+        requestId: req.headers["x-request-id"] as string,
+      });
       return;
     }
 
-    const membership = await SocialGroupMember.findOne({ group_id: id, user_id: userId });
+    const membership = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: userId,
+    });
     if (!membership) throw new NotFoundError("Member not found");
 
     membership.role = role;
     await membership.save();
 
-    res.json({ data: { success: true, role: membership.role }, requestId: req.headers["x-request-id"] as string });
+    res.json({
+      data: { success: true, role: membership.role },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * List social groups (public + groups the current user belongs to)
+ * GET /api/v1/networks/social/groups
+ */
+export const social_group_get_all = async (
+  req: Request,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = (req as any).user.dialist_id;
+
+    const memberships = await SocialGroupMember.find({ user_id: userId })
+      .select("group_id")
+      .lean();
+    const memberGroupIds = memberships.map((m) => m.group_id);
+
+    const groups = await SocialGroup.find({
+      $or: [{ privacy: "public" }, { _id: { $in: memberGroupIds } }],
+    })
+      .sort({ member_count: -1, createdAt: -1 })
+      .lean();
+
+    res.json({
+      data: groups,
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get a single social group by ID
+ * GET /api/v1/networks/social/groups/:id
+ */
+export const social_group_get = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = (req as any).user.dialist_id;
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new ValidationError("Invalid group ID");
+    }
+
+    const group = await SocialGroup.findById(id).lean();
+    if (!group) throw new NotFoundError("Group");
+
+    if ((group as any).privacy !== "public") {
+      const membership = await SocialGroupMember.findOne({
+        group_id: id,
+        user_id: userId,
+      });
+      if (!membership) {
+        res.status(403).json({
+          error: { message: "This group is private" },
+          requestId: req.headers["x-request-id"] as string,
+        });
+        return;
+      }
+    }
+
+    const memberCount = await SocialGroupMember.countDocuments({
+      group_id: id,
+    });
+
+    res.json({
+      data: { ...group, member_count: memberCount },
+      requestId: req.headers["x-request-id"] as string,
+    });
   } catch (err) {
     next(err);
   }

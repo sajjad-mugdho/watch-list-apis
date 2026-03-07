@@ -5,7 +5,7 @@ import {
   CreateOnboardingFormParams,
 } from "../../utils/finix";
 import { User } from "../../models/User";
-import { MerchantOnboarding } from "../../models/MerchantOnboarding";
+import { MerchantOnboarding } from "../models/MerchantOnboarding";
 import { ApiResponse } from "../../types";
 import {
   DatabaseError,
@@ -37,7 +37,7 @@ export interface MerchantOnboardResponse {
 export const marketplace_merchant_onboard_post = async (
   req: Request,
   res: Response<ApiResponse<MerchantOnboardResponse>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -53,7 +53,7 @@ export const marketplace_merchant_onboard_post = async (
         "display_name",
         "email",
         "phone",
-      ].join(" ")
+      ].join(" "),
     );
 
     if (!user) {
@@ -63,7 +63,7 @@ export const marketplace_merchant_onboard_post = async (
     // ✅ Validate platform onboarding is complete
     if (user.onboarding.status !== "completed") {
       throw new ValidationError(
-        "Please complete platform onboarding before merchant registration"
+        "Please complete platform onboarding before merchant registration",
       );
     }
 
@@ -71,7 +71,7 @@ export const marketplace_merchant_onboard_post = async (
     const userLocation = user.onboarding.steps?.location?.country;
     if (!userLocation) {
       throw new ValidationError(
-        "User location is required for merchant onboarding. Please complete platform onboarding."
+        "User location is required for merchant onboarding. Please complete platform onboarding.",
       );
     }
 
@@ -104,7 +104,7 @@ export const marketplace_merchant_onboard_post = async (
         const { form_link, expires_at } = await createFormLink(
           existingOnboarding.form_id,
           undefined,
-          refreshId
+          refreshId,
         );
 
         existingOnboarding.last_form_link = form_link;
@@ -211,9 +211,8 @@ export const marketplace_merchant_onboard_post = async (
     const { idempotency_id: onboardIdempotency } = req.body as any;
     if (onboardIdempotency)
       onboardingParams.idempotencyKey = onboardIdempotency;
-    const { form_id, form_link, expires_at } = await createOnboardingForm(
-      onboardingParams
-    );
+    const { form_id, form_link, expires_at } =
+      await createOnboardingForm(onboardingParams);
 
     merchantLogger.info(`Creating MerchantOnboarding record`, {
       user_id: user._id.toString(),
@@ -263,7 +262,7 @@ export const marketplace_merchant_onboard_post = async (
       requestId: req.headers["x-request-id"],
     });
     next(
-      new DatabaseError("Failed to create merchant onboarding session", error)
+      new DatabaseError("Failed to create merchant onboarding session", error),
     );
   }
 };
@@ -275,7 +274,7 @@ export const marketplace_merchant_onboard_post = async (
 export const marketplace_merchant_status_get = async (
   req: Request,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -337,7 +336,7 @@ export const marketplace_merchant_status_get = async (
 export const marketplace_merchant_refresh_link_post = async (
   req: Request,
   res: Response<ApiResponse<{ onboarding_url: string; expires_at: string }>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -363,7 +362,7 @@ export const marketplace_merchant_refresh_link_post = async (
     const { form_link, expires_at } = await createFormLink(
       merchantOnboarding.form_id,
       undefined,
-      refreshId
+      refreshId,
     );
 
     // Update stored link

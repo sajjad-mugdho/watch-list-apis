@@ -2,9 +2,9 @@ import { Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import mongoose from "mongoose";
 import { Order } from "../../models/Order";
-import { MarketplaceListing } from "../../models/Listings";
+import { MarketplaceListing } from "../models/MarketplaceListing";
 import { User } from "../../models/User";
-import { RefundRequest } from "../../models/RefundRequest";
+import { RefundRequest } from "../models/RefundRequest";
 import { createAuditLog } from "../../models/AuditLog";
 import {
   NotFoundError,

@@ -11,6 +11,7 @@ import { chatService } from "../../services/ChatService";
 import { Order } from "../../models/Order";
 import { auditService } from "../../services/AuditService";
 import { vouchService } from "../../services/vouch/VouchService";
+import { Vouch } from "../../models/Vouch";
 import logger from "../../utils/logger";
 import { ApiResponse } from "../../types";
 import {
@@ -644,13 +645,23 @@ export const networks_reference_check_vouches_get = async (
     const check = await ReferenceCheck.findById(id);
     if (!check) throw new NotFoundError("Reference check not found");
 
-    const vouches = await vouchService.getVouchesForReferenceCheck(id);
-    const totalWeight = await vouchService.getTotalWeight(id);
+    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+    const offset = Math.max(parseInt(req.query.offset as string) || 0, 0);
+
+    const [vouches, total, totalWeight] = await Promise.all([
+      Vouch.find({ reference_check_id: id })
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .lean(),
+      vouchService.getVouchCount(id),
+      vouchService.getTotalWeight(id),
+    ]);
 
     const response: ApiResponse<any> = {
       data: vouches,
       requestId: getRequestId(req),
-      _metadata: { total_weight: totalWeight },
+      _metadata: { total, limit, offset, total_weight: totalWeight },
     };
     res.json(response);
   } catch (error: any) {

@@ -111,7 +111,7 @@ const offerSchema = new Schema<IOffer>(
 
 // Prevent multiple active offers between the same buyer and seller for the same listing
 offerSchema.index(
-  { listing_id: 1, buyer_id: 1, seller_id: 1 },
+  { listing_id: 1, buyer_id: 1, seller_id: 1, platform: 1 },
   {
     unique: true,
     partialFilterExpression: { state: { $in: ["CREATED", "COUNTERED"] } },

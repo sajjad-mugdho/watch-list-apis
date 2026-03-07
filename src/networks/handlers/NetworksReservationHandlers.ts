@@ -18,8 +18,8 @@ import { transitionListingStatus } from "../../utils/listingStatusMachine";
 import logger from "../../utils/logger";
 
 import { Notification } from "../../models/Notification";
-import { NetworkListingChannel } from "../../models/ListingChannel";
-import { NetworkListing } from "../../models/Listings";
+import { NetworkListingChannel } from "../models/NetworkListingChannel";
+import { NetworkListing } from "../models/NetworkListing";
 
 /**
  * Create a direct reservation (Buy Now)
@@ -70,14 +70,19 @@ export const networks_reservation_create = async (
     const shippingOption = listing.shipping?.find(
       (s) => s.region === shipping_region,
     );
+
+    // Reject if this listing has defined regions but the requested one isn't covered
+    if (!shippingOption && listing.shipping && listing.shipping.length > 0) {
+      throw new ValidationError(
+        `Shipping to "${shipping_region}" is not available for this listing`,
+      );
+    }
+
     const shippingCost = shippingOption
       ? shippingOption.shippingIncluded
         ? 0
         : shippingOption.shippingCost
       : 0;
-
-    // Note: If shipping_region is International but not explicitly in options,
-    // we might need fallback or error. For now, assuming UI only sends valid regions.
 
     // 4. Create Order (the Reservation)
     const expiresAt = new Date(Date.now() + 45 * 60 * 1000); // 45 minutes

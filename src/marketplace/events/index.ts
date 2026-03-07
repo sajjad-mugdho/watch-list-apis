@@ -1,5 +1,5 @@
 import { events } from "../../utils/events";
-import { MarketplaceListing } from "../../models/Listings";
+import { MarketplaceListing } from "../models/MarketplaceListing";
 import logger from "../../utils/logger";
 
 export function registerMarketplaceEventHandlers(): void {
@@ -13,7 +13,10 @@ export function registerMarketplaceEventHandlers(): void {
       });
       logger.debug("Marketplace updated listing engagement", { listingId });
     } catch (error) {
-      logger.error("Failed to update listing engagement in Marketplace", { error, listingId });
+      logger.error("Failed to update listing engagement in Marketplace", {
+        error,
+        listingId,
+      });
     }
   });
 

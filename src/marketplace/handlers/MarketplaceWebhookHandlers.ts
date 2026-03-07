@@ -5,7 +5,7 @@ import { verifyBasic, verifyFinixSignature } from "../../utils/finix";
 import { FinixEventSchema } from "../../validation/schemas";
 import logger from "../../utils/logger";
 import { WebhookEvent } from "../../models/WebhookEvent";
-import { FinixWebhookEvent } from "../../models/FinixWebhookEvent";
+import { FinixWebhookEvent } from "../models/FinixWebhookEvent";
 import webhookQueue from "../../queues/webhookQueue";
 import { webhookLogger, logWebhookEvent } from "../../utils/logger";
 

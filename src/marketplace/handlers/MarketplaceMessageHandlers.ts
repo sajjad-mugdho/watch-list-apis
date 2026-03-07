@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import { ChatMessage } from "../../models/ChatMessage";
-import { MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
+import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
 import { User } from "../../models/User";
 import { chatService } from "../../services/ChatService";
 import { marketplaceChannelService } from "../services/MarketplaceChannelService";
@@ -296,7 +296,9 @@ export const updateMessage =
       );
       if (
         !channelContext ||
-        !channelContext.parties.some((p: any) => p.clerk_id === auth.userId)
+        !channelContext.parties.some(
+          (p: any) => p.id === message.sender_id.toString(),
+        )
       ) {
         res.status(403).json({
           error: {
@@ -371,7 +373,9 @@ export const deleteMessage =
       );
       if (
         !channelContext ||
-        !channelContext.parties.some((p: any) => p.clerk_id === auth.userId)
+        !channelContext.parties.some(
+          (p: any) => p.id === message.sender_id.toString(),
+        )
       ) {
         res.status(403).json({
           error: {

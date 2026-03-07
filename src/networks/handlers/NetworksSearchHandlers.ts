@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { NetworkListing } from "../../models/Listings";
+import { NetworkListing } from "../models/NetworkListing";
 import { ISO } from "../../models/ISO";
 import { User } from "../../models/User";
 import { getUserId } from "../../middleware/attachUser";
@@ -14,23 +14,59 @@ import logger from "../../utils/logger";
 export const unifiedSearch = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const userId = getUserId(req);
-    const { q = "", type, limit = 20, offset = 0 } = req.query;
+    const {
+      q = "",
+      type,
+      limit = 20,
+      offset = 0,
+      brand,
+      condition,
+      category,
+      sort,
+      min_price,
+      max_price,
+    } = req.query;
     const query = String(q).trim();
-    const searchLimit = Number(limit);
+    const searchLimit = Math.min(Number(limit), 50);
     const searchOffset = Number(offset);
+
+    // Enforce minimum query length
+    if (query.length > 0 && query.length < 2) {
+      res
+        .status(400)
+        .json({ error: "Search query must be at least 2 characters" });
+      return;
+    }
+
+    // Determine sort order
+    let sortOrder: Record<string, 1 | -1>;
+    switch (String(sort)) {
+      case "priceAsc":
+        sortOrder = { price: 1 };
+        break;
+      case "priceDesc":
+        sortOrder = { price: -1 };
+        break;
+      case "newest":
+      default:
+        sortOrder = { createdAt: -1 };
+        break;
+    }
 
     // Save search history if query exists
     if (query) {
-      recentSearchService.addSearch({
-        userId,
-        query,
-        platform: "networks",
-        context: type as any || "listing",
-      }).catch(err => logger.error("Failed to save search history", err));
+      recentSearchService
+        .addSearch({
+          userId,
+          query,
+          platform: "networks",
+          context: (type as any) || undefined,
+        })
+        .catch((err) => logger.error("Failed to save search history", err));
     }
 
     const results: any = {};
@@ -40,6 +76,7 @@ export const unifiedSearch = async (
       const listingQuery: any = {
         status: "active",
         type: "for_sale",
+        is_deleted: { $ne: true },
       };
       if (query) {
         listingQuery.$or = [
@@ -49,12 +86,21 @@ export const unifiedSearch = async (
           { title: { $regex: query, $options: "i" } },
         ];
       }
+      if (brand) listingQuery.brand = { $regex: String(brand), $options: "i" };
+      if (condition) listingQuery.condition = String(condition);
+      if (category) listingQuery.category = String(category);
+      if (min_price || max_price) {
+        listingQuery.price = {};
+        if (min_price) listingQuery.price.$gte = Number(min_price);
+        if (max_price) listingQuery.price.$lte = Number(max_price);
+      }
       results.listings = await NetworkListing.find(listingQuery)
-        .sort({ createdAt: -1 })
+        .sort(sortOrder)
         .skip(searchOffset)
         .limit(searchLimit);
-      
-      results.listings_count = await NetworkListing.countDocuments(listingQuery);
+
+      results.listings_count =
+        await NetworkListing.countDocuments(listingQuery);
     }
 
     // 2. ISO Search (WTB)
@@ -70,11 +116,14 @@ export const unifiedSearch = async (
           { "criteria.model": { $regex: query, $options: "i" } },
         ];
       }
+      if (brand)
+        isoQuery["criteria.brand"] = { $regex: String(brand), $options: "i" };
+      if (condition) isoQuery["criteria.condition"] = String(condition);
       results.isos = await ISO.find(isoQuery)
         .sort({ createdAt: -1 })
         .skip(searchOffset)
         .limit(searchLimit);
-      
+
       results.isos_count = await ISO.countDocuments(isoQuery);
     }
 
@@ -92,11 +141,13 @@ export const unifiedSearch = async (
         ];
       }
       results.users = await User.find(userQuery)
-        .select("display_name avatar location stats rating_average rating_count reference_count")
+        .select(
+          "display_name avatar location stats rating_average rating_count reference_count identityVerified",
+        )
         .sort({ "stats.follower_count": -1 })
         .skip(searchOffset)
         .limit(searchLimit);
-      
+
       results.users_count = await User.countDocuments(userQuery);
     }
 
@@ -105,10 +156,9 @@ export const unifiedSearch = async (
       pagination: {
         limit: searchLimit,
         offset: searchOffset,
-      }
+      },
     });
   } catch (err) {
     next(err);
   }
 };
-

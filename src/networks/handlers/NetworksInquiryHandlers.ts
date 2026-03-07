@@ -9,8 +9,8 @@
  */
 
 import { Request, Response, NextFunction } from "express";
-import { NetworkListing } from "../../models/Listings";
-import { NetworkListingChannel } from "../../models/ListingChannel";
+import { NetworkListing } from "../models/NetworkListing";
+import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { chatService } from "../../services/ChatService";
 import { Notification } from "../../models/Notification";
 import { User } from "../../models/User";
@@ -20,7 +20,6 @@ import logger from "../../utils/logger";
 interface InquiryRequest {
   message?: string;
 }
-
 
 /**
  * Create an inquiry on a Networks listing
@@ -32,7 +31,7 @@ interface InquiryRequest {
 export const networks_listing_inquire = async (
   req: Request<{ id: string }, {}, InquiryRequest>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -77,17 +76,18 @@ export const networks_listing_inquire = async (
       }
 
       // 5. Create GetStream channel FIRST (real-time ready immediately)
-      const { channelId: getstreamChannelId } = await chatService.getOrCreateChannel(
-        buyerId,
-        sellerId,
-        {
-          listing_id: listingId,
-          listing_title: `${listing.brand} ${listing.model}`,
-          listing_price: listing.price,
-          ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
-        },
-        false // Networks = user unique, NOT listing unique
-      );
+      const { channelId: getstreamChannelId } =
+        await chatService.getOrCreateChannel(
+          buyerId,
+          sellerId,
+          {
+            listing_id: listingId,
+            listing_title: `${listing.brand} ${listing.model}`,
+            listing_price: listing.price,
+            ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
+          },
+          false, // Networks = user unique, NOT listing unique
+        );
 
       // 6. Create channel document in MongoDB
       channel = await NetworkListingChannel.create({
@@ -164,17 +164,24 @@ export const networks_listing_inquire = async (
         try {
           await chatService.ensureConnected();
           const client = chatService.getClient();
-          const streamChannel = client.channel("messaging", channel.getstream_channel_id);
+          const streamChannel = client.channel(
+            "messaging",
+            channel.getstream_channel_id,
+          );
           await streamChannel.updatePartial({
             set: {
               listing_id: listingId,
               listing_title: `${listing.brand} ${listing.model}`,
               listing_price: listing.price,
-              ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
+              ...(listing.thumbnail && {
+                listing_thumbnail: listing.thumbnail,
+              }),
             } as any,
           });
         } catch (updateError) {
-          logger.warn("Failed to update Stream channel metadata", { updateError });
+          logger.warn("Failed to update Stream channel metadata", {
+            updateError,
+          });
         }
       }
     }
@@ -186,9 +193,10 @@ export const networks_listing_inquire = async (
           channel.getstream_channel_id,
           {
             type: "inquiry",
-            message: message || `Inquiry about ${listing.brand} ${listing.model}`,
+            message:
+              message || `Inquiry about ${listing.brand} ${listing.model}`,
           },
-          buyerId
+          buyerId,
         );
       } catch (chatError) {
         logger.warn("Failed to send inquiry message to Stream", { chatError });

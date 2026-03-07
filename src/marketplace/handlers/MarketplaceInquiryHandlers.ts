@@ -10,8 +10,8 @@
 
 import mongoose from "mongoose";
 import { Request, Response, NextFunction } from "express";
-import { MarketplaceListing } from "../../models/Listings";
-import { MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
+import { MarketplaceListing } from "../models/MarketplaceListing";
+import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
 import { chatService } from "../../services/ChatService";
 import { Notification } from "../../models/Notification";
 import { User } from "../../models/User";
@@ -32,7 +32,7 @@ interface InquiryRequest {
 export const marketplace_listing_inquire = async (
   req: Request<{ id: string }, {}, InquiryRequest>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) {
@@ -80,17 +80,18 @@ export const marketplace_listing_inquire = async (
       }
 
       // 5. Create GetStream channel FIRST (real-time ready immediately)
-      const { channelId: getstreamChannelId } = await chatService.getOrCreateChannel(
-        buyerId,
-        sellerId,
-        {
-          listing_id: listingId,
-          listing_title: `${listing.brand} ${listing.model}`,
-          listing_price: listing.price,
-          ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
-        },
-        true // Marketplace = listing unique
-      );
+      const { channelId: getstreamChannelId } =
+        await chatService.getOrCreateChannel(
+          buyerId,
+          sellerId,
+          {
+            listing_id: listingId,
+            listing_title: `${listing.brand} ${listing.model}`,
+            listing_price: listing.price,
+            ...(listing.thumbnail && { listing_thumbnail: listing.thumbnail }),
+          },
+          true, // Marketplace = listing unique
+        );
 
       // 6. Create channel document in MongoDB
       channel = await MarketplaceListingChannel.create({
@@ -161,9 +162,10 @@ export const marketplace_listing_inquire = async (
           channel.getstream_channel_id,
           {
             type: "inquiry",
-            message: message || `Inquiry about ${listing.brand} ${listing.model}`,
+            message:
+              message || `Inquiry about ${listing.brand} ${listing.model}`,
           },
-          buyerId
+          buyerId,
         );
       } catch (chatError) {
         logger.warn("Failed to send inquiry message to Stream", { chatError });
@@ -204,4 +206,3 @@ export const marketplace_listing_inquire = async (
     next(error);
   }
 };
-

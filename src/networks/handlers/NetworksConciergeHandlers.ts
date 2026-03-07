@@ -1,7 +1,7 @@
 // src/networks/handlers/NetworksConciergeHandlers.ts
 import { Request, Response, NextFunction } from "express";
-import { NetworkListing } from "../../models/Listings";
-import { ConciergeRequest } from "../../models/ConciergeRequest";
+import { NetworkListing } from "../models/NetworkListing";
+import { ConciergeRequest } from "../models/ConciergeRequest";
 import { ApiResponse } from "../../types";
 import {
   NotFoundError,

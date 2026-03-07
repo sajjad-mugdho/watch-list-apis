@@ -10,15 +10,15 @@ import {
 import { Review } from "../../models/Review";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
 import { User } from "../../models/User";
-import { Block } from "../../models/Block";
-import { Report } from "../../models/Report";
+import { Block } from "../models/Block";
+import { Report } from "../models/Report";
 import {
   GetUserPublicProfileInput,
   BlockUserInput,
   CreateReportInput,
 } from "../../validation/schemas";
 import mongoose from "mongoose";
-import { INetworkListing, NetworkListing } from "../../models/Listings";
+import { INetworkListing, NetworkListing } from "../models/NetworkListing";
 
 // ----------------------------------------------------------
 // Types
@@ -37,6 +37,8 @@ export interface InventoryMetadata {
   groups: Record<"draft" | "active" | "reserved" | "sold", number>;
   filters: {
     status: string;
+    search?: string;
+    sort?: string;
   };
 }
 
@@ -84,17 +86,34 @@ export const networks_user_inventory_get = async (
       });
 
     const status = (req.query.status as string) ?? "all";
+    const search = (req.query.search as string | undefined)?.trim();
+    const sort = (req.query.sort as string | undefined) ?? "recent";
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 30;
     const skip = (page - 1) * limit;
 
     const filters: Record<string, any> = {
       dialist_id: new mongoose.Types.ObjectId((req as any).user.dialist_id),
+      is_deleted: { $ne: true },
     };
     if (status !== "all") filters.status = status;
+    if (search) {
+      filters.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { brand: { $regex: search, $options: "i" } },
+        { model: { $regex: search, $options: "i" } },
+      ];
+    }
+
+    const sortOrder =
+      sort === "offers"
+        ? { offers_count: -1 as const }
+        : sort === "views"
+          ? { view_count: -1 as const }
+          : { createdAt: -1 as const };
 
     const listings = await NetworkListing.find(filters)
-      .sort({ updatedAt: -1 })
+      .sort(sortOrder)
       .skip(skip)
       .limit(limit)
       .lean();
@@ -105,6 +124,7 @@ export const networks_user_inventory_get = async (
       {
         $match: {
           dialist_id: new mongoose.Types.ObjectId((req as any).user.dialist_id),
+          is_deleted: { $ne: true },
         },
       },
       {
@@ -128,6 +148,14 @@ export const networks_user_inventory_get = async (
       }
     });
 
+    const filterObj: {
+      status: string;
+      search?: string;
+      sort?: string;
+    } = { status };
+    if (search) filterObj.search = search;
+    if (sort) filterObj.sort = sort;
+
     const response: ApiResponse<INetworkListing[], InventoryMetadata> = {
       data: listings as any,
       requestId: req.headers["x-request-id"] as string,
@@ -140,7 +168,7 @@ export const networks_user_inventory_get = async (
           pages: Math.ceil(total / limit),
         },
         groups,
-        filters: { status },
+        filters: filterObj,
       },
     };
 
@@ -257,6 +285,7 @@ export const networks_user_listings_get = async (
   try {
     const { id } = req.params;
     const status = (req.query?.status as string) ?? "active";
+    const search = (req.query?.search as string | undefined)?.trim();
     const page = Number(req.query?.page) || 1;
     const limit = Number(req.query?.limit) || 30;
     const skip = (page - 1) * limit;
@@ -267,6 +296,7 @@ export const networks_user_listings_get = async (
 
     const filters: Record<string, any> = {
       dialist_id: new mongoose.Types.ObjectId(id),
+      is_deleted: { $ne: true },
     };
 
     if (status === "all") {
@@ -277,6 +307,14 @@ export const networks_user_listings_get = async (
       throw new ValidationError(
         "Can only view active or sold listings publicly",
       );
+    }
+
+    if (search) {
+      filters.$or = [
+        { title: { $regex: search, $options: "i" } },
+        { brand: { $regex: search, $options: "i" } },
+        { model: { $regex: search, $options: "i" } },
+      ];
     }
 
     const listings = await NetworkListing.find(filters)
@@ -423,6 +461,56 @@ export const networks_user_unblock = async (
 
     res.json({
       data: { success: true, message: "User unblocked successfully" },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get completed reference checks for a public user profile
+ * GET /api/v1/networks/users/:id/references
+ */
+export const networks_user_references_get = async (
+  req: Request<{ id: string }, {}, {}, { role?: string; limit?: string; offset?: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { id: userId } = req.params;
+    const { role, limit: limitStr, offset: offsetStr } = req.query;
+
+    if (!mongoose.isValidObjectId(userId)) {
+      throw new ValidationError("Invalid user ID");
+    }
+
+    const limit = Math.min(parseInt(limitStr || "20") || 20, 50);
+    const offset = Math.max(parseInt(offsetStr || "0") || 0, 0);
+
+    let filter: any = {
+      status: "completed",
+      $or: [{ requester_id: userId }, { target_id: userId }],
+    };
+
+    if (role === "requester") {
+      filter = { status: "completed", requester_id: userId };
+    } else if (role === "target") {
+      filter = { status: "completed", target_id: userId };
+    }
+
+    const [checks, total] = await Promise.all([
+      ReferenceCheck.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(offset)
+        .limit(limit)
+        .lean(),
+      ReferenceCheck.countDocuments(filter),
+    ]);
+
+    res.json({
+      data: checks,
+      _metadata: { total, limit, offset },
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err) {

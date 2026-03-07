@@ -5,11 +5,11 @@
  * Extracts processing logic from webhook handlers to enable async processing.
  */
 
-import { FinixWebhookEvent } from "../../models/FinixWebhookEvent";
+import { FinixWebhookEvent } from "../models/FinixWebhookEvent";
 import { User } from "../../models/User";
-import { MerchantOnboarding } from "../../models/MerchantOnboarding";
+import { MerchantOnboarding } from "../models/MerchantOnboarding";
 import { Order } from "../../models/Order";
-import { MarketplaceListing } from "../../models/Listings";
+import { MarketplaceListing } from "../models/MarketplaceListing";
 import { finixLogger, userLogger, merchantLogger } from "../../utils/logger";
 import { config } from "../../config";
 import { provisionMerchant } from "../../utils/finix";

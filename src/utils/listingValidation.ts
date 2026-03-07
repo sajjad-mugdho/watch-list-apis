@@ -19,7 +19,7 @@ export interface ListingForValidation {
  * @returns Array of missing field names (empty if complete)
  */
 export function validateListingCompleteness(
-  listing: ListingForValidation
+  listing: ListingForValidation,
 ): string[] {
   const missing: string[] = [];
 
@@ -32,6 +32,9 @@ export function validateListingCompleteness(
   if (!listing.images || listing.images.length < 3) {
     missing.push("images (min 3)");
   }
+  if (listing.images && listing.images.length > 10) {
+    missing.push("images (max 10)");
+  }
   if (!listing.thumbnail) {
     missing.push("thumbnail");
   }
@@ -41,7 +44,10 @@ export function validateListingCompleteness(
   if (!listing.condition) {
     missing.push("condition");
   }
-  if (!listing.reservation_terms || listing.reservation_terms.trim().length < 10) {
+  if (
+    !listing.reservation_terms ||
+    listing.reservation_terms.trim().length < 10
+  ) {
     missing.push("reservation_terms (min 10 chars)");
   }
 

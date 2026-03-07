@@ -3,8 +3,11 @@ import mongoose from "mongoose";
 import {
   MarketplaceListingChannel,
   IMarketplaceListingChannel,
-} from "../../models/MarketplaceListingChannel";
-import { MarketplaceListing, IMarketplaceListing } from "../../models/Listings";
+} from "../models/MarketplaceListingChannel";
+import {
+  MarketplaceListing,
+  IMarketplaceListing,
+} from "../models/MarketplaceListing";
 import {
   AppError,
   NotFoundError,
@@ -25,6 +28,7 @@ import crypto from "crypto";
 import { Order } from "../../models/Order";
 import { chatService } from "../../services/ChatService";
 import { marketplaceOfferService } from "../services/MarketplaceOfferService";
+import { Offer } from "../../models/Offer";
 import { Notification } from "../../models/Notification";
 import logger from "../../utils/logger";
 
@@ -443,8 +447,16 @@ export const marketplace_offer_accept = async (
       throw new ValidationError("Invalid channel ID");
     }
 
+    // Look up active offer by channel ID
+    const offer = await Offer.findOne({
+      channel_id: new mongoose.Types.ObjectId(channelId),
+      state: { $in: ["CREATED", "COUNTERED"] },
+    });
+    if (!offer)
+      throw new NotFoundError("No active offer found for this channel");
+
     // Delegate to service layer - handles all state transitions, EventOutbox, notifications
-    await marketplaceOfferService.acceptOffer(channelId, userId);
+    await marketplaceOfferService.acceptOffer(offer._id.toString(), userId);
 
     // Fetch updated channel
     const channel = await MarketplaceListingChannel.findById(channelId);
@@ -485,8 +497,16 @@ export const marketplace_offer_reject = async (
       throw new ValidationError("Invalid channel ID");
     }
 
+    // Look up active offer by channel ID
+    const offer = await Offer.findOne({
+      channel_id: new mongoose.Types.ObjectId(channelId),
+      state: { $in: ["CREATED", "COUNTERED"] },
+    });
+    if (!offer)
+      throw new NotFoundError("No active offer found for this channel");
+
     // Delegate to service layer - handles state transitions, notifications, EventOutbox
-    await marketplaceOfferService.declineOffer(channelId, userId);
+    await marketplaceOfferService.declineOffer(offer._id.toString(), userId);
 
     // Fetch updated channel
     const channel = await MarketplaceListingChannel.findById(channelId);

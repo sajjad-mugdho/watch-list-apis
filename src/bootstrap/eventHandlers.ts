@@ -9,6 +9,7 @@ import { events } from '../utils/events';
 import { notificationService } from '../services';
 import { isoMatchingService } from '../services/ISOMatchingService';
 import logger from '../utils/logger';
+import { ReferenceCheck } from '../models/ReferenceCheck';
 
 let outboxStarted = false;
 
@@ -105,7 +106,7 @@ export function registerEventHandlers(): void {
   /**
    * Offer Accepted Side Effects
    */
-  events.on('offer:accepted', async ({ buyerId, orderId, platform, amount }) => {
+  events.on('offer:accepted', async ({ buyerId, sellerId, orderId, platform, amount }) => {
     logger.debug('Handling offer:accepted event', { orderId, buyerId });
     
     await notificationService.create({
@@ -115,6 +116,25 @@ export function registerEventHandlers(): void {
       body: `Your $${amount} offer was accepted.`,
       data: { orderId, platform },
     });
+
+    // Auto-create ReferenceCheck when a networks offer is accepted
+    if (platform === 'networks' && orderId && sellerId) {
+      try {
+        const existing = await ReferenceCheck.findOne({ order_id: orderId });
+        if (!existing) {
+          await ReferenceCheck.create({
+            requester_id: sellerId,
+            target_id: buyerId,
+            order_id: orderId,
+            transaction_value: amount,
+            status: 'pending',
+          });
+          logger.info('[EventHandlers] ReferenceCheck auto-created', { orderId });
+        }
+      } catch (refErr) {
+        logger.warn('[EventHandlers] Failed to auto-create ReferenceCheck', { orderId, refErr });
+      }
+    }
   });
 
   /**

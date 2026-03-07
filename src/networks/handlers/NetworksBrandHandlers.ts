@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { NetworkListing } from "../../models/Listings";
+import { NetworkListing } from "../models/NetworkListing";
 
 /**
  * Discovery: Popular Brands

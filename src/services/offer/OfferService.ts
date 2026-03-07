@@ -132,6 +132,7 @@ export class OfferService {
         .findOne({
           listing_id: new Types.ObjectId(listingId),
           buyer_id: new Types.ObjectId(senderId),
+          platform,
           state: { $in: ["CREATED", "COUNTERED"] },
         })
         .session(txnSession);

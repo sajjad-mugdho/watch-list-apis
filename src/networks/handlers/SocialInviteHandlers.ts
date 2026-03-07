@@ -6,7 +6,7 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../utils/errors";
-import SocialInvite from "../../models/SocialInvite";
+import SocialInvite from "../models/SocialInvite";
 
 import crypto from "crypto";
 
@@ -17,7 +17,7 @@ import crypto from "crypto";
 export const social_invite_create = async (
   req: Request,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -56,13 +56,15 @@ export const social_invite_create = async (
 export const social_invite_get = async (
   req: Request,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const { token } = req.params;
 
-    const invite = await SocialInvite.findOne({ token, status: "pending" })
-      .populate("inviter_id", "display_name avatar");
+    const invite = await SocialInvite.findOne({
+      token,
+      status: "pending",
+    }).populate("inviter_id", "display_name avatar");
 
     if (!invite) throw new NotFoundError("Invite not found or already used");
 

@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 
 // Order model imported for potential future use in offer flow
 // import { Order } from "../../models/Order";
-import { Block } from "../../models/Block";
+import { Block } from "../models/Block";
 import {
   AppError,
   NotFoundError,
@@ -27,9 +27,10 @@ import logger from "../../utils/logger";
 import {
   INetworkListingChannel,
   NetworkListingChannel,
-} from "../../models/ListingChannel";
-import { INetworkListing, NetworkListing } from "../../models/Listings";
+} from "../models/NetworkListingChannel";
+import { INetworkListing, NetworkListing } from "../models/NetworkListing";
 import { networksOfferService } from "./../../networks/services/NetworksOfferService";
+import { Offer } from "../../models/Offer";
 
 // ----------------------------------------------------------
 // Helper Functions
@@ -504,8 +505,16 @@ export const networks_offer_accept = async (
       throw new ValidationError("Invalid channel ID");
     }
 
+    // Look up active offer by channel ID
+    const offer = await Offer.findOne({
+      channel_id: new mongoose.Types.ObjectId(channelId),
+      state: { $in: ["CREATED", "COUNTERED"] },
+    });
+    if (!offer)
+      throw new NotFoundError("No active offer found for this channel");
+
     // Delegate to service layer - handles all state transitions, EventOutbox, notifications
-    await networksOfferService.acceptOffer(channelId, userId);
+    await networksOfferService.acceptOffer(offer._id.toString(), userId);
 
     // Fetch updated channel
     const channel = await NetworkListingChannel.findById(channelId);
@@ -546,8 +555,16 @@ export const networks_offer_reject = async (
       throw new ValidationError("Invalid channel ID");
     }
 
+    // Look up active offer by channel ID
+    const offer = await Offer.findOne({
+      channel_id: new mongoose.Types.ObjectId(channelId),
+      state: { $in: ["CREATED", "COUNTERED"] },
+    });
+    if (!offer)
+      throw new NotFoundError("No active offer found for this channel");
+
     // Delegate to service layer - handles state transitions, notifications, EventOutbox
-    await networksOfferService.declineOffer(channelId, userId);
+    await networksOfferService.declineOffer(offer._id.toString(), userId);
 
     // Fetch updated channel
     const channel = await NetworkListingChannel.findById(channelId);

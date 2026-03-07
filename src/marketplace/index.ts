@@ -8,7 +8,7 @@ import messageRoutes from "./routes/messageRoutes";
 import conversationRoutes from "./routes/conversationRoutes";
 import userRoutes from "./routes/userRoutes";
 import { marketplaceWebhookRoutes as webhookRoutes } from "./routes/webhookRoutes";
-import { refundRequestRoutes } from "../routes/refundRequestRoutes";
+import { refundRequestRoutes } from "./routes/refundRequestRoutes";
 
 import { registerMarketplaceEventHandlers } from "./events";
 

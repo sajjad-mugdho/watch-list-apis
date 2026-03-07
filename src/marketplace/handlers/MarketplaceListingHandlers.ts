@@ -15,9 +15,12 @@ import {
   PublishListingInput,
   UpdateListingInput,
 } from "../../validation/schemas";
-import { MarketplaceListing, IMarketplaceListing } from "../../models/Listings";
+import {
+  MarketplaceListing,
+  IMarketplaceListing,
+} from "../models/MarketplaceListing";
 import { Watch } from "../../models/Watches";
-import { MerchantOnboarding } from "../../models/MerchantOnboarding";
+import { MerchantOnboarding } from "../models/MerchantOnboarding";
 import { ExtractWatchSpecData } from "../../utils/watchDataExtraction";
 import { validateListingCompleteness } from "../../utils/listingValidation";
 import {
@@ -88,10 +91,15 @@ export const marketplace_listings_get = async (
     // Calculate pagination
     const skip = (page - 1) * limit;
 
-    // Execute query with pagination
+    // Execute query with pagination (excluding deleted)
+    const activeFilter = { ...filter, is_deleted: { $ne: true } };
     const [listings, total] = await Promise.all([
-      MarketplaceListing.find(filter).sort(sort).skip(skip).limit(limit).lean(),
-      MarketplaceListing.countDocuments(filter),
+      MarketplaceListing.find(activeFilter)
+        .sort(sort)
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      MarketplaceListing.countDocuments(activeFilter),
     ]);
 
     const response: ApiResponse<IMarketplaceListing[]> = {
@@ -144,7 +152,7 @@ export const marketplace_listing_get_by_id = async (
 
     const listing = await MarketplaceListing.findById(id).lean();
 
-    if (!listing) {
+    if (!listing || (listing as any).is_deleted) {
       throw new NotFoundError("Listing not found");
     }
 

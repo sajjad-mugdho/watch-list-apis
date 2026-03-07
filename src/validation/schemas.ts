@@ -29,7 +29,7 @@ export const UserClaimsSchema = z
       .string()
       .regex(
         objectIdRegex,
-        "networks_application_id must be a 24-char MongoDB ObjectId"
+        "networks_application_id must be a 24-char MongoDB ObjectId",
       )
       .nullable()
       .optional(),
@@ -44,7 +44,13 @@ export const UserClaimsSchema = z
       .min(2, "location_region must be 2+ chars")
       .optional(),
     onboarding_state: z
-      .enum(["PENDING", "PROVISIONING", "UPDATE_REQUESTED", "REJECTED", "APPROVED"])
+      .enum([
+        "PENDING",
+        "PROVISIONING",
+        "UPDATE_REQUESTED",
+        "REJECTED",
+        "APPROVED",
+      ])
       .optional(),
   })
   .passthrough();
@@ -67,7 +73,7 @@ export const ValidatedUserClaimsSchema = z
       .string()
       .regex(
         objectIdRegex,
-        "networks_application_id must be a 24-char MongoDB ObjectId"
+        "networks_application_id must be a 24-char MongoDB ObjectId",
       )
       .nullable(),
     networks_accessed: z.boolean().nullable(),
@@ -109,13 +115,12 @@ export const RequestUserFromAuthSchema = z
       ({
         ...claims,
         userId,
-      } as import("../types/auth").RequestUser)
+      }) as import("../types/auth").RequestUser,
   );
 
 // ----------------------------------------------------------
 // Watch Schemas
 // ----------------------------------------------------------
-
 
 const watchCategoryValues = [
   "Luxury",
@@ -175,7 +180,15 @@ export const createListingSchema = z.object({
       })
       .optional(),
     acceptable_conditions: z
-      .array(z.enum(["New", "Used - Very Good", "Used - Good", "Used - Fair", "Used - Damaged"]))
+      .array(
+        z.enum([
+          "New",
+          "Used - Very Good",
+          "Used - Good",
+          "Used - Fair",
+          "Used - Damaged",
+        ]),
+      )
       .optional(),
     wtb_description: z.string().max(2000).optional(),
   }),
@@ -196,18 +209,20 @@ export const reserveListingSchema = z.object({
  * Schema for resetting a listing (dev only)
  */
 export const resetListingSchema = z.object({
-  body: z.object({
-    listing_id: z
-      .string()
-      .regex(objectIdRegex, "listing_id must be a 24-char MongoDB ObjectId")
-      .optional(),
-    order_id: z
-      .string()
-      .regex(objectIdRegex, "order_id must be a 24-char MongoDB ObjectId")
-      .optional(),
-  }).refine(data => data.listing_id || data.order_id, {
-    message: "Either listing_id or order_id must be provided"
-  }),
+  body: z
+    .object({
+      listing_id: z
+        .string()
+        .regex(objectIdRegex, "listing_id must be a 24-char MongoDB ObjectId")
+        .optional(),
+      order_id: z
+        .string()
+        .regex(objectIdRegex, "order_id must be a 24-char MongoDB ObjectId")
+        .optional(),
+    })
+    .refine((data) => data.listing_id || data.order_id, {
+      message: "Either listing_id or order_id must be provided",
+    }),
 });
 
 /**
@@ -215,7 +230,11 @@ export const resetListingSchema = z.object({
  */
 export const getUserInventorySchema = z.object({
   query: z.object({
-    status: z.enum(["all", "draft", "active", "reserved", "sold", "inactive"]).optional(),
+    status: z
+      .enum(["all", "draft", "active", "reserved", "sold", "inactive"])
+      .optional(),
+    search: z.string().optional(),
+    sort: z.enum(["recent", "offers", "views"]).optional(),
     limit: z
       .string()
       .regex(/^\d+$/, "Limit must be a positive number")
@@ -240,12 +259,23 @@ export const updateListingSchema = z.object({
   }),
   body: z
     .object({
-      subtitle: z.string().max(200).optional(),
+      subtitle: z.string().max(100).optional(),
+      description: z.string().max(2000).optional(),
       price: z.number().min(0).optional(),
-      condition: z.enum(["New", "Used - Very Good", "Used - Good", "Used - Fair", "Used - Damaged"]).optional(),
+      condition: z
+        .enum([
+          "New",
+          "Used - Very Good",
+          "Used - Good",
+          "Used - Fair",
+          "Used - Damaged",
+        ])
+        .optional(),
       allow_offers: z.boolean().optional(),
       year: z.number().min(1900).max(2030).optional(),
-      contents: z.enum(["Box & Papers", "Box Only", "Papers Only", "Watch Only"]).optional(),
+      contents: z
+        .enum(["Box & Papers", "Box Only", "Papers Only", "Watch Only"])
+        .optional(),
       images: z.array(z.string().url()).optional(),
       thumbnail: z.string().url().optional(),
       shipping: z
@@ -254,7 +284,7 @@ export const updateListingSchema = z.object({
             region: z.enum(["US", "CA"]),
             shippingIncluded: z.boolean(),
             shippingCost: z.number().min(0),
-          })
+          }),
         )
         .optional(),
       ships_from: z
@@ -278,7 +308,15 @@ export const updateListingSchema = z.object({
         })
         .optional(),
       acceptable_conditions: z
-        .array(z.enum(["New", "Used - Very Good", "Used - Good", "Used - Fair", "Used - Damaged"]))
+        .array(
+          z.enum([
+            "New",
+            "Used - Very Good",
+            "Used - Good",
+            "Used - Fair",
+            "Used - Damaged",
+          ]),
+        )
         .optional(),
       wtb_description: z.string().max(2000).optional(),
       reservation_terms: z.string().max(2000).optional(),
@@ -407,11 +445,14 @@ export const getUserPublicProfileSchema = z.object({
   params: z.object({
     id: z.string().regex(objectIdRegex, "Invalid user ID"),
   }),
-  query: z.object({
-    status: z.enum(["active", "sold", "all"]).optional(),
-    page: z.string().regex(/^\d+$/).optional(),
-    limit: z.string().regex(/^\d+$/).optional(),
-  }).optional(),
+  query: z
+    .object({
+      status: z.enum(["active", "sold", "all"]).optional(),
+      search: z.string().optional(),
+      page: z.string().regex(/^\d+$/).optional(),
+      limit: z.string().regex(/^\d+$/).optional(),
+    })
+    .optional(),
 });
 
 /**
@@ -530,7 +571,9 @@ export const channelActionSchema = z.object({
 export const getUserChannelsSchema = z.object({
   query: z.object({
     type: z.enum(["sent", "received"]).optional(),
-    status: z.enum(["active", "accepted", "declined", "expired", "in_progress", "all"]).optional(),
+    status: z
+      .enum(["active", "accepted", "declined", "expired", "in_progress", "all"])
+      .optional(),
     limit: z
       .string()
       .regex(/^\d+$/, "Limit must be a positive number")
@@ -556,7 +599,6 @@ export const getListingChannelsSchema = z.object({
     id: z.string().regex(objectIdRegex, "Invalid listing ID"),
   }),
 });
-
 
 /**
  * Onboarding Step Schemas (wrapped in { body: ... } to match validateRequest)
@@ -586,7 +628,7 @@ export const patchLocationStepSchema = z.object({
       .max(12, "Postal code too long")
       .refine(
         (val) => /^[A-Za-z0-9\s-]+$/.test(val),
-        "Postal code may only contain letters, numbers, spaces, and hyphens"
+        "Postal code may only contain letters, numbers, spaces, and hyphens",
       ),
     currency: z
       .string()
@@ -639,7 +681,15 @@ export const getListingsSchema = z.object({
 
     // Filters
     brand: z.string().trim().max(50).optional(),
-    condition: z.enum(["New", "Used - Very Good", "Used - Good", "Used - Fair", "Used - Damaged"]).optional(),
+    condition: z
+      .enum([
+        "New",
+        "Used - Very Good",
+        "Used - Good",
+        "Used - Fair",
+        "Used - Damaged",
+      ])
+      .optional(),
     min_price: z
       .string()
       .regex(/^\d+$/, "Min price must be a number")
@@ -905,7 +955,7 @@ export const updateProfileSchema = z.object({
       .optional(),
     bio: z
       .string()
-      .max(500, "Bio must be 500 characters or less")
+      .max(200, "Bio must be 200 characters or less")
       .trim()
       .nullable()
       .optional(),
@@ -1134,12 +1184,7 @@ const ticketCategoryValues = [
   "other",
 ] as const;
 
-const ticketPriorityValues = [
-  "low",
-  "medium",
-  "high",
-  "urgent",
-] as const;
+const ticketPriorityValues = ["low", "medium", "high", "urgent"] as const;
 
 const ticketStatusValues = [
   "open",
@@ -1273,8 +1318,17 @@ export const joinGroupSchema = z.object({
  */
 export const getSocialInboxSchema = z.object({
   query: z.object({
-    filter: z.enum(["all", "unread", "offers", "inquiries", "reference_checks"]).optional().default("all"),
-    limit: z.string().regex(/^\d+$/).transform(Number).optional().default("20"),
+    filter: z
+      .enum(["all", "unread", "offers", "inquiries", "reference_checks"])
+      .optional()
+      .default("all"),
+    limit: z
+      .string()
+      .regex(/^\d+$/)
+      .transform(Number)
+      .refine((n) => n > 0, "Limit must be at least 1")
+      .optional()
+      .default("20"),
     offset: z.string().regex(/^\d+$/).transform(Number).optional().default("0"),
   }),
 });
@@ -1285,7 +1339,10 @@ export const getSocialInboxSchema = z.object({
 export const searchSocialSchema = z.object({
   query: z.object({
     q: z.string().min(1, "Search query is required"),
-    type: z.enum(["all", "people", "groups", "messages"]).optional().default("all"),
+    type: z
+      .enum(["all", "people", "groups", "messages"])
+      .optional()
+      .default("all"),
   }),
 });
 
@@ -1311,14 +1368,20 @@ export type CreateListingInput = z.infer<typeof createListingSchema>;
 export type GetUserInventoryInput = z.infer<typeof getUserInventorySchema>;
 export type UpdateListingInput = z.infer<typeof updateListingSchema>;
 export type PublishListingInput = z.infer<typeof publishListingSchema>;
-export type UpdateListingStatusInput = z.infer<typeof updateListingStatusSchema>;
+export type UpdateListingStatusInput = z.infer<
+  typeof updateListingStatusSchema
+>;
 export type DeleteListingInput = z.infer<typeof deleteListingSchema>;
 export type ConciergeRequestInput = z.infer<typeof conciergeRequestSchema>;
 export type CreateReportInput = z.infer<typeof createReportSchema>;
 export type BlockUserInput = z.infer<typeof blockUserSchema>;
 export type FriendRequestInput = z.infer<typeof friendRequestSchema>;
-export type RespondFriendRequestInput = z.infer<typeof respondFriendRequestSchema>;
-export type GetUserPublicProfileInput = z.infer<typeof getUserPublicProfileSchema>;
+export type RespondFriendRequestInput = z.infer<
+  typeof respondFriendRequestSchema
+>;
+export type GetUserPublicProfileInput = z.infer<
+  typeof getUserPublicProfileSchema
+>;
 export type CreateReservationInput = z.infer<typeof createReservationSchema>;
 
 // Social types
@@ -1359,25 +1422,25 @@ export type RequestRefundInput = z.infer<typeof requestRefundSchema>;
 export type UploadTrackingInput = z.infer<typeof uploadTrackingSchema>;
 export type OrderIdParamInput = z.infer<typeof orderIdParamSchema>;
 
-
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type AddToWishlistInput = z.infer<typeof addToWishlistSchema>;
 export type RemoveFromWishlistInput = z.infer<typeof removeFromWishlistSchema>;
 export type GetWishlistInput = z.infer<typeof getWishlistSchema>;
 
-
 export type CreateReviewInput = z.infer<typeof createReviewSchema>;
 export type GetUserReviewsInput = z.infer<typeof getUserReviewsSchema>;
 export type GetReviewSummaryInput = z.infer<typeof getReviewSummarySchema>;
 
-
 export type SendFriendRequestInput = z.infer<typeof sendFriendRequestSchema>;
-export type FriendRequestActionInput = z.infer<typeof friendRequestActionSchema>;
+export type FriendRequestActionInput = z.infer<
+  typeof friendRequestActionSchema
+>;
 export type GetFriendsInput = z.infer<typeof getFriendsSchema>;
 export type GetMutualFriendsInput = z.infer<typeof getMutualFriendsSchema>;
 
-
-export type CreateSupportTicketInput = z.infer<typeof createSupportTicketSchema>;
+export type CreateSupportTicketInput = z.infer<
+  typeof createSupportTicketSchema
+>;
 export type GetTicketInput = z.infer<typeof getTicketSchema>;
 export type AddTicketMessageInput = z.infer<typeof addTicketMessageSchema>;
 export type UpdateTicketStatusInput = z.infer<typeof updateTicketStatusSchema>;

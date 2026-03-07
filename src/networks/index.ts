@@ -11,6 +11,14 @@ import searchRoutes from "./routes/searchRoutes";
 import connectionRoutes from "./routes/connectionRoutes";
 import socialRoutes from "./routes/socialRoutes";
 import orderRoutes from "./routes/orderRoutes";
+import { isoRoutes } from "./routes/isoRoutes";
+import { feedRoutes } from "./routes/feedRoutes";
+import { followRoutes } from "./routes/followRoutes";
+
+import { registerNetworksEventHandlers } from "./events";
+
+// Initialize networks specific domain listeners
+registerNetworksEventHandlers();
 
 const router = Router();
 
@@ -26,5 +34,8 @@ router.use("/search", searchRoutes);
 router.use("/connections", connectionRoutes);
 router.use("/social", socialRoutes);
 router.use("/orders", orderRoutes);
+router.use("/isos", isoRoutes);
+router.use("/feeds", feedRoutes);
+router.use("/users", followRoutes);
 
 export default router;

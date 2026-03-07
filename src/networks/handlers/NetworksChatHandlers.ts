@@ -5,9 +5,13 @@ import { getOrCreateUser } from "../../utils/user";
 import logger from "../../utils/logger";
 
 /**
- * Generate Stream Chat token
+ * Generate Stream Chat token for Networks
  */
-export const generateToken = (platform: any) => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const generateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const auth = (req as any).auth;
     if (!auth?.userId) {
@@ -26,11 +30,14 @@ export const generateToken = (platform: any) => async (req: Request, res: Respon
 
     await chatService.upsertUser({
       id: userId,
-      name: user.display_name || `${user.first_name} ${user.last_name}`.trim() || "Anonymous",
+      name:
+        user.display_name ||
+        `${user.first_name} ${user.last_name}`.trim() ||
+        "Anonymous",
       ...(user.avatar && { avatar: user.avatar }),
     });
 
-    logger.info("Chat token generated", { userId, platform });
+    logger.info("Chat token generated", { userId, platform: "networks" });
 
     res.json({
       token,
@@ -43,9 +50,13 @@ export const generateToken = (platform: any) => async (req: Request, res: Respon
 };
 
 /**
- * Get user's chat channels
+ * Get user's chat channels for Networks
  */
-export const getUserChannels = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getUserChannels = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const auth = (req as any).auth;
     if (!auth?.userId) {
@@ -62,7 +73,11 @@ export const getUserChannels = (_platform: "marketplace" | "networks") => async 
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 50);
     const offset = parseInt(req.query.offset as string) || 0;
 
-    const channels = await chatService.getUserChannels(user._id.toString(), limit, offset);
+    const channels = await chatService.getUserChannels(
+      user._id.toString(),
+      limit,
+      offset,
+    );
 
     const channelData = channels.map((channel) => {
       const data = channel.data as any;
@@ -74,7 +89,9 @@ export const getUserChannels = (_platform: "marketplace" | "networks") => async 
         listing_title: data?.listing_title,
         listing_price: data?.listing_price,
         listing_thumbnail: data?.listing_thumbnail,
-        members: channel.state.members ? Object.keys(channel.state.members) : [],
+        members: channel.state.members
+          ? Object.keys(channel.state.members)
+          : [],
         last_message_at: data?.last_message_at,
         created_at: data?.created_at,
         unread_count: channel.state.unreadCount || 0,
@@ -88,9 +105,13 @@ export const getUserChannels = (_platform: "marketplace" | "networks") => async 
 };
 
 /**
- * Get unread message counts
+ * Get unread message counts for Networks
  */
-export const getUnreadCounts = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getUnreadCounts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const auth = (req as any).auth;
     if (!auth?.userId) {
@@ -112,9 +133,13 @@ export const getUnreadCounts = (_platform: "marketplace" | "networks") => async 
 };
 
 /**
- * Create or get a chat channel for a listing
+ * Create or get a chat channel for a listing (Networks)
  */
-export const getOrCreateChannel = (_platform: "marketplace" | "networks") => async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+export const getOrCreateChannel = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
   try {
     const auth = (req as any).auth;
     if (!auth?.userId) {
@@ -128,10 +153,18 @@ export const getOrCreateChannel = (_platform: "marketplace" | "networks") => asy
       return;
     }
 
-    const { listing_id, seller_id, listing_title, listing_price, listing_thumbnail } = req.body;
+    const {
+      listing_id,
+      seller_id,
+      listing_title,
+      listing_price,
+      listing_thumbnail,
+    } = req.body;
 
     if (!listing_id || !seller_id) {
-      res.status(400).json({ error: { message: "listing_id and seller_id are required" } });
+      res
+        .status(400)
+        .json({ error: { message: "listing_id and seller_id are required" } });
       return;
     }
 
@@ -142,14 +175,16 @@ export const getOrCreateChannel = (_platform: "marketplace" | "networks") => asy
     }
 
     if (user._id.toString() === seller_id) {
-      res.status(400).json({ error: { message: "Cannot create channel with yourself" } });
+      res
+        .status(400)
+        .json({ error: { message: "Cannot create channel with yourself" } });
       return;
     }
 
     const { channel, channelId } = await chatService.getOrCreateChannel(
       user._id.toString(),
       seller_id,
-      { listing_id, listing_title, listing_price, listing_thumbnail }
+      { listing_id, listing_title, listing_price, listing_thumbnail },
     );
 
     res.json({
@@ -169,143 +204,3 @@ export const getOrCreateChannel = (_platform: "marketplace" | "networks") => asy
     next(error);
   }
 };
-/**
- * Chat Routes
- *
- * Endpoints for Stream Chat operations:
- * - Token generation for client authentication
- * - Channel creation/retrieval
- * - Unread counts
- *
- * Note: All routes are protected by requirePlatformAuth() at the router level
- */
-
-/**
- * @swagger
- * /api/v1/chat/token:
- *   get:
- *     summary: Generate Stream Chat token
- *     description: Returns a JWT token for authenticating with Stream Chat on the client
- *     tags: [Chat]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: platform
- *         required: true
- *         schema:
- *           type: string
- *           enum: [marketplace, networks]
- *     responses:
- *       200:
- *         description: Token generated successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 token:
- *                   type: string
- *                   description: Stream Chat JWT token
- *                 userId:
- *                   type: string
- *                   description: User ID for Stream Chat
- *       401:
- *         description: Unauthorized
- */
-
-/**
- * @swagger
- * /api/v1/chat/channels:
- *   get:
- *     summary: Get user's chat channels
- *     description: Returns all chat channels where the user is a member
- *     tags: [Chat]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: platform
- *         required: true
- *         schema:
- *           type: string
- *           enum: [marketplace, networks]
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 20
- *         description: Maximum number of channels to return
- *       - in: query
- *         name: offset
- *         schema:
- *           type: integer
- *           default: 0
- *         description: Offset for pagination
- *     responses:
- *       200:
- *         description: Channels retrieved successfully
- */
-
-/**
- * @swagger
- * /api/v1/chat/unread:
- *   get:
- *     summary: Get unread message counts
- *     description: Returns total unread count and per-channel unread counts
- *     tags: [Chat]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: platform
- *         required: true
- *         schema:
- *           type: string
- *           enum: [marketplace, networks]
- *     responses:
- *       200:
- *         description: Unread counts retrieved successfully
- */
-
-/**
- * @swagger
- * /api/v1/chat/channel:
- *   post:
- *     summary: Create or get a chat channel for a listing
- *     description: Creates a new channel or returns existing one for buyer-seller conversation
- *     tags: [Chat]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - listing_id
- *               - seller_id
- *             properties:
- *               listing_id:
- *                 type: string
- *               seller_id:
- *                 type: string
- *               listing_title:
- *                 type: string
- *               listing_price:
- *                 type: number
- *               listing_thumbnail:
- *                 type: string
- *     parameters:
- *       - in: path
- *         name: platform
- *         required: true
- *         schema:
- *           type: string
- *           enum: [marketplace, networks]
- *     responses:
- *       200:
- *         description: Channel created/retrieved successfully
- */
-

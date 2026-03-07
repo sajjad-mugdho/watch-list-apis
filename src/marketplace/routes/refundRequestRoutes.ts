@@ -2,9 +2,9 @@ import { Router } from "express";
 import {
   requireCompletedOnboarding,
   requirePlatformAuth,
-} from "../middleware/authentication";
+} from "../../middleware/authentication";
 
-import * as orderHandlers from "../marketplace/handlers/MarketplaceOrderHandlers";
+import * as orderHandlers from "../handlers/MarketplaceOrderHandlers";
 
 const router = Router();
 

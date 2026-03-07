@@ -1,6 +1,6 @@
 /**
  * User Profile Routes
- * 
+ *
  * Handles profile updates (bio, social_links) and wishlist management
  */
 
@@ -88,8 +88,8 @@ router.patch(
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $set: updateData },
-        { new: true, runValidators: true }
-      ).select("bio social_links");
+        { new: true, runValidators: true },
+      ).select("bio social_links first_name last_name");
 
       if (!updatedUser) {
         res.status(404).json({ error: "User not found" });
@@ -106,7 +106,7 @@ router.patch(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -139,7 +139,7 @@ router.post(
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $set: { avatar: metadata.url } },
-        { new: true }
+        { new: true },
       ).select("avatar");
 
       res.json({
@@ -151,7 +151,7 @@ router.post(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -165,7 +165,7 @@ router.get(
       const userId = getUserId(req);
 
       const user = await User.findById(userId).select(
-        "bio social_links stats display_name avatar rating_average rating_count reference_count"
+        "bio social_links stats display_name avatar rating_average rating_count reference_count",
       );
 
       if (!user) {
@@ -201,7 +201,7 @@ router.get(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -215,7 +215,7 @@ router.get(
       const userId = getUserId(req);
 
       const user = await User.findById(userId).select(
-        "identityVerified identityVerifiedAt personaStatus"
+        "identityVerified identityVerifiedAt personaStatus",
       );
 
       if (!user) {
@@ -233,7 +233,7 @@ router.get(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -261,10 +261,12 @@ router.patch(
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $set: updateData },
-        { new: true }
+        { new: true },
       );
 
-      logger.info(`User ${userId} ${active ? "reactivated" : "deactivated"} their account`);
+      logger.info(
+        `User ${userId} ${active ? "reactivated" : "deactivated"} their account`,
+      );
 
       res.json({
         data: {
@@ -275,7 +277,7 @@ router.patch(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -291,12 +293,15 @@ router.delete(
       // Check for active financial activity
       const activeOrders = await Order.countDocuments({
         $or: [{ buyer_id: userId }, { seller_id: userId }],
-        status: { $in: ["pending", "processing", "authorized", "paid", "shipped"] },
+        status: {
+          $in: ["pending", "processing", "authorized", "paid", "shipped"],
+        },
       });
 
       if (activeOrders > 0) {
         res.status(400).json({
-          error: "Cannot delete account while you have active orders. Please complete or cancel them first.",
+          error:
+            "Cannot delete account while you have active orders. Please complete or cancel them first.",
         });
         return;
       }
@@ -331,7 +336,7 @@ router.delete(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 // ----------------------------------------------------------
@@ -382,7 +387,7 @@ router.get(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -408,7 +413,7 @@ router.post(
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $addToSet: { wishlist: new Types.ObjectId(listing_id) } },
-        { new: true }
+        { new: true },
       ).select("wishlist");
 
       if (!updatedUser) {
@@ -426,7 +431,7 @@ router.post(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -444,7 +449,7 @@ router.delete(
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $pull: { wishlist: new Types.ObjectId(listing_id) } },
-        { new: true }
+        { new: true },
       ).select("wishlist");
 
       if (!updatedUser) {
@@ -462,7 +467,7 @@ router.delete(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -484,7 +489,7 @@ router.get(
       }
 
       const isInWishlist = user.wishlist?.some(
-        (id) => id.toString() === listing_id
+        (id) => id.toString() === listing_id,
       );
 
       res.json({
@@ -496,7 +501,7 @@ router.get(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 export { router as userProfileRoutes };
