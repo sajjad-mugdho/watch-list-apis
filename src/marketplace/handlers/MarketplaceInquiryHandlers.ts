@@ -121,7 +121,7 @@ export const marketplace_listing_inquire = async (
         status: "open",
         inquiries: [
           {
-            sender_id: buyerId,
+            sender_id: new mongoose.Types.ObjectId(buyerId),
             message: message || "Interested in this listing",
             createdAt: new Date(),
           },
@@ -147,7 +147,7 @@ export const marketplace_listing_inquire = async (
         (channel as any).inquiries = [];
       }
       (channel as any).inquiries.push({
-        sender_id: buyerId,
+        sender_id: new mongoose.Types.ObjectId(buyerId),
         message: message || "Interested in this listing",
         createdAt: new Date(),
       });
