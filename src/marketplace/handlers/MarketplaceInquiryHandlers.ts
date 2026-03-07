@@ -121,7 +121,7 @@ export const marketplace_listing_inquire = async (
         status: "open",
         inquiries: [
           {
-            sender_id: buyer._id as any,
+            sender_id: buyerId,
             message: message || "Interested in this listing",
             createdAt: new Date(),
           },
@@ -174,6 +174,10 @@ export const marketplace_listing_inquire = async (
 
     // 7. Create notification for seller
     try {
+      const actionUrl = channel.getstream_channel_id
+        ? `/chat/${channel.getstream_channel_id}`
+        : `/listings/${listingId}`; // Fallback if getstream_channel_id is missing
+
       await Notification.create({
         user_id: sellerId,
         type: "new_inquiry",
@@ -184,7 +188,7 @@ export const marketplace_listing_inquire = async (
           channel_id: (channel._id as any).toString(),
           buyer_id: buyerId,
         },
-        action_url: `/chat/${channel.getstream_channel_id}`,
+        action_url: actionUrl,
       });
     } catch (notifError) {
       logger.warn("Failed to create inquiry notification", { notifError });

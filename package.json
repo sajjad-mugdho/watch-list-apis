@@ -58,6 +58,8 @@
     "@types/winston": "^2.4.4",
     "jest": "^30.2.0",
     "mongodb-memory-server": "^10.3.0",
+    "newman": "^6.2.2",
+    "newman-reporter-json": "^1.0.0",
     "supertest": "^7.1.4",
     "ts-jest": "^29.4.5",
     "ts-node-dev": "^2.0.0",

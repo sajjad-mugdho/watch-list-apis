@@ -117,7 +117,7 @@ export const networks_listing_inquire = async (
         status: "open",
         inquiries: [
           {
-            sender_id: buyer._id as any,
+            sender_id: buyerId,
             message: message || "Interested in this listing",
             createdAt: new Date(),
           },

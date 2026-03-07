@@ -1,6 +1,7 @@
 // src/utils/listingStatusMachine.ts
-import { ClientSession } from "mongoose";
+import { ClientSession, Types } from "mongoose";
 import { ValidationError } from "./errors";
+import { NetworkListing } from "../networks/models/NetworkListing";
 
 export type ListingStatus =
   | "draft"
@@ -16,8 +17,8 @@ export interface StatusTransition {
   description: string;
 }
 
-// Define valid transitions
-const VALID_TRANSITIONS: StatusTransition[] = [
+// Define valid transitions as array (for reference and error messages)
+const VALID_TRANSITIONS_ARRAY: StatusTransition[] = [
   {
     from: "draft",
     to: "active",
@@ -79,7 +80,26 @@ const VALID_TRANSITIONS: StatusTransition[] = [
     allowed: false,
     description: "Cannot unreserve listing",
   },
+  {
+    from: "reserved",
+    to: "inactive",
+    allowed: false,
+    description: "Cannot deactivate reserved listing",
+  },
 ];
+
+// Export as both the array and a map format for tests
+export const VALID_TRANSITIONS_ARRAY_EXPORT = VALID_TRANSITIONS_ARRAY;
+
+// Create a map-based format for easier testing
+// Maps from status to allowed next statuses
+export const VALID_TRANSITIONS: Record<ListingStatus, ListingStatus[]> = {
+  draft: ["active", "inactive"],
+  active: ["reserved", "sold", "inactive"],
+  reserved: ["sold"],
+  sold: [],
+  inactive: ["active"],
+};
 
 /**
  * Validates if a status transition is allowed
@@ -91,10 +111,8 @@ export function isValidTransition(
   from: ListingStatus,
   to: ListingStatus,
 ): boolean {
-  const transition = VALID_TRANSITIONS.find(
-    (t) => t.from === from && t.to === to,
-  );
-  return transition?.allowed ?? false;
+  const allowedStatuses = VALID_TRANSITIONS[from];
+  return allowedStatuses ? allowedStatuses.includes(to) : false;
 }
 
 /**
@@ -107,7 +125,7 @@ export function getTransitionError(
   from: ListingStatus,
   to: ListingStatus,
 ): string {
-  const transition = VALID_TRANSITIONS.find(
+  const transition = VALID_TRANSITIONS_ARRAY.find(
     (t) => t.from === from && t.to === to,
   );
   if (transition?.allowed) {
@@ -124,46 +142,82 @@ export function getTransitionError(
 export function getAllowedTransitions(
   currentStatus: ListingStatus,
 ): ListingStatus[] {
-  return VALID_TRANSITIONS.filter(
-    (t) => t.from === currentStatus && t.allowed,
-  ).map((t) => t.to);
+  return VALID_TRANSITIONS[currentStatus] || [];
 }
 
 /**
  * Transitions a listing status with validation
- * @param listing - Listing document (must have save() method)
- * @param newStatus - Target status
- * @param session - Optional mongoose session to keep the save inside an existing transaction
+ * @param listingIdOrObject - Listing ID (ObjectId) or legacy listing document object
+ * @param statusOrCurrentStatus - Current status (when using ID) or new status (legacy)
+ * @param newStatusOrSession - New status (when using ID) or session (legacy)
+ * @param contextOrSession - Context object with userId and session, or session (legacy)
+ * @returns Updated listing document with new status
  * @throws ValidationError if transition is invalid
  */
 export async function transitionListingStatus(
-  listing: any,
-  newStatus: ListingStatus,
-  session?: ClientSession,
-): Promise<void> {
-  if (listing.status === newStatus) {
-    return; // No-op if already in target status
+  listingIdOrObject: Types.ObjectId | any,
+  statusOrCurrentStatus: ListingStatus,
+  newStatusOrSession?: ListingStatus | ClientSession,
+  contextOrSession?:
+    | { userId?: Types.ObjectId; session?: ClientSession }
+    | ClientSession,
+): Promise<any> {
+  // Determine if this is the new interface (listing ID) or legacy interface (listing object)
+  const isNewInterface = listingIdOrObject instanceof Types.ObjectId;
+
+  if (isNewInterface) {
+    // New interface: transitionListingStatus(listingId, currentStatus, newStatus, context?)
+    const listingId = listingIdOrObject as Types.ObjectId;
+    const currentStatus = statusOrCurrentStatus as ListingStatus;
+    const newStatus = newStatusOrSession as ListingStatus;
+    const context = contextOrSession as
+      | { userId?: Types.ObjectId; session?: ClientSession }
+      | undefined;
+    const session = context?.session;
+
+    // Validate transition
+    if (!isValidTransition(currentStatus, newStatus)) {
+      throw new ValidationError(getTransitionError(currentStatus, newStatus));
+    }
+
+    // Update listing in database and return updated document
+    const updated = await NetworkListing.findByIdAndUpdate(
+      listingId,
+      { status: newStatus, updated_at: new Date() },
+      { session, new: true },
+    );
+    return updated;
+  } else {
+    // Legacy interface: transitionListingStatus(listing, newStatus, session?)
+    const listing = listingIdOrObject as any;
+    const newStatus = statusOrCurrentStatus as ListingStatus;
+    const session = newStatusOrSession as ClientSession | undefined;
+
+    if (listing.status === newStatus) {
+      return listing; // No-op if already in target status
+    }
+
+    if (!isValidTransition(listing.status, newStatus)) {
+      throw new ValidationError(getTransitionError(listing.status, newStatus));
+    }
+
+    // Update status and timestamp
+    listing.status = newStatus;
+
+    // Add status-specific timestamps
+    switch (newStatus) {
+      case "active":
+        listing.published_at = new Date();
+        break;
+      case "reserved":
+        listing.reserved_at = new Date();
+        break;
+      case "sold":
+        listing.sold_at = new Date();
+        break;
+    }
+
+    await listing.save(session ? { session } : undefined);
+    return listing;
   }
-
-  if (!isValidTransition(listing.status, newStatus)) {
-    throw new ValidationError(getTransitionError(listing.status, newStatus));
-  }
-
-  // Update status and timestamp
-  listing.status = newStatus;
-
-  // Add status-specific timestamps
-  switch (newStatus) {
-    case "active":
-      listing.published_at = new Date();
-      break;
-    case "reserved":
-      listing.reserved_at = new Date();
-      break;
-    case "sold":
-      listing.sold_at = new Date();
-      break;
-  }
-
-  await listing.save(session ? { session } : undefined);
 }

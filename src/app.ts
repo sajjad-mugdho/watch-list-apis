@@ -121,6 +121,16 @@ app.use(
   webhooksRoutes,
 );
 
+// Marketplace webhooks (e.g., Finix) also require raw body for signature verification
+app.use(
+  "/api/v1/marketplace/webhooks",
+  express.json({
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf.toString("utf8");
+    },
+  }),
+);
+
 app.use(
   express.json({
     limit: "1mb",

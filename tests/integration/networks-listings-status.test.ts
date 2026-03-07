@@ -7,7 +7,7 @@ import {
   VALID_TRANSITIONS,
 } from "../../src/utils/listingStatusMachine";
 import { buildListingFilter } from "../../src/utils/listingFilters";
-import { ValidationError } from "../../src/errors/ValidationError";
+import { ValidationError } from "../../src/utils/errors";
 
 describe("Networks Listings - Status Machine & Draft Leak Prevention", () => {
   let owner: any;

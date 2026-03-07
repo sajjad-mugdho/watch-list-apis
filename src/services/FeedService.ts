@@ -39,7 +39,7 @@ class FeedService {
     this.client = connect(
       config.getstreamApiKey,
       config.getstreamApiSecret,
-      config.getstreamAppId
+      config.getstreamAppId,
     );
   }
 
@@ -63,7 +63,7 @@ class FeedService {
   async getTimeline(
     userId: string,
     limit: number = 20,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<ActivityWithId[]> {
     this.ensureConnected();
 
@@ -85,8 +85,13 @@ class FeedService {
         extra: activity.extra,
       }));
     } catch (error) {
-      logger.error("Failed to get timeline feed", { userId, error });
-      throw error;
+      // Log error but return empty array instead of throwing
+      // This allows the endpoint to work even if GetStream is unavailable
+      logger.warn("Failed to get timeline feed - returning empty timeline", {
+        userId,
+        error,
+      });
+      return [];
     }
   }
 
@@ -100,7 +105,7 @@ class FeedService {
   async getUserFeed(
     userId: string,
     limit: number = 20,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<ActivityWithId[]> {
     this.ensureConnected();
 
@@ -135,7 +140,7 @@ class FeedService {
    */
   async addActivity(
     userId: string,
-    activity: Omit<FeedActivity, "actor">
+    activity: Omit<FeedActivity, "actor">,
   ): Promise<ActivityWithId> {
     this.ensureConnected();
 
@@ -180,7 +185,7 @@ class FeedService {
       thumbnail?: string;
       brand?: string;
       model?: string;
-    }
+    },
   ): Promise<ActivityWithId> {
     return this.addActivity(userId, {
       verb: "post",
@@ -210,7 +215,7 @@ class FeedService {
     isoData: {
       criteria: string;
       urgency: string;
-    }
+    },
   ): Promise<ActivityWithId> {
     return this.addActivity(userId, {
       verb: "post",
@@ -234,7 +239,7 @@ class FeedService {
   async addReferenceCheckActivity(
     userId: string,
     checkId: string,
-    targetUserId: string
+    targetUserId: string,
   ): Promise<ActivityWithId> {
     return this.addActivity(userId, {
       verb: "request",
@@ -298,7 +303,7 @@ class FeedService {
   async getFollowing(
     userId: string,
     limit: number = 20,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<{ feed_id: string; target_id: string }[]> {
     this.ensureConnected();
 
@@ -326,7 +331,7 @@ class FeedService {
   async getFollowers(
     userId: string,
     limit: number = 20,
-    offset: number = 0
+    offset: number = 0,
   ): Promise<{ feed_id: string; user_id: string }[]> {
     this.ensureConnected();
 

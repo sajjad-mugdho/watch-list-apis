@@ -156,7 +156,8 @@ offerSchema.statics.findActiveByListingAndBuyer = function (
     listing_id: listingId,
     buyer_id: buyerId,
     platform,
-    state: { $in: ["CREATED", "COUNTERED", "ACCEPTED"] },
+    state: { $in: ["CREATED", "COUNTERED"] },
+    expires_at: { $gt: new Date() },
   });
 };
 

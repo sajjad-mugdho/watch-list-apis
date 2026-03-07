@@ -59,10 +59,19 @@ export const networks_dashboard_stats_get = async (
       },
       {
         id: "first_listing",
-        completed: await NetworkListing.exists({ dialist_id: userId }),
+        completed: false, // Will be set in parallel query below
       },
-      { id: "first_iso", completed: await ISO.exists({ user_id: userId }) },
+      { id: "first_iso", completed: false }, // Will be set in parallel query below
     ];
+
+    // Parallelize database queries for performance
+    const [hasFirstListing, hasFirstISO] = await Promise.all([
+      NetworkListing.exists({ dialist_id: userId }),
+      ISO.exists({ user_id: userId }),
+    ]);
+
+    progressItems[3].completed = !!hasFirstListing;
+    progressItems[4].completed = !!hasFirstISO;
 
     const completedCount = progressItems.filter(
       (item) => item.completed,

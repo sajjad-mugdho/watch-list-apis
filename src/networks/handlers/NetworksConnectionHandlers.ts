@@ -1,7 +1,11 @@
 // src/networks/handlers/NetworksConnectionHandlers.ts
 import { NextFunction, Request, Response } from "express";
 import { ApiResponse } from "../../types";
-import { MissingUserContextError, ValidationError } from "../../utils/errors";
+import {
+  MissingUserContextError,
+  ValidationError,
+  NotFoundError,
+} from "../../utils/errors";
 import { friendshipService } from "../../services/friendship/FriendshipService";
 import {
   FriendRequestInput,
@@ -33,7 +37,15 @@ export const networks_friend_request_send = async (
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err: any) {
-    next(new ValidationError(err.message));
+    // Pass through known AppError types; only wrap user-input issues as ValidationError
+    if (err instanceof ValidationError || err instanceof NotFoundError) {
+      next(err);
+    } else if (err instanceof MissingUserContextError) {
+      next(err);
+    } else {
+      // For unexpected errors, pass through as-is (don't mask as validation error)
+      next(err);
+    }
   }
 };
 
