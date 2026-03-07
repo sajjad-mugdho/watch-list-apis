@@ -57,6 +57,7 @@ export function requirePlatformAuth() {
           external_id: auth?.userId,
         });
         (req as any).user = { userId: auth.userId, ...user_claims };
+        (req as any).dialistUserId = user_claims.dialist_id;
         return next();
       }
 

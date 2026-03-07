@@ -1,7 +1,13 @@
 // src/utils/listingStatusMachine.ts
+import { ClientSession } from "mongoose";
 import { ValidationError } from "./errors";
 
-export type ListingStatus = "draft" | "active" | "reserved" | "sold" | "inactive";
+export type ListingStatus =
+  | "draft"
+  | "active"
+  | "reserved"
+  | "sold"
+  | "inactive";
 
 export interface StatusTransition {
   from: ListingStatus;
@@ -83,10 +89,10 @@ const VALID_TRANSITIONS: StatusTransition[] = [
  */
 export function isValidTransition(
   from: ListingStatus,
-  to: ListingStatus
+  to: ListingStatus,
 ): boolean {
   const transition = VALID_TRANSITIONS.find(
-    (t) => t.from === from && t.to === to
+    (t) => t.from === from && t.to === to,
   );
   return transition?.allowed ?? false;
 }
@@ -99,10 +105,10 @@ export function isValidTransition(
  */
 export function getTransitionError(
   from: ListingStatus,
-  to: ListingStatus
+  to: ListingStatus,
 ): string {
   const transition = VALID_TRANSITIONS.find(
-    (t) => t.from === from && t.to === to
+    (t) => t.from === from && t.to === to,
   );
   if (transition?.allowed) {
     return "";
@@ -116,10 +122,10 @@ export function getTransitionError(
  * @returns Array of allowed next statuses
  */
 export function getAllowedTransitions(
-  currentStatus: ListingStatus
+  currentStatus: ListingStatus,
 ): ListingStatus[] {
   return VALID_TRANSITIONS.filter(
-    (t) => t.from === currentStatus && t.allowed
+    (t) => t.from === currentStatus && t.allowed,
   ).map((t) => t.to);
 }
 
@@ -127,11 +133,13 @@ export function getAllowedTransitions(
  * Transitions a listing status with validation
  * @param listing - Listing document (must have save() method)
  * @param newStatus - Target status
+ * @param session - Optional mongoose session to keep the save inside an existing transaction
  * @throws ValidationError if transition is invalid
  */
 export async function transitionListingStatus(
   listing: any,
-  newStatus: ListingStatus
+  newStatus: ListingStatus,
+  session?: ClientSession,
 ): Promise<void> {
   if (listing.status === newStatus) {
     return; // No-op if already in target status
@@ -157,5 +165,5 @@ export async function transitionListingStatus(
       break;
   }
 
-  await listing.save();
+  await listing.save(session ? { session } : undefined);
 }

@@ -43,13 +43,19 @@ const ConciergeRequestSchema = new Schema<IConciergeRequest>(
       maxlength: 2000,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
+);
+
+// Enforce atomic uniqueness: only one pending request per buyer+listing
+ConciergeRequestSchema.index(
+  { listing_id: 1, buyer_id: 1 },
+  { unique: true, partialFilterExpression: { status: "pending" } },
 );
 
 export const ConciergeRequest = mongoose.model<IConciergeRequest>(
   "ConciergeRequest",
   ConciergeRequestSchema,
-  "concierge_requests"
+  "concierge_requests",
 );
 
 export default ConciergeRequest;

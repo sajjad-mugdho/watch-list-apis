@@ -117,8 +117,8 @@ export const networks_reservation_create = async (
 
     const createdOrder = order[0];
 
-    // 5. Transition listing status
-    await transitionListingStatus(listing, "reserved");
+    // 5. Transition listing status (within the current transaction)
+    await transitionListingStatus(listing, "reserved", session);
 
     // 6. Create/Update Channel (User-to-User)
     let channel = await NetworkListingChannel.findOne({
@@ -227,11 +227,33 @@ export const networks_reservation_get = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
+    if (!(req as any).user) {
+      throw new MissingUserContextError();
+    }
+
     const { id } = req.params;
+    const userId = (req as any).user.dialist_id;
+
     const order = await Order.findById(id).lean();
 
     if (!order) {
       throw new NotFoundError("Reservation not found");
+    }
+
+    // Ensure this is a Networks order
+    if (order.listing_type !== "NetworkListing") {
+      throw new NotFoundError("Reservation not found");
+    }
+
+    // Authorization: only buyer or seller may view this reservation
+    if (
+      String(order.buyer_id) !== String(userId) &&
+      String(order.seller_id) !== String(userId)
+    ) {
+      throw new AuthorizationError(
+        "Not authorized to view this reservation",
+        {},
+      );
     }
 
     res.json({

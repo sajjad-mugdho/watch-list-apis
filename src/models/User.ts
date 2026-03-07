@@ -27,7 +27,7 @@ function locationByGranularity(
       return [city, region].filter(Boolean).join(", ");
     case "full":
     default:
-      return [region, country].filter(Boolean).join(", ");
+      return [city, region, country].filter(Boolean).join(", ");
   }
 }
 

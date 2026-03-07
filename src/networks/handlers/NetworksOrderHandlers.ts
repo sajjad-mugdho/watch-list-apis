@@ -20,7 +20,7 @@ import logger from "../../utils/logger";
 export const networks_order_get = async (
   req: Request<{ id: string }, {}, {}>,
   res: Response<ApiResponse<any>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -32,7 +32,7 @@ export const networks_order_get = async (
     }
 
     const order = await Order.findById(orderId);
-    if (!order) throw new NotFoundError("Order");
+    if (!order) throw new NotFoundError("Order not found");
 
     // Authorization check: must be buyer or seller
     if (
@@ -42,11 +42,9 @@ export const networks_order_get = async (
       throw new AuthorizationError("Not authorized to view this order", {});
     }
 
-    // Ensure it's a Networks order
+    // Ensure it's a Networks order — do not expose non-Network orders via Networks routes
     if (order.listing_type !== "NetworkListing") {
-       // Optional: We might allow viewing Marketplace orders if unified, 
-       // but for strict isolation we might restrict.
-       // However, many fields are shared. Let's stick to authorizing by ownership.
+      throw new NotFoundError("Order not found");
     }
 
     res.json({
@@ -68,9 +66,14 @@ export const networks_order_get = async (
  * GET /api/v1/networks/user/orders
  */
 export const networks_user_orders_get = async (
-  req: Request<{}, {}, {}, { type?: "buy" | "sell"; status?: string; limit?: string; offset?: string }>,
+  req: Request<
+    {},
+    {},
+    {},
+    { type?: "buy" | "sell"; status?: string; limit?: string; offset?: string }
+  >,
   res: Response<ApiResponse<any[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
@@ -101,7 +104,7 @@ export const networks_user_orders_get = async (
     const total = await Order.countDocuments(query);
 
     res.json({
-      data: orders.map(o => o.toJSON()),
+      data: orders.map((o) => o.toJSON()),
       _metadata: {
         total,
         limit: Number(limit),

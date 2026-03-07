@@ -91,7 +91,11 @@ export const networks_listings_get = async (
     const skip = (page - 1) * limit;
 
     // Execute query with pagination (excluding deleted)
-    const activeFilter = { ...filter, is_deleted: { $ne: true } };
+    const activeFilter = {
+      ...filter,
+      is_deleted: { $ne: true },
+      status: { $in: ["active", "reserved", "sold"] },
+    };
     const [listings, total] = await Promise.all([
       NetworkListing.find(activeFilter)
         .sort(sort)
@@ -232,7 +236,10 @@ export const networks_listing_update = async (
     const updates = req.body;
 
     // Find listing
-    const listing = await NetworkListing.findById(id);
+    const listing = await NetworkListing.findOne({
+      _id: id,
+      is_deleted: { $ne: true },
+    });
     if (!listing) {
       throw new NotFoundError("Listing not found");
     }
@@ -306,7 +313,10 @@ export const networks_listing_publish = async (
     const { id } = req.params;
 
     // Find listing
-    const listing = await NetworkListing.findById(id);
+    const listing = await NetworkListing.findOne({
+      _id: id,
+      is_deleted: { $ne: true },
+    });
     if (!listing) {
       throw new NotFoundError("Listing not found");
     }
@@ -436,7 +446,10 @@ export const networks_listing_status_patch = async (
     const { status } = req.body;
 
     // Find listing
-    const listing = await NetworkListing.findById(id);
+    const listing = await NetworkListing.findOne({
+      _id: id,
+      is_deleted: { $ne: true },
+    });
     if (!listing) {
       throw new NotFoundError("Listing not found");
     }
@@ -504,7 +517,10 @@ export const networks_listing_delete = async (
     const { id } = req.params;
 
     // Find listing
-    const listing = await NetworkListing.findById(id);
+    const listing = await NetworkListing.findOne({
+      _id: id,
+      is_deleted: { $ne: true },
+    });
     if (!listing) {
       throw new NotFoundError("Listing not found");
     }
@@ -579,7 +595,10 @@ export const networks_listing_preview = async (
     const { id } = req.params;
 
     // Find listing
-    const listing = await NetworkListing.findById(id);
+    const listing = await NetworkListing.findOne({
+      _id: id,
+      is_deleted: { $ne: true },
+    });
     if (!listing) {
       throw new NotFoundError("Listing not found");
     }

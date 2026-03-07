@@ -105,6 +105,9 @@ const offerSchema = new Schema<IOffer>(
       condition: { type: String },
       thumbnail: { type: String },
     },
+
+    shipping_region: { type: String },
+    reservation_terms_snapshot: { type: Schema.Types.Mixed },
   },
   { timestamps: true },
 );

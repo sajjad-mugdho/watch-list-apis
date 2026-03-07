@@ -128,7 +128,7 @@ export const marketplace_listing_inquire = async (
         ],
         last_event_type: "inquiry",
         last_offer: null,
-        order: null,
+        order_id: null,
       });
 
       channelCreated = true;

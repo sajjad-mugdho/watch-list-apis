@@ -1,21 +1,14 @@
 import { Request, Response, NextFunction } from "express";
 import { channelContextService } from "../../services/ChannelContextService";
-import { User } from "../../models/User";
 import logger from "../../utils/logger";
 
 export const getConversations =
   (_platform: any) =>
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const auth = (req as any).auth;
-      if (!auth?.userId) {
+      const currentUser = (req as any).user;
+      if (!currentUser) {
         res.status(401).json({ error: { message: "Unauthorized" } });
-        return;
-      }
-
-      const user = await User.findOne({ external_id: auth.userId });
-      if (!user) {
-        res.status(404).json({ error: { message: "User not found" } });
         return;
       }
 
@@ -28,7 +21,7 @@ export const getConversations =
       const offset = !isNaN(parsedOffset) ? Math.max(0, parsedOffset) : 0;
 
       const conversations = await channelContextService.getConversationsForUser(
-        user._id.toString(),
+        currentUser.dialist_id,
         _platform,
         { limit, offset },
       );
@@ -57,15 +50,9 @@ export const searchConversations =
   (_platform: any) =>
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const auth = (req as any).auth;
-      if (!auth?.userId) {
+      const currentUser = (req as any).user;
+      if (!currentUser) {
         res.status(401).json({ error: { message: "Unauthorized" } });
-        return;
-      }
-
-      const user = await User.findOne({ external_id: auth.userId });
-      if (!user) {
-        res.status(404).json({ error: { message: "User not found" } });
         return;
       }
 
@@ -81,7 +68,7 @@ export const searchConversations =
       }
 
       const conversations = await channelContextService.searchConversations(
-        user._id.toString(),
+        currentUser.dialist_id,
         q,
         _platform,
       );
@@ -101,15 +88,9 @@ export const getConversationContext =
   (_platform: any) =>
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const auth = (req as any).auth;
-      if (!auth?.userId) {
+      const currentUser = (req as any).user;
+      if (!currentUser) {
         res.status(401).json({ error: { message: "Unauthorized" } });
-        return;
-      }
-
-      const user = await User.findOne({ external_id: auth.userId });
-      if (!user) {
-        res.status(404).json({ error: { message: "User not found" } });
         return;
       }
 
@@ -125,7 +106,9 @@ export const getConversationContext =
         return;
       }
 
-      const isParty = context.parties.some((p) => p.id === user._id.toString());
+      const isParty = context.parties.some(
+        (p) => p.id === currentUser.dialist_id,
+      );
       if (!isParty) {
         res.status(403).json({ error: { message: "Not authorized" } });
         return;
@@ -144,15 +127,9 @@ export const getConversationMedia =
   (_platform: any) =>
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      const auth = (req as any).auth;
-      if (!auth?.userId) {
+      const currentUser = (req as any).user;
+      if (!currentUser) {
         res.status(401).json({ error: { message: "Unauthorized" } });
-        return;
-      }
-
-      const user = await User.findOne({ external_id: auth.userId });
-      if (!user) {
-        res.status(404).json({ error: { message: "User not found" } });
         return;
       }
 
@@ -179,7 +156,9 @@ export const getConversationMedia =
         return;
       }
 
-      const isParty = context.parties.some((p) => p.id === user._id.toString());
+      const isParty = context.parties.some(
+        (p) => p.id === currentUser.dialist_id,
+      );
       if (!isParty) {
         res.status(403).json({ error: { message: "Not authorized" } });
         return;

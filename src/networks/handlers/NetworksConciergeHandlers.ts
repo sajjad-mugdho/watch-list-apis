@@ -52,24 +52,21 @@ export const networks_concierge_request_create = async (
       );
     }
 
-    // Check for existing pending request
-    const existing = await ConciergeRequest.findOne({
-      listing_id: listingId,
-      buyer_id: buyerId,
-      status: "pending",
-    });
-
-    if (existing) {
-      throw new ValidationError(
-        "A concierge request is already pending for this listing",
-      );
+    let conciergeRequest;
+    try {
+      conciergeRequest = await ConciergeRequest.create({
+        listing_id: listingId,
+        buyer_id: buyerId,
+        message,
+      });
+    } catch (createErr: any) {
+      if (createErr?.code === 11000) {
+        throw new ValidationError(
+          "A concierge request is already pending for this listing",
+        );
+      }
+      throw createErr;
     }
-
-    const conciergeRequest = await ConciergeRequest.create({
-      listing_id: listingId,
-      buyer_id: buyerId,
-      message,
-    });
 
     // Notify seller that a buyer is interested in concierge service (optional, but good for UX)
     // Actually, usually concierge is between Buyer and Platform.

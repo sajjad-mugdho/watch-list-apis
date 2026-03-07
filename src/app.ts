@@ -70,6 +70,13 @@ app.use(
   }),
 );
 
+// Raw OpenAPI spec — used to import directly into Postman
+// curl http://localhost:5050/api-docs.json -o dialist-openapi.json
+app.get("/api-docs.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.json(swaggerSpec);
+});
+
 // CORS - Conditional based on environment
 app.use(
   cors({

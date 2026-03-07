@@ -124,7 +124,7 @@ export const networks_listing_inquire = async (
         ],
         last_event_type: "inquiry",
         last_offer: null,
-        order: null,
+        order_id: null,
       });
 
       channelCreated = true;
@@ -209,7 +209,7 @@ export const networks_listing_inquire = async (
         user_id: sellerId,
         type: "new_inquiry",
         title: "New Inquiry",
-        body: `${(await User.findById(buyerId))?.display_name || "Someone"} is interested in your ${listing.brand} ${listing.model}`,
+        body: `${(req as any).user.display_name || "Someone"} is interested in your ${listing.brand} ${listing.model}`,
         data: {
           listing_id: listingId,
           channel_id: (channel._id as any).toString(),
