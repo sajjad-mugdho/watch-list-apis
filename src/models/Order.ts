@@ -38,8 +38,17 @@ export interface IOrder {
   currency: string;
   status: OrderStatus;
 
+  reservation_terms_snapshot?: string;
+
   offer_id?: Types.ObjectId;
   offer_revision_id?: Types.ObjectId;
+
+  buyer_confirmed_complete: boolean;
+  seller_confirmed_complete: boolean;
+  confirmed_by: {
+    user_id: Types.ObjectId;
+    confirmed_at: Date;
+  }[];
 
   channel_id?: Types.ObjectId;
   channel_type?: "MarketplaceListingChannel" | "NetworkListingChannel";
@@ -117,8 +126,17 @@ const orderSchema = new Schema<IOrder>(
       default: "pending",
       index: true,
     },
+    reservation_terms_snapshot: { type: String, default: null },
     offer_id: { type: Schema.Types.ObjectId, ref: "Offer" },
     offer_revision_id: { type: Schema.Types.ObjectId, ref: "OfferRevision" },
+    buyer_confirmed_complete: { type: Boolean, default: false },
+    seller_confirmed_complete: { type: Boolean, default: false },
+    confirmed_by: [
+      {
+        user_id: { type: Schema.Types.ObjectId, ref: "User" },
+        confirmed_at: { type: Date },
+      },
+    ],
     channel_id: { type: Schema.Types.ObjectId, required: false, index: true },
     channel_type: {
       type: String,

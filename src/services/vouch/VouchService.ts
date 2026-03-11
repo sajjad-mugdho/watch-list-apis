@@ -14,7 +14,6 @@
 import mongoose, { Types } from "mongoose";
 import { Vouch, IVouch, ConnectionType } from "../../models/Vouch";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
-import { Friendship } from "../../models/Friendship";
 import { User } from "../../models/User";
 import { Follow } from "../../models/Follow";
 import { EventOutbox } from "../../models/EventOutbox";
@@ -64,7 +63,7 @@ export class VouchService {
   async checkEligibility(
     referenceCheckId: string,
     vouchForUserId: string,
-    voucherId: string
+    voucherId: string,
   ): Promise<VouchEligibility> {
     // 1. Get reference check
     const refCheck = await ReferenceCheck.findById(referenceCheckId);
@@ -81,7 +80,10 @@ export class VouchService {
     const requesterId = (refCheck as any).requester_id?.toString();
     const targetId = (refCheck as any).target_id?.toString();
     if (vouchForUserId !== requesterId && vouchForUserId !== targetId) {
-      return { eligible: false, reason: "Can only vouch for parties in this check" };
+      return {
+        eligible: false,
+        reason: "Can only vouch for parties in this check",
+      };
     }
 
     // 4. Cannot vouch for self
@@ -91,7 +93,10 @@ export class VouchService {
 
     // 5. Cannot be a party in the reference check
     if (voucherId === requesterId || voucherId === targetId) {
-      return { eligible: false, reason: "Cannot vouch as a party in this check" };
+      return {
+        eligible: false,
+        reason: "Cannot vouch as a party in this check",
+      };
     }
 
     // 6. Check connection exists
@@ -119,7 +124,10 @@ export class VouchService {
     });
 
     if (recentVouchCount >= MAX_VOUCHES_PER_HOUR) {
-      return { eligible: false, reason: "Rate limit exceeded. Try again later." };
+      return {
+        eligible: false,
+        reason: "Rate limit exceeded. Try again later.",
+      };
     }
 
     return { eligible: true };
@@ -129,7 +137,13 @@ export class VouchService {
    * Create a vouch
    */
   async createVouch(params: CreateVouchParams): Promise<VouchDTO> {
-    const { referenceCheckId, vouchForUserId, voucherId, comment, legal_consent_accepted } = params;
+    const {
+      referenceCheckId,
+      vouchForUserId,
+      voucherId,
+      comment,
+      legal_consent_accepted,
+    } = params;
 
     logger.info("[VouchService] Creating vouch", {
       referenceCheckId,
@@ -141,7 +155,7 @@ export class VouchService {
     const eligibility = await this.checkEligibility(
       referenceCheckId,
       vouchForUserId,
-      voucherId
+      voucherId,
     );
 
     if (!eligibility.eligible) {
@@ -171,7 +185,10 @@ export class VouchService {
         comment: comment || undefined,
         weight,
         voucher_snapshot: {
-          display_name: (voucher as any).display_name || (voucher as any).username || "User",
+          display_name:
+            (voucher as any).display_name ||
+            (voucher as any).username ||
+            "User",
           avatar: (voucher as any).avatar,
           connection_type: connection.type,
           reputation_score: (voucher as any).reputation_score,
@@ -191,7 +208,8 @@ export class VouchService {
           vouchForUserId,
           voucherId,
           weight,
-          voucherName: (voucher as any).display_name || (voucher as any).username,
+          voucherName:
+            (voucher as any).display_name || (voucher as any).username,
         },
         published: false,
       });
@@ -216,7 +234,9 @@ export class VouchService {
   /**
    * Get vouches for a reference check
    */
-  async getVouchesForReferenceCheck(referenceCheckId: string): Promise<VouchDTO[]> {
+  async getVouchesForReferenceCheck(
+    referenceCheckId: string,
+  ): Promise<VouchDTO[]> {
     const vouches = await Vouch.findByReferenceCheck(referenceCheckId);
     return vouches.map((v) => this.toDTO(v));
   }
@@ -257,28 +277,29 @@ export class VouchService {
 
   private async getConnection(
     userId: string,
-    otherUserId: string
+    otherUserId: string,
   ): Promise<{ type: ConnectionType } | null> {
-    // Check for friendship
-    const friendship = await Friendship.findOne({
-      $or: [
-        { requester_id: new Types.ObjectId(userId), addressee_id: new Types.ObjectId(otherUserId) },
-        { requester_id: new Types.ObjectId(otherUserId), addressee_id: new Types.ObjectId(userId) },
-      ],
-      status: "accepted",
-    });
+    // Check for mutual follow (replaces friendship — both follow each other with accepted status)
+    const [followsOther, followedByOther] = await Promise.all([
+      Follow.findOne({
+        follower_id: new Types.ObjectId(userId),
+        following_id: new Types.ObjectId(otherUserId),
+        status: "accepted",
+      }),
+      Follow.findOne({
+        follower_id: new Types.ObjectId(otherUserId),
+        following_id: new Types.ObjectId(userId),
+        status: "accepted",
+      }),
+    ]);
 
-    if (friendship) {
-      // In this model, status: accepted means it's already a mutual friendship
-      // but we'll return "mutual" for consistency with the service's intention
+    if (followsOther && followedByOther) {
       return { type: "mutual" };
     }
 
-    // Check for follow
-    // If voucher follows the user they are vouching for, that counts as a connection
-    const isFollowing = await Follow.isFollowing(userId, otherUserId);
-    if (isFollowing) {
-        return { type: "follow" };
+    // One-way follow counts as a connection
+    if (followsOther) {
+      return { type: "follow" };
     }
 
     return null;
@@ -286,7 +307,7 @@ export class VouchService {
 
   private async calculateWeight(
     voucher: any,
-    connection: { type: ConnectionType }
+    connection: { type: ConnectionType },
   ): Promise<number> {
     let weight = 1.0;
 
@@ -300,7 +321,7 @@ export class VouchService {
     // Account age bonus
     const createdAt = voucher.createdAt || new Date();
     const daysSinceCreation = Math.floor(
-      (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24)
+      (Date.now() - new Date(createdAt).getTime()) / (1000 * 60 * 60 * 24),
     );
 
     if (daysSinceCreation > 365) {

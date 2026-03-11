@@ -15,13 +15,10 @@ import { debugRoutes } from "./debugRoutes";
 import { subscriptionRoutes } from "./subscriptionRoutes";
 import { getstreamWebhookRoutes } from "./getstreamWebhookRoutes";
 import { userSubRoutes } from "./user"; // Consolidated user routes
-import { reviewRoutes } from "./reviewRoutes";
-import { notificationRoutes } from "./notificationRoutes";
 import { analyticsRoutes } from "./analyticsRoutes";
 import { newsRoutes } from "./newsRoutes";
 
 import { trustCaseRoutes } from "./admin/trustCaseRoutes";
-import { reservationTermsRoutes } from "./reservationTermsRoutes";
 
 const router: Router = Router();
 
@@ -65,9 +62,6 @@ router.use(
 // /api/v1/user/* -> "My Content"
 router.use("/v1/user", requirePlatformAuth(), userSubRoutes); // Consolidated!
 
-// Reviews (platform-agnostic, works for both networks and marketplace)
-router.use("/v1/reviews", requirePlatformAuth(), reviewRoutes);
-
 // Subscriptions
 router.use("/v1/subscriptions", requirePlatformAuth(), subscriptionRoutes);
 
@@ -86,14 +80,8 @@ router.use(
   analyticsRoutes,
 );
 
-// Notification routes
-router.use("/v1/notifications", requirePlatformAuth(), notificationRoutes);
-
 // News & Events (Batch 2 Dashboard)
 router.use("/v1/news", requirePlatformAuth(), newsRoutes);
-
-// Reservation Terms - versioned legal terms
-router.use("/v1/reservation-terms", reservationTermsRoutes);
 
 // Admin routes - Trust & Safety
 router.use(

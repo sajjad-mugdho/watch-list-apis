@@ -3457,104 +3457,6 @@ swaggerSpec.paths = {
       },
     },
   },
-  "/api/v1/user/favorites": {
-    get: {
-      tags: ["User - Favorites"],
-      summary: "Get current user favorites",
-      description: "Returns favorites for the current user, scoped by platform",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "platform",
-          in: "query",
-          schema: { type: "string", enum: ["marketplace", "networks"] },
-          required: true,
-          description: "Platform scope for favorites",
-        },
-      ],
-      responses: {
-        200: {
-          description: "Favorites retrieved successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "array",
-                        items: { $ref: "#/components/schemas/Favorite" },
-                      },
-                      total: { type: "number" },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-    },
-    post: {
-      tags: ["User - Favorites"],
-      summary: "Add item to favorites",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["item_id", "item_type", "platform"],
-              properties: {
-                item_id: { type: "string" },
-                item_type: { type: "string" },
-                platform: { type: "string", enum: ["marketplace", "networks"] },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Item added to favorites" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/user/isos": {
-    get: {
-      tags: ["ISO"],
-      summary: "Get current user ISOs",
-      description: "Returns ISOs created by the current user",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: {
-          description: "User ISOs retrieved successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "array",
-                        items: { $ref: "#/components/schemas/ISO" },
-                      },
-                      total: { type: "number" },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-    },
-  },
   "/api/v1/user/subscription": {
     get: {
       tags: ["Subscription"],
@@ -8845,7 +8747,7 @@ Once approved:
       },
     },
   },
-  "/api/v1/feeds/token": {
+  "/api/v1/networks/user/feeds/token": {
     get: {
       tags: ["Feeds"],
       summary: "Get Stream Feeds authentication token",
@@ -8856,7 +8758,7 @@ Once approved:
       },
     },
   },
-  "/api/v1/feeds/timeline": {
+  "/api/v1/networks/user/feeds/timeline": {
     get: {
       tags: ["Feeds"],
       summary: "Get timeline feed",
@@ -8879,7 +8781,7 @@ Once approved:
       },
     },
   },
-  "/api/v1/feeds/user/{id}": {
+  "/api/v1/networks/user/feeds/user/{id}": {
     get: {
       tags: ["Feeds"],
       summary: "Get user's activity feed",
@@ -8904,7 +8806,7 @@ Once approved:
       },
     },
   },
-  "/api/v1/feeds/following": {
+  "/api/v1/networks/user/feeds/following": {
     get: {
       tags: ["Feeds"],
       summary: "Get following list",
@@ -8927,7 +8829,7 @@ Once approved:
       },
     },
   },
-  "/api/v1/feeds/followers": {
+  "/api/v1/networks/user/feeds/followers": {
     get: {
       tags: ["Feeds"],
       summary: "Get followers list",
@@ -9091,137 +8993,6 @@ Once approved:
       responses: {
         200: { description: "Following list retrieved" },
         401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/reference-checks": {
-    post: {
-      tags: ["ReferenceCheck"],
-      summary: "Create reference check",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["target_id"],
-              properties: {
-                target_id: { type: "string" },
-                network_id: { type: "string" },
-                reason: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Reference check created" },
-        400: { description: "Already pending or checking yourself" },
-        401: { description: "Unauthorized" },
-        404: { description: "Target user not found" },
-      },
-    },
-    get: {
-      tags: ["ReferenceCheck"],
-      summary: "Get reference checks",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          in: "query",
-          name: "type",
-          schema: {
-            type: "string",
-            enum: ["requested", "pending", "about-me"],
-          },
-        },
-      ],
-      responses: {
-        200: { description: "Reference checks retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/reference-checks/{id}": {
-    get: {
-      tags: ["ReferenceCheck"],
-      summary: "Get reference check by ID",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "Reference check retrieved" },
-        401: { description: "Unauthorized" },
-        404: { description: "Reference check not found" },
-      },
-    },
-    delete: {
-      tags: ["ReferenceCheck"],
-      summary: "Delete reference check",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "Reference check deleted" },
-        400: { description: "Check not pending" },
-        401: { description: "Unauthorized" },
-        403: { description: "Not authorized" },
-        404: { description: "Reference check not found" },
-      },
-    },
-  },
-  "/api/v1/reference-checks/{id}/respond": {
-    post: {
-      tags: ["ReferenceCheck"],
-      summary: "Respond to reference check",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["rating"],
-              properties: {
-                rating: {
-                  type: "string",
-                  enum: ["positive", "neutral", "negative"],
-                },
-                comment: { type: "string" },
-                is_anonymous: { type: "boolean" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Response added" },
-        400: { description: "Already responded or invalid" },
-        401: { description: "Unauthorized" },
-        403: { description: "Not authorized" },
-        404: { description: "Reference check not found" },
-      },
-    },
-  },
-  "/api/v1/reference-checks/{id}/complete": {
-    post: {
-      tags: ["ReferenceCheck"],
-      summary: "Complete reference check",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-      ],
-      responses: {
-        200: { description: "Reference check completed" },
-        400: { description: "Check not pending" },
-        401: { description: "Unauthorized" },
-        403: { description: "Only requester can complete" },
-        404: { description: "Reference check not found" },
       },
     },
   },
@@ -9719,132 +9490,6 @@ Once approved:
       responses: {
         200: { description: "Wishlist status (in_wishlist: boolean)" },
       },
-    },
-  },
-
-  // ==========================================================================
-  // FRIENDSHIPS API
-  // ==========================================================================
-  "/api/v1/user/friends/requests": {
-    post: {
-      tags: ["Friendships"],
-      summary: "Send a friend request",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["user_id"],
-              properties: { user_id: { type: "string" } },
-            },
-          },
-        },
-      },
-      responses: { 201: { description: "Friend request sent" } },
-    },
-  },
-  "/api/v1/user/friends/requests/pending": {
-    get: {
-      tags: ["Friendships"],
-      summary: "Get pending friend requests",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "List of pending friend requests" } },
-    },
-  },
-  "/api/v1/user/friends/requests/{friendship_id}/accept": {
-    post: {
-      tags: ["Friendships"],
-      summary: "Accept a friend request",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "friendship_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Friend request accepted" } },
-    },
-  },
-  "/api/v1/user/friends/requests/{friendship_id}/decline": {
-    post: {
-      tags: ["Friendships"],
-      summary: "Decline a friend request",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "friendship_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Friend request declined" } },
-    },
-  },
-  "/api/v1/user/friends": {
-    get: {
-      tags: ["Friendships"],
-      summary: "Get friends list",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 50 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: { 200: { description: "List of friends" } },
-    },
-  },
-  "/api/v1/user/friends/{friendship_id}": {
-    delete: {
-      tags: ["Friendships"],
-      summary: "Remove a friend (unfriend)",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "friendship_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Friend removed" } },
-    },
-  },
-  "/api/v1/user/friends/mutual/{user_id}": {
-    get: {
-      tags: ["Friendships"],
-      summary: "Get mutual friends with another user",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "user_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 50 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: { 200: { description: "List of mutual friends" } },
     },
   },
 
@@ -11512,29 +11157,10 @@ Once approved:
     },
   },
 
-  // =========================================================================
-  // USER - SEARCHES
-  // =========================================================================
-  "/api/v1/user/searches/recent": {
-    get: {
-      tags: ["User - Searches"],
-      summary: "Get recent searches",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "platform",
-          in: "query",
-          schema: { type: "string", enum: ["marketplace", "networks"] },
-        },
-      ],
-      responses: {
-        200: { description: "Recent searches retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-    post: {
-      tags: ["User - Searches"],
-      summary: "Save a recent search",
+  "/api/v1/user/deactivate": {
+    patch: {
+      tags: ["User"],
+      summary: "Deactivate or reactivate current user account",
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -11542,48 +11168,20 @@ Once approved:
           "application/json": {
             schema: {
               type: "object",
-              required: ["query"],
+              required: ["active"],
               properties: {
-                query: { type: "string" },
-                platform: { type: "string" },
+                active: {
+                  type: "boolean",
+                  description: "true to reactivate, false to deactivate",
+                },
               },
             },
           },
         },
       },
       responses: {
-        201: { description: "Search saved" },
+        200: { description: "Account status updated" },
         401: { description: "Unauthorized" },
-      },
-    },
-    delete: {
-      tags: ["User - Searches"],
-      summary: "Clear all recent searches",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Searches cleared" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/user/searches/recent/{id}": {
-    delete: {
-      tags: ["User - Searches"],
-      summary: "Delete a specific recent search",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Search entry ID",
-        },
-      ],
-      responses: {
-        200: { description: "Search deleted" },
-        401: { description: "Unauthorized" },
-        404: { description: "Search not found" },
       },
     },
   },
@@ -11626,65 +11224,6 @@ Once approved:
       responses: {
         200: { description: "Subscription cancelled" },
         401: { description: "Unauthorized" },
-      },
-    },
-  },
-
-  // =========================================================================
-  // USER - FAVORITES
-  // =========================================================================
-  "/api/v1/user/favorites/check/{type}/{id}": {
-    get: {
-      tags: ["User - Favorites"],
-      summary: "Check if an item is favorited",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "type",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Item type",
-        },
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Item ID",
-        },
-      ],
-      responses: {
-        200: { description: "Favorite check result" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/user/favorites/{type}/{id}": {
-    delete: {
-      tags: ["User - Favorites"],
-      summary: "Remove item from favorites",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "type",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Item type",
-        },
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Item ID",
-        },
-      ],
-      responses: {
-        200: { description: "Removed from favorites" },
-        401: { description: "Unauthorized" },
-        404: { description: "Favorite not found" },
       },
     },
   },

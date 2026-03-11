@@ -6,7 +6,7 @@ import {
   ValidationError,
   NotFoundError,
 } from "../../utils/errors";
-import { friendshipService } from "../../services/friendship/FriendshipService";
+import { followService } from "../../services/follow/FollowService";
 import {
   FriendRequestInput,
   RespondFriendRequestInput,
@@ -14,7 +14,7 @@ import {
 import { feedService } from "../../services/FeedService";
 
 /**
- * Send a friend request
+ * Follow a user (replaces friend request)
  * POST /api/v1/networks/connections/request
  */
 export const networks_friend_request_send = async (
@@ -24,33 +24,28 @@ export const networks_friend_request_send = async (
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
-    const requester_id = (req as any).user.dialist_id;
+    const followerId = String((req as any).user.dialist_id);
     const { target_user_id } = req.body;
 
-    const result = await friendshipService.sendRequest({
-      requester_id: String(requester_id),
-      addressee_id: target_user_id,
-    });
+    const result = await followService.follow(followerId, target_user_id);
 
     res.status(201).json({
       data: result,
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err: any) {
-    // Pass through known AppError types; only wrap user-input issues as ValidationError
     if (err instanceof ValidationError || err instanceof NotFoundError) {
       next(err);
     } else if (err instanceof MissingUserContextError) {
       next(err);
     } else {
-      // For unexpected errors, pass through as-is (don't mask as validation error)
       next(err);
     }
   }
 };
 
 /**
- * Respond to a friend request
+ * Respond to a follow request (accept/decline)
  * PATCH /api/v1/networks/connections/:id/respond
  */
 export const networks_friend_request_respond = async (
@@ -64,18 +59,15 @@ export const networks_friend_request_respond = async (
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
-    const userId = (req as any).user.dialist_id;
-    const { id: friendshipId } = req.params;
+    const userId = String((req as any).user.dialist_id);
+    const { id: followId } = req.params;
     const { status } = req.body;
 
     let result;
     if (status === "accepted") {
-      result = await friendshipService.acceptRequest(
-        friendshipId,
-        String(userId),
-      );
+      result = await followService.acceptFollowRequest(userId, followId);
     } else {
-      await friendshipService.declineRequest(friendshipId, String(userId));
+      await followService.rejectFollowRequest(userId, followId);
       result = { message: "Request declined" };
     }
 
@@ -89,7 +81,7 @@ export const networks_friend_request_respond = async (
 };
 
 /**
- * Get user connections (friends)
+ * Get user connections (following)
  * GET /api/v1/networks/connections
  */
 export const networks_connections_get = async (
@@ -99,26 +91,23 @@ export const networks_connections_get = async (
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
-    const userId = (req as any).user.dialist_id;
+    const userId = String((req as any).user.dialist_id);
 
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 50;
     const offset = (page - 1) * limit;
 
-    const { friends, total } = await friendshipService.getFriends(
-      String(userId),
-      {
-        limit,
-        offset,
-      },
-    );
+    const { following, total } = await followService.getFollowing(userId, {
+      limit,
+      offset,
+    });
 
     res.json({
-      data: friends,
+      data: following,
       requestId: req.headers["x-request-id"] as string,
       _metadata: {
         paging: {
-          count: friends.length,
+          count: following.length,
           total,
           page,
           limit,
@@ -153,8 +142,6 @@ export const networks_connections_listings_get = async (
       offset,
     );
 
-    // Filter for listing activities specifically if needed,
-    // or return the whole timeline as requested by the spec
     res.json({
       data: activities,
       requestId: req.headers["x-request-id"] as string,

@@ -10,6 +10,7 @@ export interface IOfferRevision {
   currency: string;
   note?: string;
   reservation_terms_id?: Types.ObjectId;
+  reservation_terms?: string; // Seller's free-text terms for this revision
   created_by: Types.ObjectId;
   revision_number: number;
 
@@ -46,6 +47,7 @@ const offerRevisionSchema = new Schema<IOfferRevision>(
       type: Schema.Types.ObjectId,
       ref: "ReservationTerms",
     },
+    reservation_terms: { type: String, default: null, maxlength: 2000 },
     created_by: { type: Schema.Types.ObjectId, ref: "User", required: true },
     revision_number: { type: Number, required: true, min: 1 },
   },

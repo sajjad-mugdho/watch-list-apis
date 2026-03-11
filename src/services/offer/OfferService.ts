@@ -55,6 +55,7 @@ export interface CounterOfferParams {
   currency?: string;
   note?: string;
   expiresInHours?: number;
+  reservation_terms?: string | null;
 }
 
 export interface AcceptOfferResponse {
@@ -266,6 +267,7 @@ export class OfferService {
       currency = "USD",
       note,
       expiresInHours = OfferService.DEFAULT_OFFER_EXPIRY_HOURS,
+      reservation_terms,
     } = params;
 
     const session = await mongoose.startSession();
@@ -299,7 +301,15 @@ export class OfferService {
       // 4. Get current terms
       const currentTerms = await ReservationTerms.getCurrent();
 
-      // 5. Create new revision
+      // 5. Resolve seller reservation terms (carry forward if not provided)
+      let resolvedTerms: string | null = null;
+      if (reservation_terms !== undefined) {
+        resolvedTerms = reservation_terms || null;
+      } else if (latestRevision) {
+        resolvedTerms = latestRevision.reservation_terms ?? null;
+      }
+
+      // 6. Create new revision
       [revision] = await OfferRevision.create(
         [
           {
@@ -308,6 +318,7 @@ export class OfferService {
             currency,
             note,
             reservation_terms_id: currentTerms?._id,
+            reservation_terms: resolvedTerms,
             created_by: new Types.ObjectId(counterById),
             revision_number: nextRevisionNumber,
           },
@@ -315,14 +326,14 @@ export class OfferService {
         { session },
       );
 
-      // 6. Update offer state
+      // 7. Update offer state
       const previousState = offer.state;
       offer.state = "COUNTERED";
       offer.active_revision_id = revision._id;
       offer.expires_at = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
       await offer.save({ session });
 
-      // 7. Write outbox
+      // 8. Write outbox
       await EventOutbox.create(
         [
           {
@@ -503,6 +514,7 @@ export class OfferService {
             : "MarketplaceListingChannel",
         getstream_channel_id: offer.getstream_channel_id,
         reserved_at: new Date(),
+        reservation_terms_snapshot: latestRevision.reservation_terms ?? null,
       });
       await order.save({ session });
       orderId = order._id.toString();

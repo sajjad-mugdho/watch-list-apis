@@ -184,7 +184,7 @@ export async function transitionListingStatus(
     const updated = await NetworkListing.findByIdAndUpdate(
       listingId,
       { status: newStatus, updated_at: new Date() },
-      { session, new: true },
+      { session: session ?? null, new: true },
     );
     return updated;
   } else {

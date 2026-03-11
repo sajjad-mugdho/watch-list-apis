@@ -2,21 +2,18 @@
  * Follow Routes
  *
  * Endpoints for follow/unfollow operations:
- * - Follow a user
+ * - Follow a user (Instagram-style: auto-accept for public, pending for private)
  * - Unfollow a user
- * - Get followers
- * - Get following
- * - Check follow status
+ * - Get followers (accepted only)
+ * - Get following (accepted only)
+ * - Check follow status (includes pending state)
  *
  * Note: All routes are protected by requirePlatformAuth() at the router level
  */
 
 import { Router, Request, Response, NextFunction } from "express";
-import { Follow } from "../../models/Follow";
 import { User } from "../../models/User";
-import { Notification } from "../../models/Notification";
-import { feedService } from "../../services/FeedService";
-import logger from "../../utils/logger";
+import { followService } from "../../services/follow/FollowService";
 import mongoose from "mongoose";
 
 const router = Router();
@@ -26,7 +23,7 @@ const router = Router();
  * /api/v1/users/{id}/follow:
  *   post:
  *     summary: Follow a user
- *     description: Follow another user to see their activities in your timeline
+ *     description: Follow another user. Auto-accepted for public accounts, pending for private.
  *     tags: [Follow]
  *     security:
  *       - bearerAuth: []
@@ -39,9 +36,9 @@ const router = Router();
  *         description: User ID to follow
  *     responses:
  *       201:
- *         description: Successfully followed user
+ *         description: Successfully followed user or request pending
  *       400:
- *         description: Cannot follow yourself or already following
+ *         description: Cannot follow yourself, already following, or request pending
  */
 router.post(
   "/:id/follow",
@@ -61,78 +58,38 @@ router.post(
 
       const { id: targetId } = req.params;
 
-      // Validate target user ID
       if (!mongoose.Types.ObjectId.isValid(targetId)) {
         res.status(400).json({ error: { message: "Invalid user ID" } });
         return;
       }
 
-      const followerId = followerUser._id.toString();
+      const follow = await followService.follow(
+        followerUser._id.toString(),
+        targetId,
+      );
 
-      // Cannot follow yourself
-      if (followerId === targetId) {
-        res.status(400).json({ error: { message: "Cannot follow yourself" } });
+      const message =
+        follow.status === "pending"
+          ? "Follow request sent"
+          : "Successfully followed user";
+
+      res.status(201).json({ message, follow: follow.toJSON() });
+    } catch (error: any) {
+      if (
+        error.message === "Cannot follow yourself" ||
+        error.message === "Already following this user" ||
+        error.message === "Follow request already pending"
+      ) {
+        res.status(400).json({ error: { message: error.message } });
         return;
       }
-
-      // Check target user exists
-      const targetUser = await User.findById(targetId);
-      if (!targetUser) {
+      if (error.message === "User not found") {
         res.status(404).json({ error: { message: "Target user not found" } });
         return;
       }
-
-      // Check if already following
-      const existingFollow = await Follow.findOne({
-        follower_id: followerId,
-        following_id: targetId,
-      });
-
-      if (existingFollow) {
-        res.status(400).json({ error: { message: "Already following this user" } });
-        return;
-      }
-
-      // Create follow relationship in database
-      const follow = await Follow.create({
-        follower_id: followerId,
-        following_id: targetId,
-      });
-
-      // Sync with Stream Feeds
-      try {
-        await feedService.follow(followerId, targetId);
-      } catch (feedError) {
-        logger.warn("Failed to sync follow to Stream Feeds", { feedError });
-        // Don't fail the request - DB is source of truth
-      }
-
-      // Notify target user
-      try {
-        await Notification.create({
-          user_id: targetId,
-          type: "new_follower",
-          title: "New Follower",
-          body: `${followerUser.display_name || "Someone"} started following you.`,
-          data: {
-            follower_id: followerId,
-          },
-          action_url: `/users/${followerId}`,
-        });
-      } catch (notifError) {
-        logger.warn("Failed to create follower notification", { notifError });
-      }
-
-      logger.info("User followed", { followerId, targetId });
-
-      res.status(201).json({
-        message: "Successfully followed user",
-        follow: follow.toJSON(),
-      });
-    } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -140,7 +97,7 @@ router.post(
  * /api/v1/users/{id}/follow:
  *   delete:
  *     summary: Unfollow a user
- *     description: Stop following a user
+ *     description: Stop following a user or cancel a pending follow request
  *     tags: [Follow]
  *     security:
  *       - bearerAuth: []
@@ -174,41 +131,23 @@ router.delete(
       }
 
       const { id: targetId } = req.params;
-      const followerId = followerUser._id.toString();
 
-      // Validate target user ID
       if (!mongoose.Types.ObjectId.isValid(targetId)) {
         res.status(400).json({ error: { message: "Invalid user ID" } });
         return;
       }
 
-      // Find and delete the follow relationship
-      const result = await Follow.findOneAndDelete({
-        follower_id: followerId,
-        following_id: targetId,
-      });
+      await followService.unfollow(followerUser._id.toString(), targetId);
 
-      if (!result) {
-        res.status(404).json({ error: { message: "Not following this user" } });
+      res.json({ message: "Successfully unfollowed user" });
+    } catch (error: any) {
+      if (error.message === "Not following this user") {
+        res.status(404).json({ error: { message: error.message } });
         return;
       }
-
-      // Sync with Stream Feeds
-      try {
-        await feedService.unfollow(followerId, targetId);
-      } catch (feedError) {
-        logger.warn("Failed to sync unfollow to Stream Feeds", { feedError });
-      }
-
-      logger.info("User unfollowed", { followerId, targetId });
-
-      res.json({
-        message: "Successfully unfollowed user",
-      });
-    } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -216,7 +155,7 @@ router.delete(
  * /api/v1/users/{id}/followers:
  *   get:
  *     summary: Get a user's followers
- *     description: Returns list of users following the specified user
+ *     description: Returns list of accepted followers for the specified user
  *     tags: [Follow]
  *     security:
  *       - bearerAuth: []
@@ -253,13 +192,11 @@ router.get(
 
       const { id: userId } = req.params;
 
-      // Validate user ID
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         res.status(400).json({ error: { message: "Invalid user ID" } });
         return;
       }
 
-      // Check user exists
       const user = await User.findById(userId);
       if (!user) {
         res.status(404).json({ error: { message: "User not found" } });
@@ -269,30 +206,16 @@ router.get(
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      // Get followers with user data
-      const follows = await Follow.find({ following_id: userId })
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .populate("follower_id", "_id display_name avatar first_name last_name");
-
-      const total = await Follow.countDocuments({ following_id: userId });
-
-      const followers = follows.map((f) => ({
-        user: f.follower_id,
-        followed_at: f.createdAt,
-      }));
-
-      res.json({
-        followers,
-        total,
+      const result = await followService.getFollowers(userId, {
         limit,
         offset,
       });
+
+      res.json({ ...result, limit, offset });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -300,7 +223,7 @@ router.get(
  * /api/v1/users/{id}/following:
  *   get:
  *     summary: Get users that a user is following
- *     description: Returns list of users the specified user follows
+ *     description: Returns list of accepted following for the specified user
  *     tags: [Follow]
  *     security:
  *       - bearerAuth: []
@@ -337,13 +260,11 @@ router.get(
 
       const { id: userId } = req.params;
 
-      // Validate user ID
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         res.status(400).json({ error: { message: "Invalid user ID" } });
         return;
       }
 
-      // Check user exists
       const user = await User.findById(userId);
       if (!user) {
         res.status(404).json({ error: { message: "User not found" } });
@@ -353,38 +274,24 @@ router.get(
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      // Get following with user data
-      const follows = await Follow.find({ follower_id: userId })
-        .sort({ createdAt: -1 })
-        .skip(offset)
-        .limit(limit)
-        .populate("following_id", "_id display_name avatar first_name last_name");
-
-      const total = await Follow.countDocuments({ follower_id: userId });
-
-      const following = follows.map((f) => ({
-        user: f.following_id,
-        followed_at: f.createdAt,
-      }));
-
-      res.json({
-        following,
-        total,
+      const result = await followService.getFollowing(userId, {
         limit,
         offset,
       });
+
+      res.json({ ...result, limit, offset });
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
  * @swagger
  * /api/v1/users/{id}/follow/status:
  *   get:
- *     summary: Check if current user is following a user
- *     description: Returns whether the current user follows the specified user
+ *     summary: Check follow status with a user
+ *     description: Returns follow relationship including pending state
  *     tags: [Follow]
  *     security:
  *       - bearerAuth: []
@@ -417,30 +324,21 @@ router.get(
 
       const { id: targetId } = req.params;
 
-      // Validate target user ID
       if (!mongoose.Types.ObjectId.isValid(targetId)) {
         res.status(400).json({ error: { message: "Invalid user ID" } });
         return;
       }
 
-      const isFollowing = await Follow.isFollowing(
+      const status = await followService.getFollowStatus(
         currentUser._id.toString(),
-        targetId
-      );
-
-      const isFollowedBy = await Follow.isFollowing(
         targetId,
-        currentUser._id.toString()
       );
 
-      res.json({
-        is_following: isFollowing,
-        is_followed_by: isFollowedBy,
-      });
+      res.json(status);
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 export { router as followRoutes };

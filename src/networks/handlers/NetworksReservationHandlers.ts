@@ -23,10 +23,14 @@ import { NetworkListing } from "../models/NetworkListing";
 
 /**
  * Create a direct reservation (Buy Now)
- * POST /api/v1/networks/reservations
+ * POST /api/v1/networks/listings/:id/reserve
  */
 export const networks_reservation_create = async (
-  req: Request<{}, {}, CreateReservationInput["body"]>,
+  req: Request<
+    CreateReservationInput["params"],
+    {},
+    CreateReservationInput["body"]
+  >,
   res: Response<ApiResponse<IOrder>>,
   next: NextFunction,
 ): Promise<void> => {
@@ -45,7 +49,8 @@ export const networks_reservation_create = async (
       );
     }
 
-    const { listing_id, shipping_region } = req.body;
+    const { id: listing_id } = req.params;
+    const { shipping_region } = req.body;
     const buyerId = (req as any).user.dialist_id;
 
     // 1. Find listing and lock it (SELECT FOR UPDATE equivalent in Mongoose is hard,
@@ -105,6 +110,8 @@ export const networks_reservation_create = async (
           status: "reserved",
           reserved_at: new Date(),
           reservation_expires_at: expiresAt,
+          reservation_terms_snapshot:
+            (listing as any).reservation_terms ?? null,
           metadata: {
             shipping_region,
             shipping_cost: shippingCost,

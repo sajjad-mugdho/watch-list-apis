@@ -18,7 +18,10 @@ import { User } from "../../models/User";
 import { Follow } from "../../models/Follow";
 import { Order } from "../../models/Order";
 import { Types } from "mongoose";
-import { deactivateUserSchema } from "../../validation/schemas";
+import {
+  deactivateUserSchema,
+  userStatusSchema,
+} from "../../validation/schemas";
 import logger from "../../utils/logger";
 import { imageService, ImageContext } from "../../services/ImageService";
 import multer from "multer";
@@ -47,11 +50,31 @@ router.patch(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = getUserId(req);
-      const { bio, social_links, fullName } = req.body;
+      const {
+        bio,
+        social_links,
+        fullName,
+        first_name,
+        last_name,
+        display_name,
+      } = req.body;
 
       const updateData: Record<string, any> = {};
 
-      // Handle split name update if fullName provided
+      // Handle explicit first_name / last_name fields
+      if (first_name !== undefined) {
+        updateData.first_name = first_name.trim();
+      }
+      if (last_name !== undefined) {
+        updateData.last_name = last_name.trim();
+      }
+
+      // Handle explicit display_name override
+      if (display_name !== undefined) {
+        updateData.display_name = display_name.trim();
+      }
+
+      // Legacy: fullName string split into first/last
       if (fullName !== undefined && fullName !== null) {
         const parts = fullName.trim().split(/\s+/);
         if (parts.length > 0) {
@@ -89,7 +112,7 @@ router.patch(
         userId,
         { $set: updateData },
         { new: true, runValidators: true },
-      ).select("bio social_links first_name last_name");
+      ).select("bio social_links display_name +first_name +last_name");
 
       if (!updatedUser) {
         res.status(404).json({ error: "User not found" });
@@ -98,9 +121,12 @@ router.patch(
 
       res.json({
         data: {
+          first_name: (updatedUser as any).first_name,
+          last_name: (updatedUser as any).last_name,
+          full_name: (updatedUser as any).full_name,
+          display_name: updatedUser.display_name,
           bio: updatedUser.bio,
           social_links: updatedUser.social_links,
-          fullName: updatedUser.full_name,
         },
       });
     } catch (err) {
@@ -165,7 +191,7 @@ router.get(
       const userId = getUserId(req);
 
       const user = await User.findById(userId).select(
-        "bio social_links stats display_name avatar rating_average rating_count reference_count",
+        "bio social_links stats display_name avatar rating_average rating_count reference_count +first_name +last_name",
       );
 
       if (!user) {
@@ -238,31 +264,60 @@ router.get(
 
 /**
  * @route PATCH /api/v1/user/status
- * @desc Deactivate/Reactivate current user's account
+ * @desc Update current user's presence status (online/offline/away/busy)
  */
 router.patch(
   "/status",
+  validateRequest(userStatusSchema),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = getUserId(req);
+      const { status } = req.body;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { presence_status: status } },
+        { new: true },
+      ).select("presence_status");
+
+      if (!updatedUser) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      res.json({
+        data: {
+          status: updatedUser.presence_status,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
+ * @route PATCH /api/v1/user/deactivate
+ * @desc Deactivate or reactivate current user's account
+ */
+router.patch(
+  "/deactivate",
   validateRequest(deactivateUserSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = getUserId(req);
       const { active } = req.body;
 
-      const user = await User.findById(userId);
-      if (!user) {
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { deactivated_at: active ? null : new Date() } },
+        { new: true },
+      );
+
+      if (!updatedUser) {
         res.status(404).json({ error: "User not found" });
         return;
       }
-
-      const updateData: any = {
-        deactivated_at: active ? null : new Date(),
-      };
-
-      const updatedUser = await User.findByIdAndUpdate(
-        userId,
-        { $set: updateData },
-        { new: true },
-      );
 
       logger.info(
         `User ${userId} ${active ? "reactivated" : "deactivated"} their account`,
@@ -271,7 +326,7 @@ router.patch(
       res.json({
         data: {
           active: !!active,
-          deactivated_at: updatedUser?.deactivated_at || null,
+          deactivated_at: updatedUser.deactivated_at || null,
         },
       });
     } catch (err) {

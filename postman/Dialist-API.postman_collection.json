@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "dialist-api-collection-v1",
     "name": "Dialist API",
-    "description": "Full Dialist API collection — all 213+ endpoints across Marketplace, Networks, User, Auth, and Admin modules.\n\n## Quick Start\n1. Import both this collection AND the `Dialist-LocalDev.postman_environment.json` file\n2. Select **Dialist - Local Dev** as the active environment\n3. Start the server: `npm run dev` (listens on port 5050)\n4. Run `Debug > Get All Mock Users` to see available personas\n5. Change `{{mockUser}}` in the environment to switch testing persona\n6. Use Collection Runner to run folders in order for end-to-end flows\n\n## Auth\nControlled by the `authMode` environment variable:\n\n**Mode 1 — Mock (default, `authMode = mock`)**\nInjects `x-test-user: {{mockUser}}` header — no Clerk account needed.\nChange `{{mockUser}}` to switch persona:\n- `buyer_us_complete` — fully onboarded US buyer\n- `merchant_approved` — approved US seller\n- `merchant_approved_ca` — approved Canadian seller\n- `new_user_us` — fresh US user (test onboarding)\n- `new_user_ca` — fresh Canadian user\n- `merchant_pending` / `merchant_provisioning` / `merchant_rejected`\n\n**Mode 2 — Real Clerk JWT (`authMode = jwt`)**\nInjects `Authorization: Bearer {{token}}` header for a real Clerk user.\nSupports: `{{token}}`, `{{buyerToken}}`, or `{{sellerToken}}`\nHow to use:\n1. Open the app in the browser, sign in as the real user\n2. Open DevTools → Network tab → any API request → copy the `Authorization` header value (without the `Bearer ` prefix)\n3a. For general token: paste into `token` env variable\n3b. For buyer requests: paste into `buyerToken` env variable + set `tokenRole = buyer`\n3c. For seller requests: paste into `sellerToken` env variable + set `tokenRole = seller`\n4. Set `authMode` to `jwt`\nNote: Tokens valid ~12 hours — refresh from DevTools when they expire.\n\n## ID Chaining\nCreate requests auto-save response IDs to environment variables:\n`{{listingId}}`, `{{orderId}}`, `{{offerId}}`, `{{connectionId}}`, `{{groupId}}`, etc.\nSubsequent requests reference these automatically.",
+    "description": "Full Dialist API collection \u2014 all 213+ endpoints across Marketplace, Networks, User, Auth, and Admin modules.\n\n## Quick Start\n1. Import both this collection AND the `Dialist-LocalDev.postman_environment.json` file\n2. Select **Dialist - Local Dev** as the active environment\n3. Start the server: `npm run dev` (listens on port 5050)\n4. Run `Debug > Get All Mock Users` to see available personas\n5. Change `{{mockUser}}` in the environment to switch testing persona\n6. Use Collection Runner to run folders in order for end-to-end flows\n\n## Auth\nControlled by the `authMode` environment variable:\n\n**Mode 1 \u2014 Mock (default, `authMode = mock`)**\nInjects `x-test-user: {{mockUser}}` header \u2014 no Clerk account needed.\nChange `{{mockUser}}` to switch persona:\n- `buyer_us_complete` \u2014 fully onboarded US buyer\n- `merchant_approved` \u2014 approved US seller\n- `merchant_approved_ca` \u2014 approved Canadian seller\n- `new_user_us` \u2014 fresh US user (test onboarding)\n- `new_user_ca` \u2014 fresh Canadian user\n- `merchant_pending` / `merchant_provisioning` / `merchant_rejected`\n\n**Mode 2 \u2014 Real Clerk JWT (`authMode = jwt`)**\nInjects `Authorization: Bearer {{token}}` header for a real Clerk user.\nSupports: `{{token}}`, `{{buyerToken}}`, or `{{sellerToken}}`\nHow to use:\n1. Open the app in the browser, sign in as the real user\n2. Open DevTools \u2192 Network tab \u2192 any API request \u2192 copy the `Authorization` header value (without the `Bearer ` prefix)\n3a. For general token: paste into `token` env variable\n3b. For buyer requests: paste into `buyerToken` env variable + set `tokenRole = buyer`\n3c. For seller requests: paste into `sellerToken` env variable + set `tokenRole = seller`\n4. Set `authMode` to `jwt`\nNote: Tokens valid ~12 hours \u2014 refresh from DevTools when they expire.\n\n## ID Chaining\nCreate requests auto-save response IDs to environment variables:\n`{{listingId}}`, `{{orderId}}`, `{{offerId}}`, `{{connectionId}}`, `{{groupId}}`, etc.\nSubsequent requests reference these automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -17,8 +17,8 @@
           "// ============================================================",
           "",
           "// Auth mode is controlled by the 'authMode' environment variable:",
-          "//   'mock' (default) — injects x-test-user header  (no Clerk needed)",
-          "//   'jwt'            — injects Authorization: Bearer <token>",
+          "//   'mock' (default) \u2014 injects x-test-user header  (no Clerk needed)",
+          "//   'jwt'            \u2014 injects Authorization: Bearer <token>",
           "",
           "const authMode = pm.environment.get('authMode') || 'mock';",
           "",
@@ -82,11 +82,16 @@
       }
     }
   ],
-  "variable": [{ "key": "baseUrl", "value": "http://localhost:5050" }],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5050/api"
+    }
+  ],
   "item": [
     {
-      "name": "🔧 Debug",
-      "description": "Debug endpoints — inspect mock users, server health, and spec.",
+      "name": "\ud83d\udd27 Debug",
+      "description": "Debug endpoints \u2014 inspect mock users, server health, and spec.",
       "item": [
         {
           "name": "Health Check",
@@ -95,8 +100,12 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/health",
-              "host": ["{{baseUrl}}"],
-              "path": ["health"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
             }
           }
         },
@@ -107,8 +116,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/debug/mock-users",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "debug", "mock-users"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "debug",
+                "mock-users"
+              ]
             }
           }
         },
@@ -119,16 +135,19 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api-docs.json",
-              "host": ["{{baseUrl}}"],
-              "path": ["api-docs.json"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api-docs.json"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "👤 User — Profile",
+      "name": "\ud83d\udc64 User \u2014 Profile",
       "description": "Current user profile, avatar, status, verification, wishlist.\nSet {{mockUser}} in environment to control which user you're acting as.",
       "item": [
         {
@@ -151,8 +170,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user"
+              ]
             }
           }
         },
@@ -163,8 +188,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "profile"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "profile"
+              ]
             }
           }
         },
@@ -172,15 +204,27 @@
           "name": "Update User Profile",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"display_name\": \"testuser\",\n  \"bio\": \"Testing via Postman\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "profile"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "profile"
+              ]
             }
           }
         },
@@ -191,12 +235,25 @@
             "header": [],
             "body": {
               "mode": "formdata",
-              "formdata": [{ "key": "avatar", "type": "file", "src": "" }]
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/avatar",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "avatar"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "avatar"
+              ]
             }
           }
         },
@@ -207,8 +264,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/verification",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "verification"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "verification"
+              ]
             }
           }
         },
@@ -216,12 +280,64 @@
           "name": "Update Online Status",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"status\": \"online\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"online\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "status"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Deactivate / Reactivate Account",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "x-test-user",
+                "value": "{{mockUser}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"active\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/user/deactivate",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "deactivate"
+              ]
             }
           }
         },
@@ -232,8 +348,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/wishlist",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "wishlist"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "wishlist"
+              ]
             }
           }
         },
@@ -241,15 +364,27 @@
           "name": "Add to Wishlist",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"listing_id\": \"{{listingId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/wishlist",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "wishlist"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "wishlist"
+              ]
             }
           }
         },
@@ -260,7 +395,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/wishlist/check/{{listingId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -279,8 +416,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/wishlist/{{listingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "wishlist", "{{listingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "wishlist",
+                "{{listingId}}"
+              ]
             }
           }
         },
@@ -291,16 +436,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "⭐ User — Favorites",
+      "name": "\u2b50 Networks \u2014 Favorites",
       "item": [
         {
           "name": "Get Favorites (Networks)",
@@ -308,10 +458,23 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/favorites?platform=networks",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "favorites"],
-              "query": [{ "key": "platform", "value": "networks" }]
+              "raw": "{{baseUrl}}/api/v1/networks/user/favorites?platform=networks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "favorites?platform=networks"
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "networks"
+                }
+              ]
             }
           }
         },
@@ -321,10 +484,23 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/favorites?platform=marketplace",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "favorites"],
-              "query": [{ "key": "platform", "value": "marketplace" }]
+              "raw": "{{baseUrl}}/api/v1/networks/user/favorites?platform=marketplace",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "favorites?platform=marketplace"
+              ],
+              "query": [
+                {
+                  "key": "platform",
+                  "value": "marketplace"
+                }
+              ]
             }
           }
         },
@@ -332,15 +508,28 @@
           "name": "Add Favorite",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"item_id\": \"{{listingId}}\",\n  \"item_type\": \"listing\",\n  \"platform\": \"networks\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/favorites",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "favorites"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/favorites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "favorites"
+              ]
             }
           }
         },
@@ -350,11 +539,14 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/favorites/check/listing/{{listingId}}",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{baseUrl}}/api/v1/networks/user/favorites/check/listing/{{listingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
+                "networks",
                 "user",
                 "favorites",
                 "check",
@@ -370,11 +562,14 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/favorites/listing/{{listingId}}",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{baseUrl}}/api/v1/networks/user/favorites/listing/{{listingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
+                "networks",
                 "user",
                 "favorites",
                 "listing",
@@ -385,9 +580,8 @@
         }
       ]
     },
-
     {
-      "name": "🔍 User — Searches",
+      "name": "\ud83d\udd0d Networks \u2014 Searches",
       "item": [
         {
           "name": "Get Recent Searches",
@@ -395,9 +589,18 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/searches/recent",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "searches", "recent"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "searches",
+                "recent"
+              ]
             }
           }
         },
@@ -405,15 +608,29 @@
           "name": "Save Recent Search",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"query\": \"Rolex Submariner\",\n  \"platform\": \"networks\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/searches/recent",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "searches", "recent"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "searches",
+                "recent"
+              ]
             }
           }
         },
@@ -423,9 +640,18 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/searches/recent",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "searches", "recent"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "searches",
+                "recent"
+              ]
             }
           }
         },
@@ -435,17 +661,26 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/searches/recent/SEARCH_ID",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "searches", "recent", "SEARCH_ID"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent/SEARCH_ID",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "searches",
+                "recent",
+                "SEARCH_ID"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "💳 User — Subscription",
+      "name": "\ud83d\udcb3 User \u2014 Subscription",
       "item": [
         {
           "name": "Get Subscription",
@@ -454,8 +689,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/subscription",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "subscription"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "subscription"
+              ]
             }
           }
         },
@@ -463,15 +705,28 @@
           "name": "Upgrade Subscription",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"plan\": \"premium\",\n  \"payment_method_id\": \"pm_test_xxx\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/subscription/upgrade",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "subscription", "upgrade"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "subscription",
+                "upgrade"
+              ]
             }
           }
         },
@@ -482,16 +737,23 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/subscription/cancel",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "subscription", "cancel"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "subscription",
+                "cancel"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "🔔 User — Notifications",
+      "name": "\ud83d\udd14 User \u2014 Notifications",
       "item": [
         {
           "name": "Get Notifications",
@@ -500,8 +762,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "notifications"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "notifications"
+              ]
             }
           }
         },
@@ -512,8 +781,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications/unread-count",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "notifications", "unread-count"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "notifications",
+                "unread-count"
+              ]
             }
           }
         },
@@ -524,8 +801,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications/read-all",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "notifications", "read-all"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "notifications",
+                "read-all"
+              ]
             }
           }
         },
@@ -536,7 +821,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications/NOTIFICATION_ID/read",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -555,16 +842,23 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications/NOTIFICATION_ID",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "notifications", "NOTIFICATION_ID"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "notifications",
+                "NOTIFICATION_ID"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "🎫 User — Tokens",
+      "name": "\ud83c\udfab User \u2014 Tokens",
       "item": [
         {
           "name": "Get Chat Token",
@@ -573,8 +867,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/tokens/chat",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "tokens", "chat"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "tokens",
+                "chat"
+              ]
             }
           }
         },
@@ -585,8 +887,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/tokens/feed",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "tokens", "feed"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "tokens",
+                "feed"
+              ]
             }
           }
         },
@@ -597,8 +907,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/tokens/push",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "tokens", "push"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "tokens",
+                "push"
+              ]
             }
           }
         },
@@ -606,145 +924,206 @@
           "name": "Register Push Token",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"token\": \"ExponentPushToken[xxxxxxxxxxxxxxxxxx]\",\n  \"device_type\": \"ios\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/tokens/push",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "tokens", "push"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "tokens",
+                "push"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "🤝 User — Friends",
+      "name": "\ud83d\udd04 Networks \u2014 Follow Management",
       "item": [
         {
-          "name": "Get Friends",
+          "name": "Get My Followers",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/friends",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "friends"]
-            }
-          }
-        },
-        {
-          "name": "Send Friend Request",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res.data?._id) pm.environment.set('friendshipId', res.data._id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"recipient_id\": \"{{userId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/friends/requests",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "friends", "requests"]
-            }
-          }
-        },
-        {
-          "name": "Get Pending Requests",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/friends/requests/pending",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "friends", "requests", "pending"]
-            }
-          }
-        },
-        {
-          "name": "Accept Friend Request",
-          "request": {
-            "method": "PATCH",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/friends/requests/{{friendshipId}}/accept",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{baseUrl}}/api/v1/networks/user/followers?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
+                "networks",
                 "user",
-                "friends",
-                "requests",
-                "{{friendshipId}}",
+                "followers"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Following",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/following?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "following"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Pending Follow Requests",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/follow-requests",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "follow-requests"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Follow User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/following/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "following",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unfollow User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/following/{{userId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "following",
+                "{{userId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Accept Follow Request",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/following/{{userId}}/accept",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "following",
+                "{{userId}}",
                 "accept"
               ]
             }
           }
         },
         {
-          "name": "Decline Friend Request",
+          "name": "Reject Follow Request",
           "request": {
-            "method": "PATCH",
+            "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/user/friends/requests/{{friendshipId}}/decline",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{baseUrl}}/api/v1/networks/user/following/{{userId}}/reject",
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
+                "networks",
                 "user",
-                "friends",
-                "requests",
-                "{{friendshipId}}",
-                "decline"
+                "following",
+                "{{userId}}",
+                "reject"
               ]
-            }
-          }
-        },
-        {
-          "name": "Remove Friend",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/friends/{{friendshipId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "friends", "{{friendshipId}}"]
-            }
-          }
-        },
-        {
-          "name": "Get Mutual Friends",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/friends/mutual/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "friends", "mutual", "{{userId}}"]
             }
           }
         }
       ]
     },
-
     {
-      "name": "📋 User — Support",
+      "name": "\ud83d\udccb User \u2014 Support",
       "item": [
         {
           "name": "List Support Tickets",
@@ -753,8 +1132,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "support", "tickets"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "support",
+                "tickets"
+              ]
             }
           }
         },
@@ -774,15 +1161,28 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"subject\": \"Test support ticket\",\n  \"message\": \"This is a test message from Postman\",\n  \"category\": \"general\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "support", "tickets"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "user",
+                "support",
+                "tickets"
+              ]
             }
           }
         },
@@ -793,7 +1193,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -809,14 +1211,21 @@
           "name": "Reply to Ticket",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"message\": \"Follow-up reply from Postman\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}/messages",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -836,7 +1245,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}/reopen",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -856,7 +1267,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets/count/open",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -871,122 +1284,8 @@
         }
       ]
     },
-
     {
-      "name": "👥 Follow",
-      "description": "Follow/unfollow users and view follower/following lists (Networks platform).",
-      "item": [
-        {
-          "name": "Get My Followers",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/followers?limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "followers"]
-            }
-          }
-        },
-        {
-          "name": "Get My Following",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/following?limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "following"]
-            }
-          }
-        },
-        {
-          "name": "Follow User",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/follow",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "users", "{{userId}}", "follow"]
-            }
-          }
-        },
-        {
-          "name": "Unfollow User",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/follow",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "users", "{{userId}}", "follow"]
-            }
-          }
-        },
-        {
-          "name": "Get User Followers",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/followers",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "users",
-                "{{userId}}",
-                "followers"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get User Following",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/following",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "users",
-                "{{userId}}",
-                "following"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Check Follow Status",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/follow/status",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "users",
-                "{{userId}}",
-                "follow",
-                "status"
-              ]
-            }
-          }
-        }
-      ]
-    },
-
-    {
-      "name": "🏷️ Networks — Listings",
+      "name": "\ud83c\udff7\ufe0f Networks \u2014 Listings",
       "description": "Create, update, publish, and manage Networks listings.\nIMPORTANT: Use `merchant_approved` as mockUser when creating listings.",
       "item": [
         {
@@ -996,8 +1295,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings?limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "listings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "listings"
+              ]
             }
           }
         },
@@ -1021,15 +1327,27 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Rolex Submariner Date 116610LN\",\n  \"subtitle\": \"Full set, excellent condition\",\n  \"price\": 12000,\n  \"condition\": \"like-new\",\n  \"allow_offers\": true,\n  \"year\": 2020,\n  \"contents\": \"box_papers\",\n  \"images\": [],\n  \"shipping\": [\n    { \"region\": \"US\", \"shippingIncluded\": false, \"shippingCost\": 50 }\n  ],\n  \"ships_from\": { \"country\": \"US\", \"state\": \"NY\", \"city\": \"New York\" }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "listings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "listings"
+              ]
             }
           }
         },
@@ -1040,8 +1358,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "listings",
+                "{{listingId}}"
+              ]
             }
           }
         },
@@ -1049,15 +1375,28 @@
           "name": "Update Listing",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"price\": 11500,\n  \"subtitle\": \"Updated — priced to sell!\"\n}"
+              "raw": "{\n  \"price\": 11500,\n  \"subtitle\": \"Updated \u2014 priced to sell!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "listings",
+                "{{listingId}}"
+              ]
             }
           }
         },
@@ -1068,7 +1407,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/preview",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1087,7 +1428,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/publish",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1100,17 +1443,54 @@
           }
         },
         {
+          "name": "Reserve Listing (Buy Now)",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/reserve",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "listings",
+                "{{listingId}}",
+                "reserve"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"shipping_region\": \"US\",\n  \"note\": \"Please package carefully\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Update Listing Status",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"archived\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/status",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1126,14 +1506,21 @@
           "name": "Send Inquiry on Listing",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"message\": \"Is this still available? Does it come with the original box?\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/inquire",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1149,14 +1536,21 @@
           "name": "Send Concierge Request",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"message\": \"Looking for a Rolex Submariner, full set, under $13k\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/concierge",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1175,16 +1569,23 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "listings",
+                "{{listingId}}"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "💰 Networks — Offers",
+      "name": "\ud83d\udcb0 Networks \u2014 Offers",
       "description": "Send and manage offers on listings.\nSet mockUser to `buyer_us_complete` to send; `merchant_approved` to receive.",
       "item": [
         {
@@ -1194,9 +1595,21 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/offers?type=sent",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "offers"],
-              "query": [{ "key": "type", "value": "sent" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "offers"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "sent"
+                }
+              ]
             }
           }
         },
@@ -1216,14 +1629,21 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"amount\": 10500,\n  \"shipping_region\": \"US\",\n  \"note\": \"I'm a serious buyer, can close quickly\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/offers",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1242,7 +1662,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/offers",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1256,9 +1678,8 @@
         }
       ]
     },
-
     {
-      "name": "📦 Networks — Orders",
+      "name": "\ud83d\udce6 Networks \u2014 Orders",
       "item": [
         {
           "name": "Get My Orders",
@@ -1267,8 +1688,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/orders?type=buying",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "orders"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "orders"
+              ]
             }
           }
         },
@@ -1288,57 +1716,56 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"listing_id\": \"{{listingId}}\",\n  \"shipping_region\": \"US\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/orders",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "orders"]
-            }
-          }
-        }
-      ]
-    },
-
-    {
-      "name": "📅 Networks — Reservations",
-      "item": [
-        {
-          "name": "Get My Reservations",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/reservations?type=buyer",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "reservations"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "orders"
+              ]
             }
           }
         },
         {
-          "name": "Create Reservation",
+          "name": "Confirm Order Complete (Dual-Confirmation)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"listing_id\": \"{{listingId}}\",\n  \"shipping_region\": \"US\"\n}"
-            },
+            "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/reservations",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "reservations"]
-            }
+              "raw": "{{baseUrl}}/api/v1/networks/orders/{{orderId}}/complete",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "orders",
+                "{{orderId}}",
+                "complete"
+              ]
+            },
+            "description": "Both buyer AND seller must call this endpoint. Order completes when both confirm."
           }
         }
       ]
     },
-
     {
-      "name": "🔗 Networks — Connections",
+      "name": "\ud83d\udd17 Networks \u2014 Connections",
       "item": [
         {
           "name": "Get My Connections",
@@ -1347,8 +1774,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/connections?status=accepted",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "connections"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "connections"
+              ]
             }
           }
         },
@@ -1359,8 +1793,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/connections/listings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "connections", "listings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "connections",
+                "listings"
+              ]
             }
           }
         },
@@ -1380,15 +1822,28 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"recipient_id\": \"{{userId}}\",\n  \"message\": \"Hey, would love to connect!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/connections/request",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "connections", "request"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "connections",
+                "request"
+              ]
             }
           }
         },
@@ -1396,11 +1851,21 @@
           "name": "Accept / Decline Connection Request",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"action\": \"accept\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"accept\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/connections/{{connectionId}}/respond",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1414,9 +1879,8 @@
         }
       ]
     },
-
     {
-      "name": "💬 Networks — Chat",
+      "name": "\ud83d\udcac Networks \u2014 Chat",
       "item": [
         {
           "name": "Get Chat Token",
@@ -1437,8 +1901,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/chat/token",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "chat", "token"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "chat",
+                "token"
+              ]
             }
           }
         },
@@ -1462,8 +1934,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/chat/channels",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "chat", "channels"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "chat",
+                "channels"
+              ]
             }
           }
         },
@@ -1471,15 +1951,28 @@
           "name": "Get / Create Channel",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"member_id\": \"{{userId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/chat/channel",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "chat", "channel"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "chat",
+                "channel"
+              ]
             }
           }
         },
@@ -1490,16 +1983,23 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/chat/unread",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "chat", "unread"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "chat",
+                "unread"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "📨 Networks — Conversations",
+      "name": "\ud83d\udce8 Networks \u2014 Conversations",
       "item": [
         {
           "name": "Get Conversations",
@@ -1521,8 +2021,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "conversations"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "conversations"
+              ]
             }
           }
         },
@@ -1533,9 +2040,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/search?q=Rolex",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "conversations", "search"],
-              "query": [{ "key": "q", "value": "Rolex" }]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "conversations",
+                "search"
+              ],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Rolex"
+                }
+              ]
             }
           }
         },
@@ -1546,7 +2066,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1564,7 +2086,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/media",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1583,7 +2107,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/shared/media",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1603,7 +2129,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/shared/files",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1623,7 +2151,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/shared/links",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1638,9 +2168,8 @@
         }
       ]
     },
-
     {
-      "name": "💬 Networks — Messages",
+      "name": "\ud83d\udcac Networks \u2014 Messages",
       "item": [
         {
           "name": "Get Messages by Channel",
@@ -1649,7 +2178,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1665,14 +2196,21 @@
           "name": "Send Message",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"text\": \"Hello from Postman!\",\n  \"channel_id\": \"{{channelId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1686,9 +2224,8 @@
         }
       ]
     },
-
     {
-      "name": "👥 Networks — Social Groups",
+      "name": "\ud83d\udc65 Networks \u2014 Social Groups",
       "item": [
         {
           "name": "List Groups",
@@ -1710,8 +2247,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups?limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "social", "groups"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "social",
+                "groups"
+              ]
             }
           }
         },
@@ -1731,15 +2276,28 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"name\": \"Rolex Collectors NYC\",\n  \"description\": \"A group for NYC-based Rolex enthusiasts\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "social", "groups"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "social",
+                "groups"
+              ]
             }
           }
         },
@@ -1750,7 +2308,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1769,7 +2329,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/join",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1789,7 +2351,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/leave",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1806,14 +2370,21 @@
           "name": "Add Member to Group",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"user_id\": \"{{userId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/members",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1830,11 +2401,21 @@
           "name": "Update Member Role",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"role\": \"admin\"\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"admin\"\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/members/{{userId}}/role",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1856,7 +2437,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/members/{{userId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1877,7 +2460,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/mute",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1892,9 +2477,8 @@
         }
       ]
     },
-
     {
-      "name": "✉️ Networks — Social Invites",
+      "name": "\u2709\ufe0f Networks \u2014 Social Invites",
       "item": [
         {
           "name": "Create Invite Link",
@@ -1912,15 +2496,28 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"group_id\": \"{{groupId}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/invites",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "social", "invites"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "social",
+                "invites"
+              ]
             }
           }
         },
@@ -1931,7 +2528,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/invites/{{inviteToken}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -1945,9 +2544,8 @@
         }
       ]
     },
-
     {
-      "name": "📊 Networks — User & Dashboard",
+      "name": "\ud83d\udcca Networks \u2014 User & Dashboard",
       "item": [
         {
           "name": "Get My Networks Profile",
@@ -1956,8 +2554,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user"
+              ]
             }
           }
         },
@@ -1968,8 +2573,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/listings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user", "listings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "listings"
+              ]
             }
           }
         },
@@ -1980,55 +2593,17 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/dashboard/stats",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user", "dashboard", "stats"]
-            }
-          }
-        },
-        {
-          "name": "Get User Public Profile",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/{{userId}}/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user", "{{userId}}", "profile"]
-            }
-          }
-        },
-        {
-          "name": "Get User Public Listings",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/{{userId}}/listings",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
                 "networks",
                 "user",
-                "{{userId}}",
-                "listings"
+                "dashboard",
+                "stats"
               ]
-            }
-          }
-        },
-        {
-          "name": "Block User",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"blocked_id\": \"{{userId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/block",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user", "block"]
             }
           }
         },
@@ -2039,54 +2614,306 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/blocks",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user", "blocks"]
-            }
-          }
-        },
-        {
-          "name": "Unblock User",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/blocks/{{userId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user", "blocks", "{{userId}}"]
-            }
-          }
-        },
-        {
-          "name": "Report User",
-          "request": {
-            "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"reported_id\": \"{{userId}}\",\n  \"reason\": \"spam\",\n  \"details\": \"Sending unsolicited messages\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/report",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user", "report"]
-            }
-          }
-        },
-        {
-          "name": "Get Common Groups with User",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/{{userId}}/common-groups",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
                 "networks",
                 "user",
+                "blocks"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Networks Favorites",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/favorites?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "favorites"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Add Networks Favorite",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/favorites",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "favorites"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"item_type\": \"listing\",\n  \"item_id\": \"{{listingId}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Remove Networks Favorite",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/favorites/listing/{{listingId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "favorites",
+                "listing",
+                "{{listingId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Networks Recent Searches",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "searches",
+                "recent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Save Networks Recent Search",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "searches",
+                "recent"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"query\": \"Rolex Submariner\",\n  \"context\": \"listings\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Clear Networks Recent Searches",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "searches",
+                "recent"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Specific Networks Search",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent/{{searchId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "searches",
+                "recent",
+                "{{searchId}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Networks Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/reviews?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create Networks Review",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/user/reviews",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "reviews"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"{{orderId}}\",\n  \"rating\": 5,\n  \"feedback\": \"Great transaction!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udc64 Networks \u2014 Users (Other)",
+      "item": [
+        {
+          "name": "Get User Public Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/profile",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "users",
                 "{{userId}}",
-                "common-groups"
+                "profile"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Public Listings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/listings?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "users",
+                "{{userId}}",
+                "listings"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             }
           }
@@ -2097,24 +2924,170 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/{{userId}}/references",
-              "host": ["{{baseUrl}}"],
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/references",
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
                 "networks",
-                "user",
+                "users",
                 "{{userId}}",
                 "references"
               ]
             }
           }
+        },
+        {
+          "name": "Get Common Groups with User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/common-groups",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "users",
+                "{{userId}}",
+                "common-groups"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Reviews",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/reviews?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "users",
+                "{{userId}}",
+                "reviews"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get User Review Summary",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/review-summary",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "users",
+                "{{userId}}",
+                "review-summary"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Block User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/block",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "users",
+                "{{userId}}",
+                "block"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Unblock User",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/block",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "users",
+                "{{userId}}",
+                "block"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Report User",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/report",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "users",
+                "{{userId}}",
+                "report"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"reason\": \"spam\",\n  \"description\": \"Repeated unsolicited messages\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
         }
       ]
     },
-
     {
-      "name": "🏪 Marketplace — Listings",
+      "name": "\ud83c\udfea Marketplace \u2014 Listings",
       "description": "Use mockUser = `merchant_approved` for create/update/delete.\nUse `buyer_us_complete` for browsing.",
       "item": [
         {
@@ -2124,8 +3097,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings?limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "listings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "marketplace",
+                "listings"
+              ]
             }
           }
         },
@@ -2145,15 +3125,27 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Omega Speedmaster Professional\",\n  \"price\": 5500,\n  \"condition\": \"good\",\n  \"year\": 2018,\n  \"contents\": \"box\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "listings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "marketplace",
+                "listings"
+              ]
             }
           }
         },
@@ -2164,7 +3156,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings/{{marketplaceListingId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -2179,11 +3173,21 @@
           "name": "Update Marketplace Listing",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"price\": 5200\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 5200\n}"
+            },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings/{{marketplaceListingId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -2201,7 +3205,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings/{{marketplaceListingId}}",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -2219,8 +3225,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/user/listings",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "user", "listings"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "marketplace",
+                "user",
+                "listings"
+              ]
             }
           }
         },
@@ -2231,17 +3245,24 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/user/offers",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "user", "offers"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "marketplace",
+                "user",
+                "offers"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "🛒 Marketplace — Orders (Finix Payments)",
-      "description": "Full Finix payment flow:\n1. Reserve → get fraud_session_id\n2. Tokenize → get Finix config for CardTokenForm\n3. Pay (with payment_token from Finix.js)\n4. Refund\n\nUse mockUser = `buyer_us_complete` as buyer.",
+      "name": "\ud83d\uded2 Marketplace \u2014 Orders (Finix Payments)",
+      "description": "Full Finix payment flow:\n1. Reserve \u2192 get fraud_session_id\n2. Tokenize \u2192 get Finix config for CardTokenForm\n3. Pay (with payment_token from Finix.js)\n4. Refund\n\nUse mockUser = `buyer_us_complete` as buyer.",
       "item": [
         {
           "name": "Reserve Order (+ get fraud_session_id)",
@@ -2260,15 +3281,28 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"listing_id\": \"{{marketplaceListingId}}\",\n  \"shipping_region\": \"US\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/reserve",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "orders", "reserve"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "marketplace",
+                "orders",
+                "reserve"
+              ]
             }
           }
         },
@@ -2279,7 +3313,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/{{orderId}}/tokenize",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -2295,14 +3331,21 @@
           "name": "Process Payment",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"payment_token\": \"TKxxxxxxxxxx\",\n  \"postal_code\": \"10001\",\n  \"fraud_session_id\": \"{{fraudSessionId}}\",\n  \"idempotency_id\": \"{{$randomUUID}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/{{orderId}}/payment",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -2318,14 +3361,21 @@
           "name": "Refund Order",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"idempotency_id\": \"{{$randomUUID}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/{{orderId}}/refund",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -2344,16 +3394,23 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/{{orderId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "orders", "{{orderId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "marketplace",
+                "orders",
+                "{{orderId}}"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "🏢 Marketplace — Merchant Onboarding",
+      "name": "\ud83c\udfe2 Marketplace \u2014 Merchant Onboarding",
       "description": "Finix merchant onboarding flow.\nUse mockUser = `new_user_us` or `merchant_pending`.",
       "item": [
         {
@@ -2363,8 +3420,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/merchant",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "merchant"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "marketplace",
+                "merchant"
+              ]
             }
           }
         },
@@ -2372,15 +3436,28 @@
           "name": "Start Onboarding (get hosted form URL)",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"idempotency_id\": \"{{$randomUUID}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "merchant", "onboard"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "marketplace",
+                "merchant",
+                "onboard"
+              ]
             }
           }
         },
@@ -2388,14 +3465,21 @@
           "name": "Refresh Onboarding Link",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"idempotency_id\": \"{{$randomUUID}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard/refresh-link",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -2414,7 +3498,9 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard/status",
-              "host": ["{{baseUrl}}"],
+              "host": [
+                "{{baseUrl}}"
+              ],
               "path": [
                 "api",
                 "v1",
@@ -2428,9 +3514,8 @@
         }
       ]
     },
-
     {
-      "name": "🔎 ISO (In Search Of)",
+      "name": "\ud83d\udd0e Networks \u2014 ISOs",
       "item": [
         {
           "name": "List ISOs",
@@ -2438,9 +3523,17 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/isos?limit=20&offset=0",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "isos"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/isos?limit=20&offset=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "isos?limit=20&offset=0"
+              ]
             }
           }
         },
@@ -2460,15 +3553,28 @@
           ],
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"title\": \"Looking for Patek Philippe Calatrava\",\n  \"description\": \"Ref 5227 or similar, EU dial preferred\",\n  \"budget_min\": 20000,\n  \"budget_max\": 30000\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/isos",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "isos"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/isos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "isos"
+              ]
             }
           }
         },
@@ -2478,9 +3584,18 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/isos/{{isoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "isos", "{{isoId}}"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/isos/{{isoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "isos",
+                "{{isoId}}"
+              ]
             }
           }
         },
@@ -2488,12 +3603,29 @@
           "name": "Update ISO",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
-            "body": { "mode": "raw", "raw": "{\n  \"budget_max\": 35000\n}" },
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"budget_max\": 35000\n}"
+            },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/isos/{{isoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "isos", "{{isoId}}"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/isos/{{isoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "isos",
+                "{{isoId}}"
+              ]
             }
           }
         },
@@ -2503,29 +3635,25 @@
             "method": "DELETE",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/isos/{{isoId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "isos", "{{isoId}}"]
-            }
-          }
-        },
-        {
-          "name": "Get My ISOs",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/isos",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "isos"]
+              "raw": "{{baseUrl}}/api/v1/networks/user/isos/{{isoId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "user",
+                "isos",
+                "{{isoId}}"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "⌚ Watches",
+      "name": "\u231a Watches",
       "item": [
         {
           "name": "Search Watches",
@@ -2534,8 +3662,14 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/watches?q=Rolex&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "watches"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "watches"
+              ]
             }
           }
         },
@@ -2546,16 +3680,22 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/watches/{{watchId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "watches", "{{watchId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "watches",
+                "{{watchId}}"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "🔐 Reference Checks",
+      "name": "\ud83d\udd10 Reference Checks",
       "item": [
         {
           "name": "List Reference Checks",
@@ -2563,9 +3703,16 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/reference-checks",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "reference-checks"]
+              "raw": "{{baseUrl}}/api/v1/networks/reference-checks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "reference-checks"
+              ]
             }
           }
         },
@@ -2573,24 +3720,35 @@
           "name": "Submit Reference Check",
           "request": {
             "method": "POST",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"subject_id\": \"{{userId}}\",\n  \"rating\": 5,\n  \"comment\": \"Great seller, smooth transaction\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/reference-checks",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "reference-checks"]
+              "raw": "{{baseUrl}}/api/v1/networks/reference-checks",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "reference-checks"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "🛡️ Admin",
-      "description": "Admin endpoints — switch mockUser if needed (check with /debug/mock-users which users have admin role).",
+      "name": "\ud83d\udee1\ufe0f Admin",
+      "description": "Admin endpoints \u2014 switch mockUser if needed (check with /debug/mock-users which users have admin role).",
       "item": [
         {
           "name": "List Trust Cases",
@@ -2612,8 +3770,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/trust-cases",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "trust-cases"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "trust-cases"
+              ]
             }
           }
         },
@@ -2624,8 +3789,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/trust-cases/{{trustCaseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "trust-cases", "{{trustCaseId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "trust-cases",
+                "{{trustCaseId}}"
+              ]
             }
           }
         },
@@ -2633,15 +3806,28 @@
           "name": "Update Trust Case",
           "request": {
             "method": "PATCH",
-            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"status\": \"INVESTIGATING\",\n  \"notes\": \"Under review\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/trust-cases/{{trustCaseId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "trust-cases", "{{trustCaseId}}"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "trust-cases",
+                "{{trustCaseId}}"
+              ]
             }
           }
         },
@@ -2652,24 +3838,33 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/finix-webhook-events",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "admin", "finix-webhook-events"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "admin",
+                "finix-webhook-events"
+              ]
             }
           }
         }
       ]
     },
-
     {
-      "name": "🔗 Webhooks",
-      "description": "Webhook receiver endpoints — these are called by external services (Finix, Clerk), not by the frontend.",
+      "name": "\ud83d\udd17 Webhooks",
+      "description": "Webhook receiver endpoints \u2014 these are called by external services (Finix, Clerk), not by the frontend.",
       "item": [
         {
           "name": "Finix Webhook (test signature validation)",
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
               {
                 "key": "finix-signature",
                 "value": "t=1234567890,v1=dummy_for_local_test"
@@ -2681,8 +3876,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/webhooks/finix",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "webhooks", "finix"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                "finix"
+              ]
             }
           }
         },
@@ -2691,10 +3893,22 @@
           "request": {
             "method": "POST",
             "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "svix-id", "value": "msg_test" },
-              { "key": "svix-signature", "value": "v1,dummy" },
-              { "key": "svix-timestamp", "value": "1234567890" }
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "svix-id",
+                "value": "msg_test"
+              },
+              {
+                "key": "svix-signature",
+                "value": "v1,dummy"
+              },
+              {
+                "key": "svix-timestamp",
+                "value": "1234567890"
+              }
             ],
             "body": {
               "mode": "raw",
@@ -2702,8 +3916,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/webhooks/clerk",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "webhooks", "clerk"]
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "webhooks",
+                "clerk"
+              ]
             }
           }
         }

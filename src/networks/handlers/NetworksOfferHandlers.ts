@@ -367,7 +367,7 @@ export const networks_offer_counter = async (
     if (!(req as any).user) throw new MissingUserContextError();
 
     const { id: channelId } = req.params;
-    const { amount, message } = req.body;
+    const { amount, message, reservation_terms } = req.body;
 
     const dialist_id = (req as any).user.dialist_id;
     if (!mongoose.Types.ObjectId.isValid((req as any).user.dialist_id)) {
@@ -409,13 +409,24 @@ export const networks_offer_counter = async (
     // Validate counter amount
     validateCounterAmount(channel, dialist_id, amount);
 
-    // const prevAmount = lastOffer.amount;
-    // const price_delta = amount - prevAmount;
+    // Look up the formal Offer by channel_id and delegate to OfferService
+    const offer = await Offer.findOne({
+      channel_id: new mongoose.Types.ObjectId(channelId),
+      state: { $in: ["CREATED", "COUNTERED"] },
+    });
+    if (!offer)
+      throw new NotFoundError("No active offer found for this channel");
 
-    // Supersede last offer
+    await networksOfferService.counterOffer({
+      offerId: offer._id.toString(),
+      counterById: dialist_id,
+      amount,
+      ...(message != null && { note: message }),
+      ...(reservation_terms != null && { reservation_terms }),
+    });
+
+    // Update channel.last_offer for backward compatibility
     channel.supersedeLastOffer();
-
-    // Add new counter offer
     channel.last_offer = {
       sender_id: dialist_id as any,
       amount,
@@ -426,27 +437,7 @@ export const networks_offer_counter = async (
       createdAt: new Date(),
     };
     channel.last_event_type = "offer";
-
     await channel.save();
-
-    // Send system message to Stream Chat channel if it exists
-    if (channel.getstream_channel_id) {
-      try {
-        await chatService.sendSystemMessage(
-          channel.getstream_channel_id,
-          {
-            type: "counter_offer",
-            amount,
-            offer_id: (channel._id as any).toString(),
-          },
-          dialist_id,
-        );
-      } catch (chatError) {
-        logger.warn("Failed to send networks counter offer message to Stream", {
-          chatError,
-        });
-      }
-    }
 
     // Create in-app notification for recipient
     try {

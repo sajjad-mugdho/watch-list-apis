@@ -124,6 +124,7 @@ export const networks_reference_check_create = async (
       reason: reason?.trim() || null,
       status: "pending",
       transaction_value: order.amount,
+      reservation_terms_snapshot: order.reservation_terms_snapshot ?? null,
     });
 
     // Side-effects (non-critical)
@@ -320,7 +321,6 @@ export const networks_reference_check_get = async (
       _metadata: {
         is_requester: isRequester,
         is_target: isTarget,
-        confirmed_by_me: check.confirmed_by.includes(user._id as any),
         can_respond:
           !isRequester &&
           !isTarget &&
@@ -460,22 +460,9 @@ export const networks_reference_check_complete = async (
       );
     }
 
-    if (!check.confirmed_by.includes(user._id as any)) {
-      check.confirmed_by.push(user._id as any);
-    }
-
-    // Check if both parties confirmed
-    const hasRequesterConfirmed = check.confirmed_by.includes(
-      check.requester_id as any,
-    );
-    const hasTargetConfirmed = check.confirmed_by.includes(
-      check.target_id as any,
-    );
-
-    if (hasRequesterConfirmed && hasTargetConfirmed) {
-      check.status = "completed";
-      check.completed_at = new Date();
-    }
+    // Single-party completion: requester or target can mark the check complete
+    check.status = "completed";
+    check.completed_at = new Date();
 
     await check.save();
 

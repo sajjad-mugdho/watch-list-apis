@@ -427,18 +427,6 @@ export const friendRequestSchema = z.object({
 });
 
 /**
- * Schema for responding to a friend request
- */
-export const respondFriendRequestSchema = z.object({
-  params: z.object({
-    id: z.string().regex(objectIdRegex, "Invalid friendship ID"),
-  }),
-  body: z.object({
-    status: z.enum(["accepted", "declined"]),
-  }),
-});
-
-/**
  * Schema for getting public profile inventory
  */
 export const getUserPublicProfileSchema = z.object({
@@ -459,8 +447,10 @@ export const getUserPublicProfileSchema = z.object({
  * Schema for creating a reservation (direct buy)
  */
 export const createReservationSchema = z.object({
+  params: z.object({
+    id: z.string().regex(objectIdRegex, "Invalid listing ID"),
+  }),
   body: z.object({
-    listing_id: z.string().regex(objectIdRegex, "Invalid listing ID"),
     shipping_region: z.enum(["US", "CA", "International"]),
   }),
 });
@@ -552,6 +542,11 @@ export const counterOfferSchema = z.object({
       .string()
       .trim()
       .max(500, "Message must be 500 characters or less")
+      .optional(),
+    reservation_terms: z
+      .string()
+      .trim()
+      .max(2000, "Reservation terms must be 2000 characters or less")
       .optional(),
   }),
 });
@@ -947,6 +942,24 @@ export const shipOrderSchema = z.object({
  */
 export const updateProfileSchema = z.object({
   body: z.object({
+    first_name: z
+      .string()
+      .trim()
+      .min(1, "First name cannot be empty")
+      .max(50, "First name too long")
+      .optional(),
+    last_name: z
+      .string()
+      .trim()
+      .min(1, "Last name cannot be empty")
+      .max(50, "Last name too long")
+      .optional(),
+    display_name: z
+      .string()
+      .trim()
+      .min(2, "Display name too short")
+      .max(50, "Display name too long")
+      .optional(),
     fullName: z
       .string()
       .trim()
@@ -985,7 +998,16 @@ export const updateProfileSchema = z.object({
 });
 
 /**
- * Schema for deactivating user
+ * Schema for updating user presence status
+ */
+export const userStatusSchema = z.object({
+  body: z.object({
+    status: z.enum(["online", "offline", "away", "busy"]),
+  }),
+});
+
+/**
+ * Schema for deactivating user account
  */
 export const deactivateUserSchema = z.object({
   body: z.object({
@@ -1114,13 +1136,14 @@ export const sendFriendRequestSchema = z.object({
 });
 
 /**
- * Schema for accepting/declining a friend request
+ * Schema for responding to a follow/connection request
  */
-export const friendRequestActionSchema = z.object({
+export const respondFriendRequestSchema = z.object({
   params: z.object({
-    friendship_id: z
-      .string()
-      .regex(objectIdRegex, "friendship_id must be a 24-char MongoDB ObjectId"),
+    id: z.string().regex(objectIdRegex, "Invalid request ID"),
+  }),
+  body: z.object({
+    status: z.enum(["accepted", "declined"]),
   }),
 });
 
@@ -1432,9 +1455,6 @@ export type GetUserReviewsInput = z.infer<typeof getUserReviewsSchema>;
 export type GetReviewSummaryInput = z.infer<typeof getReviewSummarySchema>;
 
 export type SendFriendRequestInput = z.infer<typeof sendFriendRequestSchema>;
-export type FriendRequestActionInput = z.infer<
-  typeof friendRequestActionSchema
->;
 export type GetFriendsInput = z.infer<typeof getFriendsSchema>;
 export type GetMutualFriendsInput = z.infer<typeof getMutualFriendsSchema>;
 

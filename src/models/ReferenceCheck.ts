@@ -47,6 +47,7 @@ export interface IReferenceCheck extends Document {
   network_id?: Types.ObjectId; // Optional network context
   order_id?: Types.ObjectId; // Optional order context
   getstream_channel_id?: string; // Specific channel for this check
+  reservation_terms_snapshot?: string; // Agreed seller terms from linked order
 
   // Request details
   reason?: string;
@@ -55,8 +56,6 @@ export interface IReferenceCheck extends Document {
   // Responses from network members
   responses: IReferenceResponse[];
 
-  // Dual confirmation
-  confirmed_by: Types.ObjectId[]; // IDs of users who confirmed completion
   transaction_value?: number;
 
   // Summary (computed when completed)
@@ -104,7 +103,7 @@ const ReferenceResponseSchema = new Schema<IReferenceResponse>(
       default: () => new Date(),
     },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ReferenceSummarySchema = new Schema(
@@ -114,7 +113,7 @@ const ReferenceSummarySchema = new Schema(
     neutral_count: { type: Number, default: 0 },
     negative_count: { type: Number, default: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ReferenceCheckSchema = new Schema<IReferenceCheck>(
@@ -147,6 +146,10 @@ const ReferenceCheckSchema = new Schema<IReferenceCheck>(
       type: String,
       default: null,
     },
+    reservation_terms_snapshot: {
+      type: String,
+      default: null,
+    },
     reason: {
       type: String,
       default: null,
@@ -166,10 +169,6 @@ const ReferenceCheckSchema = new Schema<IReferenceCheck>(
       type: ReferenceSummarySchema,
       default: null,
     },
-    confirmed_by: {
-      type: [{ type: Schema.Types.ObjectId, ref: "User" }],
-      default: [],
-    },
     transaction_value: {
       type: Number,
       default: 0,
@@ -185,7 +184,7 @@ const ReferenceCheckSchema = new Schema<IReferenceCheck>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Compound indexes
@@ -212,11 +211,11 @@ ReferenceCheckSchema.methods.addResponse = async function (
   responderId: string,
   rating: ReferenceRating,
   comment?: string,
-  isAnonymous: boolean = false
+  isAnonymous: boolean = false,
 ): Promise<IReferenceCheck> {
   // Check if already responded
   const existingResponse = this.responses.find(
-    (r: IReferenceResponse) => r.responder_id.toString() === responderId
+    (r: IReferenceResponse) => r.responder_id.toString() === responderId,
   );
 
   if (existingResponse) {
@@ -234,27 +233,28 @@ ReferenceCheckSchema.methods.addResponse = async function (
   return this.save();
 };
 
-ReferenceCheckSchema.methods.complete = async function (): Promise<IReferenceCheck> {
-  // Calculate summary
-  const summary = {
-    total_responses: this.responses.length,
-    positive_count: this.responses.filter(
-      (r: IReferenceResponse) => r.rating === "positive"
-    ).length,
-    neutral_count: this.responses.filter(
-      (r: IReferenceResponse) => r.rating === "neutral"
-    ).length,
-    negative_count: this.responses.filter(
-      (r: IReferenceResponse) => r.rating === "negative"
-    ).length,
+ReferenceCheckSchema.methods.complete =
+  async function (): Promise<IReferenceCheck> {
+    // Calculate summary
+    const summary = {
+      total_responses: this.responses.length,
+      positive_count: this.responses.filter(
+        (r: IReferenceResponse) => r.rating === "positive",
+      ).length,
+      neutral_count: this.responses.filter(
+        (r: IReferenceResponse) => r.rating === "neutral",
+      ).length,
+      negative_count: this.responses.filter(
+        (r: IReferenceResponse) => r.rating === "negative",
+      ).length,
+    };
+
+    this.summary = summary;
+    this.status = "completed";
+    this.completed_at = new Date();
+
+    return this.save();
   };
-
-  this.summary = summary;
-  this.status = "completed";
-  this.completed_at = new Date();
-
-  return this.save();
-};
 
 // ----------------------------------------------------------
 // Statics
@@ -267,7 +267,7 @@ interface IReferenceCheckModel extends mongoose.Model<IReferenceCheck> {
 }
 
 ReferenceCheckSchema.statics.getPendingForUser = async function (
-  userId: string
+  userId: string,
 ): Promise<IReferenceCheck[]> {
   return this.find({
     status: "pending",
@@ -279,7 +279,7 @@ ReferenceCheckSchema.statics.getPendingForUser = async function (
 };
 
 ReferenceCheckSchema.statics.getRequestedByUser = async function (
-  userId: string
+  userId: string,
 ): Promise<IReferenceCheck[]> {
   return this.find({
     requester_id: userId,
@@ -287,7 +287,7 @@ ReferenceCheckSchema.statics.getRequestedByUser = async function (
 };
 
 ReferenceCheckSchema.statics.getChecksAboutUser = async function (
-  userId: string
+  userId: string,
 ): Promise<IReferenceCheck[]> {
   return this.find({
     target_id: userId,

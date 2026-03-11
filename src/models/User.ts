@@ -102,6 +102,7 @@ export interface IUser extends Document {
     show_name: boolean;
   };
   marketplace_published: boolean;
+  is_private: boolean;
   // Networks
   networks_application_id: Types.ObjectId | null;
   networks_published: boolean;
@@ -193,6 +194,7 @@ export interface IUser extends Document {
 
   // Status (Batch 2)
   deactivated_at: Date | null;
+  presence_status: "online" | "offline" | "away" | "busy";
   full_name: string;
   isActive: boolean;
 
@@ -361,6 +363,7 @@ const userSchema = new Schema<IUser>(
 
     networks_published: { type: Boolean, default: false },
     marketplace_published: { type: Boolean, default: false },
+    is_private: { type: Boolean, default: false },
 
     marketplace_last_accessed: { type: Date },
     networks_last_accessed: { type: Date },
@@ -457,6 +460,11 @@ const userSchema = new Schema<IUser>(
 
     // Status (Batch 2)
     deactivated_at: { type: Date, default: null },
+    presence_status: {
+      type: String,
+      enum: ["online", "offline", "away", "busy"],
+      default: "offline",
+    },
 
     // ===== Trust & Safety: Suspension Fields =====
     suspended_at: { type: Date, default: null },

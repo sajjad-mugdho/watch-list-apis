@@ -11,10 +11,15 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 // Interface
 // ----------------------------------------------------------
 
+export const FOLLOW_STATUS_VALUES = ["pending", "accepted"] as const;
+export type FollowStatus = (typeof FOLLOW_STATUS_VALUES)[number];
+
 export interface IFollow extends Document {
   _id: Types.ObjectId;
   follower_id: Types.ObjectId; // User who is following
   following_id: Types.ObjectId; // User being followed
+  status: FollowStatus;
+  accepted_at?: Date | null;
   createdAt: Date;
 }
 
@@ -36,8 +41,18 @@ const followSchema = new Schema<IFollow>(
       required: true,
       index: true,
     },
+    status: {
+      type: String,
+      enum: FOLLOW_STATUS_VALUES,
+      default: "pending",
+      index: true,
+    },
+    accepted_at: {
+      type: Date,
+      default: null,
+    },
   },
-  { timestamps: { createdAt: true, updatedAt: false } }
+  { timestamps: { createdAt: true, updatedAt: false } },
 );
 
 // Unique compound index to prevent duplicate follows
@@ -61,35 +76,50 @@ interface IFollowModel extends mongoose.Model<IFollow> {
   isFollowing(followerId: string, followingId: string): Promise<boolean>;
   getFollowersCount(userId: string): Promise<number>;
   getFollowingCount(userId: string): Promise<number>;
+  getFollowStatus(
+    followerId: string,
+    followingId: string,
+  ): Promise<IFollow | null>;
 }
 
 followSchema.statics.isFollowing = async function (
   followerId: string,
-  followingId: string
+  followingId: string,
 ): Promise<boolean> {
   const follow = await this.findOne({
     follower_id: followerId,
     following_id: followingId,
+    status: "accepted",
   });
   return !!follow;
 };
 
 followSchema.statics.getFollowersCount = async function (
-  userId: string
+  userId: string,
 ): Promise<number> {
-  return this.countDocuments({ following_id: userId });
+  return this.countDocuments({ following_id: userId, status: "accepted" });
 };
 
 followSchema.statics.getFollowingCount = async function (
-  userId: string
+  userId: string,
 ): Promise<number> {
-  return this.countDocuments({ follower_id: userId });
+  return this.countDocuments({ follower_id: userId, status: "accepted" });
+};
+
+followSchema.statics.getFollowStatus = async function (
+  followerId: string,
+  followingId: string,
+): Promise<IFollow | null> {
+  return this.findOne({
+    follower_id: followerId,
+    following_id: followingId,
+  });
 };
 
 export const Follow = mongoose.model<IFollow, IFollowModel>(
   "Follow",
   followSchema,
-  "follows"
+  "follows",
 );
 
 export default Follow;
