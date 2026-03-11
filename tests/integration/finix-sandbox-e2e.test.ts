@@ -26,7 +26,7 @@ import { User } from "../../src/models/User";
 import { MarketplaceListing } from "../../src/models/Listings";
 import { Order } from "../../src/models/Order";
 import { MerchantOnboarding } from "../../src/models/MerchantOnboarding";
-import { RefundRequest } from "../../src/models/RefundRequest";
+import { RefundRequest } from "../../src/marketplace/models/RefundRequest";
 import { AuditLog } from "../../src/models/AuditLog";
 import * as finixUtils from "../../src/utils/finix";
 import { getAuth } from "@clerk/express";
