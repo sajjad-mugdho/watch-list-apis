@@ -6,7 +6,7 @@ import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { ISO } from "../../models/ISO";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
 import { User } from "../../models/User";
-import { Follow } from "../../models/Follow";
+import { Connection } from "../models/Connection";
 import mongoose from "mongoose";
 
 /**
@@ -43,8 +43,8 @@ export const networks_dashboard_stats_get = async (
       }),
       ISO.countDocuments({ user_id: userId, status: "active" }),
       ReferenceCheck.countDocuments({ target_id: userId, status: "pending" }),
-      Follow.getFollowersCount(user.dialist_id),
-      Follow.getFollowingCount(user.dialist_id),
+      Connection.getIncomingCount(user.dialist_id),
+      Connection.getOutgoingCount(user.dialist_id),
       User.countDocuments({ "verification.verification_state": "SUCCEEDED" }),
     ]);
 

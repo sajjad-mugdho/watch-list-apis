@@ -9,6 +9,7 @@ import {
 
 import { Review } from "../../models/Review";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
+import { Connection } from "../models/Connection";
 import { User } from "../../models/User";
 import { Block } from "../models/Block";
 import { Report } from "../models/Report";
@@ -19,6 +20,7 @@ import {
 } from "../../validation/schemas";
 import mongoose from "mongoose";
 import { INetworkListing, NetworkListing } from "../models/NetworkListing";
+import { feedService } from "../../services/FeedService";
 
 // ----------------------------------------------------------
 // Types
@@ -366,6 +368,44 @@ export const networks_user_block = async (
       { blocker_id, blocked_id, reason },
       { upsert: true, new: true },
     );
+
+    // Blocking severs connections/requests in both directions immediately.
+    await Connection.deleteMany({
+      $or: [
+        { follower_id: blocker_id, following_id: blocked_id },
+        { follower_id: blocked_id, following_id: blocker_id },
+      ],
+    });
+
+    const [blockerOutgoing, blockerIncoming, blockedOutgoing, blockedIncoming] =
+      await Promise.all([
+        Connection.getOutgoingCount(String(blocker_id)),
+        Connection.getIncomingCount(String(blocker_id)),
+        Connection.getOutgoingCount(String(blocked_id)),
+        Connection.getIncomingCount(String(blocked_id)),
+      ]);
+
+    await Promise.all([
+      User.findByIdAndUpdate(blocker_id, {
+        $set: {
+          "stats.following_count": blockerOutgoing,
+          "stats.follower_count": blockerIncoming,
+        },
+      }),
+      User.findByIdAndUpdate(blocked_id, {
+        $set: {
+          "stats.following_count": blockedOutgoing,
+          "stats.follower_count": blockedIncoming,
+        },
+      }),
+      // Feed cleanup is best-effort, DB state remains source of truth.
+      feedService
+        .unfollow(String(blocker_id), String(blocked_id))
+        .catch(() => {}),
+      feedService
+        .unfollow(String(blocked_id), String(blocker_id))
+        .catch(() => {}),
+    ]);
 
     res.json({
       data: { success: true, message: "User blocked successfully" },

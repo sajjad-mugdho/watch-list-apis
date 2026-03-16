@@ -10,6 +10,7 @@ import searchRoutes from "./routes/searchRoutes";
 import connectionRoutes from "./routes/connectionRoutes";
 import socialRoutes from "./routes/socialRoutes";
 import orderRoutes from "./routes/orderRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 import { usersRoutes } from "./routes/usersRoutes";
 
 import { registerNetworksEventHandlers } from "./events";
@@ -32,5 +33,6 @@ router.use("/search", searchRoutes);
 router.use("/connections", connectionRoutes);
 router.use("/social", socialRoutes);
 router.use("/orders", orderRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;

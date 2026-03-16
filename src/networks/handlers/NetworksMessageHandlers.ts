@@ -6,7 +6,6 @@ import { User } from "../../models/User";
 import { chatService } from "../../services/ChatService";
 import { networksChannelService } from "../services/NetworksChannelService";
 import { networksMessageService as _networksMessageService } from "../services/NetworksMessageService";
-import { Notification } from "../../models/Notification";
 import { channelContextService } from "../../services/ChannelContextService";
 import logger from "../../utils/logger";
 
@@ -162,7 +161,8 @@ export const sendMessage =
             ? channel.seller_id
             : (channel.buyer_id ?? channel.seller_id);
         if (!recipientId) throw new Error("Channel has no valid recipient");
-        await Notification.create({
+        // TODO: Use platform-specific notification service
+        /*        await Notification.create({
           user_id: recipientId,
           type: type === "inquiry" ? "new_inquiry" : "new_message",
           title: type === "inquiry" ? "New Inquiry" : "New Message",
@@ -176,7 +176,7 @@ export const sendMessage =
             type: type,
           },
           action_url: `/chat/${channel_id}`,
-        });
+        }); */
       } catch (notifError) {
         logger.warn("Failed to create message notification", { notifError });
       }

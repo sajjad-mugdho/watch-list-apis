@@ -15,7 +15,7 @@ import {
 } from "../../validation/schemas";
 import { User } from "../../models/User";
 
-import { Follow } from "../../models/Follow";
+import { Connection } from "../../networks/models/Connection";
 import { Order } from "../../models/Order";
 import { Types } from "mongoose";
 import {
@@ -201,8 +201,8 @@ router.get(
 
       // Fetch follow counts
       const [follower_count, following_count] = await Promise.all([
-        Follow.getFollowersCount(userId),
-        Follow.getFollowingCount(userId),
+        Connection.getIncomingCount(userId),
+        Connection.getOutgoingCount(userId),
       ]);
 
       res.json({

@@ -418,13 +418,16 @@ export const blockUserSchema = z.object({
 });
 
 /**
- * Schema for sending a friend request
+ * Schema for sending a connection request
  */
-export const friendRequestSchema = z.object({
+export const connectionRequestSchema = z.object({
   body: z.object({
     target_user_id: z.string().regex(objectIdRegex, "Invalid user ID"),
   }),
 });
+
+// Backward-compatible alias during friend/follow -> connection migration.
+export const friendRequestSchema = connectionRequestSchema;
 
 /**
  * Schema for getting public profile inventory
@@ -1125,9 +1128,9 @@ export const getReviewSummarySchema = z.object({
 // ----------------------------------------------------------
 
 /**
- * Schema for sending a friend request
+ * Schema for sending a connection request
  */
-export const sendFriendRequestSchema = z.object({
+export const sendConnectionRequestSchema = z.object({
   body: z.object({
     user_id: z
       .string()
@@ -1135,10 +1138,12 @@ export const sendFriendRequestSchema = z.object({
   }),
 });
 
+export const sendFriendRequestSchema = sendConnectionRequestSchema;
+
 /**
- * Schema for responding to a follow/connection request
+ * Schema for responding to a connection request
  */
-export const respondFriendRequestSchema = z.object({
+export const respondConnectionRequestSchema = z.object({
   params: z.object({
     id: z.string().regex(objectIdRegex, "Invalid request ID"),
   }),
@@ -1146,6 +1151,8 @@ export const respondFriendRequestSchema = z.object({
     status: z.enum(["accepted", "declined"]),
   }),
 });
+
+export const respondFriendRequestSchema = respondConnectionRequestSchema;
 
 /**
  * Schema for getting friends list
@@ -1398,9 +1405,13 @@ export type DeleteListingInput = z.infer<typeof deleteListingSchema>;
 export type ConciergeRequestInput = z.infer<typeof conciergeRequestSchema>;
 export type CreateReportInput = z.infer<typeof createReportSchema>;
 export type BlockUserInput = z.infer<typeof blockUserSchema>;
-export type FriendRequestInput = z.infer<typeof friendRequestSchema>;
+export type ConnectionRequestInput = z.infer<typeof connectionRequestSchema>;
+export type FriendRequestInput = ConnectionRequestInput;
+export type RespondConnectionRequestInput = z.infer<
+  typeof respondConnectionRequestSchema
+>;
 export type RespondFriendRequestInput = z.infer<
-  typeof respondFriendRequestSchema
+  typeof respondConnectionRequestSchema
 >;
 export type GetUserPublicProfileInput = z.infer<
   typeof getUserPublicProfileSchema
@@ -1454,7 +1465,10 @@ export type CreateReviewInput = z.infer<typeof createReviewSchema>;
 export type GetUserReviewsInput = z.infer<typeof getUserReviewsSchema>;
 export type GetReviewSummaryInput = z.infer<typeof getReviewSummarySchema>;
 
-export type SendFriendRequestInput = z.infer<typeof sendFriendRequestSchema>;
+export type SendConnectionRequestInput = z.infer<
+  typeof sendConnectionRequestSchema
+>;
+export type SendFriendRequestInput = SendConnectionRequestInput;
 export type GetFriendsInput = z.infer<typeof getFriendsSchema>;
 export type GetMutualFriendsInput = z.infer<typeof getMutualFriendsSchema>;
 

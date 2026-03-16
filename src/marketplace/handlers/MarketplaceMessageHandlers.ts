@@ -5,7 +5,6 @@ import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
 import { User } from "../../models/User";
 import { chatService } from "../../services/ChatService";
 import { marketplaceChannelService } from "../services/MarketplaceChannelService";
-import { Notification } from "../../models/Notification";
 import { channelContextService } from "../../services/ChannelContextService";
 import logger from "../../utils/logger";
 
@@ -151,21 +150,26 @@ export const sendMessage =
             ? channel.seller_id
             : (channel.buyer_id ?? channel.seller_id);
         if (!recipientId) throw new Error("Channel has no valid recipient");
-        await Notification.create({
-          user_id: recipientId,
-          type: type === "inquiry" ? "new_inquiry" : "new_message",
-          title: type === "inquiry" ? "New Inquiry" : "New Message",
-          body:
-            type === "inquiry"
-              ? `New inquiry for ${channel.listing_snapshot?.brand || "Watch"} ${channel.listing_snapshot?.model || ""}`
-              : `${user.display_name}: ${text.substring(0, 50)}${text.length > 50 ? "..." : ""}`,
-          data: {
-            message_id: messageId.toString(),
-            channel_id: channel_id,
-            type: type,
-          },
-          action_url: `/chat/${channel_id}`,
-        });
+        // TODO: Replace with platform-specific notification service (marketplace)
+        logger.debug(
+          "[DEPRECATED] Notification creation disabled - use marketplace notification service",
+          { recipientId, type },
+        );
+        // await Notification.create({
+        //   user_id: recipientId,
+        //   type: type === "inquiry" ? "new_inquiry" : "new_message",
+        //   title: type === "inquiry" ? "New Inquiry" : "New Message",
+        //   body:
+        //     type === "inquiry"
+        //       ? `New inquiry for ${channel.listing_snapshot?.brand || "Watch"} ${channel.listing_snapshot?.model || ""}`
+        //       : `${user.display_name}: ${text.substring(0, 50)}${text.length > 50 ? "..." : ""}`,
+        //   data: {
+        //     message_id: messageId.toString(),
+        //     channel_id: channel_id,
+        //     type: type,
+        //   },
+        //   action_url: `/chat/${channel_id}`,
+        // });
       } catch (notifError) {
         logger.warn("Failed to create message notification", { notifError });
       }

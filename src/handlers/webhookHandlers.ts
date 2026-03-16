@@ -7,6 +7,8 @@ import logger from "../utils/logger";
 import { config } from "../config";
 import { webhookLogger } from "../utils/logger";
 import { events } from "../utils/events";
+import { Connection } from "../networks/models/Connection";
+import { Block } from "../networks/models/Block";
 
 // ----------------------------------------------------------
 // Types
@@ -176,16 +178,30 @@ export const webhook_clerk_post = async (
         }
 
         try {
-          const deletedUser = await User.findOneAndDelete({
-            external_id: userId,
-          });
-          if (!deletedUser) {
+          const user = await User.findOne({ external_id: userId }).select(
+            "_id",
+          );
+
+          if (!user) {
             webhookLogger.warn("Received user.deleted for unknown user", {
               clerkId: userId,
             });
           } else {
+            const [removedConnections, removedBlocks] = await Promise.all([
+              Connection.deleteMany({
+                $or: [{ follower_id: user._id }, { following_id: user._id }],
+              }),
+              Block.deleteMany({
+                $or: [{ blocker_id: user._id }, { blocked_id: user._id }],
+              }),
+            ]);
+
+            await User.findByIdAndDelete(user._id);
+
             webhookLogger.info("[webhooks/clerk] User deleted", {
-              userId: deletedUser._id,
+              userId: user._id,
+              deletedConnectionRecords: removedConnections.deletedCount,
+              deletedBlockRecords: removedBlocks.deletedCount,
             });
           }
         } catch (err) {

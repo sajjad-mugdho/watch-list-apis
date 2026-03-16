@@ -16,7 +16,7 @@ import {
 import { networks_dashboard_stats_get } from "../handlers/NetworksDashboardHandlers";
 import { getUserInventorySchema } from "../../validation/schemas";
 import { validateRequest } from "../../middleware/validation";
-import { followService } from "../../services/follow/FollowService";
+import { connectionService } from "../../services/connection/ConnectionService";
 import { reviewService } from "../../services/review/ReviewService";
 import { favoriteService } from "../../services";
 import { recentSearchService } from "../../services";
@@ -40,14 +40,14 @@ router.get("/dashboard/stats", networks_dashboard_stats_get as any);
 router.get("/blocks", networks_user_blocks_get as any);
 
 // ──────────────────────────────────────────────────────────────────────
-// Follow management (current user perspective)
+// Connection management (current user perspective)
 // ──────────────────────────────────────────────────────────────────────
 
 /**
- * GET /user/followers — current user's accepted followers
+ * GET /user/connections/incoming — current user's accepted incoming connections
  */
 router.get(
-  "/followers",
+  "/connections/incoming",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!(req as any).user) {
@@ -58,7 +58,7 @@ router.get(
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      const result = await followService.getFollowers(userId, {
+      const result = await connectionService.getIncomingConnections(userId, {
         limit,
         offset,
       });
@@ -70,10 +70,10 @@ router.get(
 );
 
 /**
- * GET /user/following — users current user is following (accepted)
+ * GET /user/connections/outgoing — accepted outgoing connections
  */
 router.get(
-  "/following",
+  "/connections/outgoing",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!(req as any).user) {
@@ -84,7 +84,7 @@ router.get(
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      const result = await followService.getFollowing(userId, {
+      const result = await connectionService.getOutgoingConnections(userId, {
         limit,
         offset,
       });
@@ -96,10 +96,10 @@ router.get(
 );
 
 /**
- * GET /user/follow-requests — pending incoming follow requests (for private accounts)
+ * GET /user/connections/requests — pending incoming connection requests
  */
 router.get(
-  "/follow-requests",
+  "/connections/requests",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!(req as any).user) {
@@ -110,7 +110,7 @@ router.get(
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      const result = await followService.getPendingRequests(userId, {
+      const result = await connectionService.getPendingRequests(userId, {
         limit,
         offset,
       });
@@ -122,10 +122,10 @@ router.get(
 );
 
 /**
- * POST /user/following/:id — follow a user
+ * POST /user/connections/:id — send a connection request
  */
 router.post(
-  "/following/:id",
+  "/connections/:id",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!(req as any).user) {
@@ -140,18 +140,22 @@ router.post(
         return;
       }
 
-      const follow = await followService.follow(userId, targetId);
+      const connection = await connectionService.requestConnection(
+        userId,
+        targetId,
+      );
       const message =
-        follow.status === "pending"
-          ? "Follow request sent"
-          : "Successfully followed user";
+        connection.status === "pending"
+          ? "Connection request sent"
+          : "Connection established";
 
-      res.status(201).json({ message, follow: follow.toJSON() });
+      res.status(201).json({ message, connection: connection.toJSON() });
     } catch (error: any) {
       if (
-        error.message === "Cannot follow yourself" ||
-        error.message === "Already following this user" ||
-        error.message === "Follow request already pending"
+        error.message === "Cannot connect with yourself" ||
+        error.message === "Already connected with this user" ||
+        error.message === "Connection request already pending" ||
+        error.message === "Cannot connect due to block relationship"
       ) {
         res.status(400).json({ error: { message: error.message } });
         return;
@@ -166,10 +170,10 @@ router.post(
 );
 
 /**
- * DELETE /user/following/:id — unfollow a user (or cancel pending request)
+ * DELETE /user/connections/:id — remove an outgoing connection/request
  */
 router.delete(
-  "/following/:id",
+  "/connections/:id",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!(req as any).user) {
@@ -184,10 +188,10 @@ router.delete(
         return;
       }
 
-      await followService.unfollow(userId, targetId);
-      res.json({ message: "Successfully unfollowed user" });
+      await connectionService.removeConnection(userId, targetId);
+      res.json({ message: "Connection removed" });
     } catch (error: any) {
-      if (error.message === "Not following this user") {
+      if (error.message === "No connection found for this user") {
         res.status(404).json({ error: { message: error.message } });
         return;
       }
@@ -197,10 +201,10 @@ router.delete(
 );
 
 /**
- * POST /user/following/:id/accept — accept a follow request (private accounts)
+ * POST /user/connections/requests/:id/accept — accept incoming connection request
  */
 router.post(
-  "/following/:id/accept",
+  "/connections/requests/:id/accept",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!(req as any).user) {
@@ -208,19 +212,25 @@ router.post(
         return;
       }
       const userId = (req as any).user.dialist_id;
-      const { id: followId } = req.params;
+      const { id: connectionId } = req.params;
 
-      if (!mongoose.Types.ObjectId.isValid(followId)) {
+      if (!mongoose.Types.ObjectId.isValid(connectionId)) {
         res
           .status(400)
-          .json({ error: { message: "Invalid follow request ID" } });
+          .json({ error: { message: "Invalid connection request ID" } });
         return;
       }
 
-      const follow = await followService.acceptFollowRequest(userId, followId);
-      res.json({ message: "Follow request accepted", follow: follow.toJSON() });
+      const connection = await connectionService.acceptConnectionRequest(
+        userId,
+        connectionId,
+      );
+      res.json({
+        message: "Connection request accepted",
+        connection: connection.toJSON(),
+      });
     } catch (error: any) {
-      if (error.message === "Follow request not found") {
+      if (error.message === "Connection request not found") {
         res.status(404).json({ error: { message: error.message } });
         return;
       }
@@ -237,10 +247,10 @@ router.post(
 );
 
 /**
- * POST /user/following/:id/reject — reject a follow request (private accounts)
+ * POST /user/connections/requests/:id/reject — reject incoming connection request
  */
 router.post(
-  "/following/:id/reject",
+  "/connections/requests/:id/reject",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       if (!(req as any).user) {
@@ -248,19 +258,19 @@ router.post(
         return;
       }
       const userId = (req as any).user.dialist_id;
-      const { id: followId } = req.params;
+      const { id: connectionId } = req.params;
 
-      if (!mongoose.Types.ObjectId.isValid(followId)) {
+      if (!mongoose.Types.ObjectId.isValid(connectionId)) {
         res
           .status(400)
-          .json({ error: { message: "Invalid follow request ID" } });
+          .json({ error: { message: "Invalid connection request ID" } });
         return;
       }
 
-      await followService.rejectFollowRequest(userId, followId);
-      res.json({ message: "Follow request rejected" });
+      await connectionService.rejectConnectionRequest(userId, connectionId);
+      res.json({ message: "Connection request rejected" });
     } catch (error: any) {
-      if (error.message === "Follow request not found") {
+      if (error.message === "Connection request not found") {
         res.status(404).json({ error: { message: error.message } });
         return;
       }

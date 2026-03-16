@@ -1,273 +1,120 @@
-/**
- * FriendshipService Unit Tests
- * Friendship Service Tests
- */
+import { Types } from "mongoose";
+import { ConnectionService } from "../../../src/services/connection/ConnectionService";
+import { Connection } from "../../../src/networks/models/Connection";
+import { User } from "../../../src/models/User";
+import { Block } from "../../../src/networks/models/Block";
+import { feedService } from "../../../src/services/FeedService";
 
-import { FriendshipService } from '../../../src/services/friendship/FriendshipService';
-import { Friendship } from '../../../src/models/Friendship';
-import { User } from '../../../src/models/User';
-import { Types } from 'mongoose';
+jest.mock("../../../src/networks/models/Connection");
+jest.mock("../../../src/models/User");
+jest.mock("../../../src/networks/models/Block");
+jest.mock("../../../src/services/FeedService", () => ({
+  feedService: {
+    follow: jest.fn(),
+    unfollow: jest.fn(),
+  },
+}));
 
-// Mock the dependencies
-jest.mock('../../../src/models/Friendship');
-jest.mock('../../../src/models/User');
-jest.mock('../../../src/services/notification/NotificationService');
-
-describe('FriendshipService', () => {
-  let friendshipService: FriendshipService;
-  const mockNotificationService = {
-    create: jest.fn().mockResolvedValue({}),
-  };
+describe("ConnectionService", () => {
+  let connectionService: ConnectionService;
 
   beforeEach(() => {
     jest.clearAllMocks();
-    friendshipService = new FriendshipService(mockNotificationService as any);
+    connectionService = new ConnectionService();
   });
 
-  describe('sendRequest', () => {
+  it("rejects self-connections", async () => {
+    const userId = new Types.ObjectId().toString();
+
+    await expect(
+      connectionService.requestConnection(userId, userId),
+    ).rejects.toThrow("Cannot connect with yourself");
+  });
+
+  it("creates a pending connection request", async () => {
     const requesterId = new Types.ObjectId().toString();
-    const addresseeId = new Types.ObjectId().toString();
+    const targetId = new Types.ObjectId().toString();
 
-    it('should create a new friend request', async () => {
-      // Mock user exists
-      (User.findById as jest.Mock).mockReturnValue({
-        select: jest.fn().mockResolvedValue({ _id: addresseeId, display_name: 'Test User' }),
-      });
-      
-      // Mock no existing friendship
-      (Friendship.findOne as jest.Mock).mockResolvedValue(null);
-      
-      // Mock create
-      const mockFriendship = {
-        _id: new Types.ObjectId(),
-        requester_id: new Types.ObjectId(requesterId),
-        addressee_id: new Types.ObjectId(addresseeId),
-        status: 'pending',
-      };
-      (Friendship.create as jest.Mock).mockResolvedValue(mockFriendship);
+    (User.findById as jest.Mock).mockResolvedValue({ _id: targetId });
+    (Block.findOne as jest.Mock).mockResolvedValue(null);
+    (Connection.findOne as jest.Mock)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(null);
 
-      const result = await friendshipService.sendRequest({
-        requester_id: requesterId,
-        addressee_id: addresseeId,
-      });
+    const mockConnection = {
+      _id: new Types.ObjectId(),
+      follower_id: new Types.ObjectId(requesterId),
+      following_id: new Types.ObjectId(targetId),
+      status: "pending",
+    };
 
-      expect(result.status).toBe('pending');
-      expect(Friendship.create).toHaveBeenCalled();
+    (Connection.create as jest.Mock).mockResolvedValue(mockConnection);
+    (Notification.create as jest.Mock).mockResolvedValue({});
+    (User.findById as jest.Mock).mockResolvedValue({
+      _id: targetId,
+      display_name: "Target User",
     });
 
-    it('should throw error when friending yourself', async () => {
-      await expect(friendshipService.sendRequest({
-        requester_id: requesterId,
-        addressee_id: requesterId,
-      })).rejects.toThrow('Cannot send friend request to yourself');
-    });
+    const result = await connectionService.requestConnection(
+      requesterId,
+      targetId,
+    );
 
-    it('should throw error when user not found', async () => {
-      (User.findById as jest.Mock).mockResolvedValue(null);
-
-      await expect(friendshipService.sendRequest({
-        requester_id: requesterId,
-        addressee_id: addresseeId,
-      })).rejects.toThrow('User not found');
-    });
-
-    it('should throw error when already friends', async () => {
-      (User.findById as jest.Mock).mockResolvedValue({ _id: addresseeId });
-      
-      (Friendship.findOne as jest.Mock).mockResolvedValue({
-        status: 'accepted',
-        requester_id: new Types.ObjectId(requesterId),
-        addressee_id: new Types.ObjectId(addresseeId),
-      });
-
-      await expect(friendshipService.sendRequest({
-        requester_id: requesterId,
-        addressee_id: addresseeId,
-      })).rejects.toThrow('You are already friends with this user');
-    });
-
-    it('should throw error when request already pending', async () => {
-      (User.findById as jest.Mock).mockResolvedValue({ _id: addresseeId });
-      
-      (Friendship.findOne as jest.Mock).mockResolvedValue({
-        status: 'pending',
-        requester_id: new Types.ObjectId(requesterId),
-        addressee_id: new Types.ObjectId(addresseeId),
-      });
-
-      await expect(friendshipService.sendRequest({
-        requester_id: requesterId,
-        addressee_id: addresseeId,
-      })).rejects.toThrow('Friend request already pending');
-    });
+    expect(result.status).toBe("pending");
+    expect(Connection.create).toHaveBeenCalled();
   });
 
-  describe('acceptRequest', () => {
-    it('should accept a pending request', async () => {
-      const friendshipId = new Types.ObjectId().toString();
-      const addresseeId = new Types.ObjectId().toString();
-      const requesterId = new Types.ObjectId().toString();
+  it("accepts an incoming pending request", async () => {
+    const targetId = new Types.ObjectId().toString();
+    const requesterId = new Types.ObjectId().toString();
 
-      const mockFriendship = {
-        _id: new Types.ObjectId(friendshipId),
-        requester_id: new Types.ObjectId(requesterId),
-        addressee_id: new Types.ObjectId(addresseeId),
-        status: 'pending',
-        save: jest.fn().mockResolvedValue(true),
-      };
-      (Friendship.findById as jest.Mock).mockResolvedValue(mockFriendship);
-      
-      // Mock friend count updates
-      (Friendship.getFriendCount as jest.Mock).mockResolvedValue(1);
-      (User.findByIdAndUpdate as jest.Mock).mockResolvedValue({});
-      (User.findById as jest.Mock).mockReturnValue({
-        select: jest.fn().mockResolvedValue({ display_name: 'Test User' }),
-      });
+    const mockConnection = {
+      _id: new Types.ObjectId(),
+      follower_id: new Types.ObjectId(requesterId),
+      following_id: new Types.ObjectId(targetId),
+      status: "pending",
+      accepted_at: null,
+      save: jest.fn().mockResolvedValue(true),
+    };
 
-      const result = await friendshipService.acceptRequest(friendshipId, addresseeId);
-
-      expect(mockFriendship.status).toBe('accepted');
-      expect(mockFriendship.save).toHaveBeenCalled();
-      expect(mockNotificationService.create).toHaveBeenCalled();
+    (Connection.findById as jest.Mock).mockResolvedValue(mockConnection);
+    (Connection.getOutgoingCount as jest.Mock).mockResolvedValue(1);
+    (Connection.getIncomingCount as jest.Mock).mockResolvedValue(1);
+    (User.findByIdAndUpdate as jest.Mock).mockResolvedValue({});
+    (feedService.follow as jest.Mock).mockResolvedValue({});
+    (User.findById as jest.Mock).mockReturnValue({
+      select: jest.fn().mockResolvedValue({ display_name: "Target" }),
     });
+    (Notification.create as jest.Mock).mockResolvedValue({});
 
-    it('should throw error if not the addressee', async () => {
-      const friendshipId = new Types.ObjectId().toString();
-      const wrongUserId = new Types.ObjectId().toString();
+    const result = await connectionService.acceptConnectionRequest(
+      targetId,
+      mockConnection._id.toString(),
+    );
 
-      const mockFriendship = {
-        _id: new Types.ObjectId(friendshipId),
-        requester_id: new Types.ObjectId(),
-        addressee_id: new Types.ObjectId(), // Different from wrongUserId
-        status: 'pending',
-      };
-      (Friendship.findById as jest.Mock).mockResolvedValue(mockFriendship);
-
-      await expect(friendshipService.acceptRequest(friendshipId, wrongUserId))
-        .rejects.toThrow('You cannot accept this friend request');
-    });
-
-    it('should throw error for non-pending request', async () => {
-      const friendshipId = new Types.ObjectId().toString();
-      const addresseeId = new Types.ObjectId().toString();
-
-      const mockFriendship = {
-        _id: new Types.ObjectId(friendshipId),
-        requester_id: new Types.ObjectId(),
-        addressee_id: new Types.ObjectId(addresseeId),
-        status: 'declined',
-      };
-      (Friendship.findById as jest.Mock).mockResolvedValue(mockFriendship);
-
-      await expect(friendshipService.acceptRequest(friendshipId, addresseeId))
-        .rejects.toThrow('Cannot accept: request is declined');
-    });
+    expect(result.status).toBe("accepted");
+    expect(mockConnection.save).toHaveBeenCalled();
+    expect(feedService.follow).toHaveBeenCalledWith(requesterId, targetId);
   });
 
-  describe('declineRequest', () => {
-    it('should decline a pending request', async () => {
-      const friendshipId = new Types.ObjectId().toString();
-      const addresseeId = new Types.ObjectId().toString();
+  it("removes an accepted connection and syncs feeds", async () => {
+    const requesterId = new Types.ObjectId().toString();
+    const targetId = new Types.ObjectId().toString();
 
-      const mockFriendship = {
-        _id: new Types.ObjectId(friendshipId),
-        requester_id: new Types.ObjectId(),
-        addressee_id: new Types.ObjectId(addresseeId),
-        status: 'pending',
-        save: jest.fn().mockResolvedValue(true),
-      };
-      (Friendship.findById as jest.Mock).mockResolvedValue(mockFriendship);
-
-      await friendshipService.declineRequest(friendshipId, addresseeId);
-
-      expect(mockFriendship.status).toBe('declined');
-      expect(mockFriendship.save).toHaveBeenCalled();
+    (Connection.findOneAndDelete as jest.Mock).mockResolvedValue({
+      status: "accepted",
     });
-  });
+    (Connection.getOutgoingCount as jest.Mock).mockResolvedValue(0);
+    (Connection.getIncomingCount as jest.Mock).mockResolvedValue(0);
+    (User.findByIdAndUpdate as jest.Mock).mockResolvedValue({});
+    (feedService.unfollow as jest.Mock).mockResolvedValue({});
 
-  describe('removeFriend', () => {
-    it('should remove an accepted friendship', async () => {
-      const friendshipId = new Types.ObjectId().toString();
-      const userId = new Types.ObjectId().toString();
-      const otherId = new Types.ObjectId().toString();
+    await connectionService.removeConnection(requesterId, targetId);
 
-      const mockFriendship = {
-        _id: new Types.ObjectId(friendshipId),
-        requester_id: new Types.ObjectId(userId),
-        addressee_id: new Types.ObjectId(otherId),
-        status: 'accepted',
-        deleteOne: jest.fn().mockResolvedValue(true),
-      };
-      (Friendship.findById as jest.Mock).mockResolvedValue(mockFriendship);
-      (Friendship.getFriendCount as jest.Mock).mockResolvedValue(0);
-      (User.findByIdAndUpdate as jest.Mock).mockResolvedValue({});
-
-      await friendshipService.removeFriend(friendshipId, userId);
-
-      expect(mockFriendship.deleteOne).toHaveBeenCalled();
+    expect(Connection.findOneAndDelete).toHaveBeenCalledWith({
+      follower_id: requesterId,
+      following_id: targetId,
     });
-
-    it('should throw error if not part of friendship', async () => {
-      const friendshipId = new Types.ObjectId().toString();
-      const wrongUserId = new Types.ObjectId().toString();
-
-      const mockFriendship = {
-        _id: new Types.ObjectId(friendshipId),
-        requester_id: new Types.ObjectId(),
-        addressee_id: new Types.ObjectId(),
-        status: 'accepted',
-      };
-      (Friendship.findById as jest.Mock).mockResolvedValue(mockFriendship);
-
-      await expect(friendshipService.removeFriend(friendshipId, wrongUserId))
-        .rejects.toThrow('You are not part of this friendship');
-    });
-  });
-
-  describe('getFriends', () => {
-    it('should return paginated friends list', async () => {
-      const userId = new Types.ObjectId().toString();
-      const mockFriendships = [
-        {
-          _id: new Types.ObjectId(),
-          requester_id: { _id: new Types.ObjectId(userId), display_name: 'User' },
-          addressee_id: { _id: new Types.ObjectId(), display_name: 'Friend 1' },
-          accepted_at: new Date(),
-        },
-      ];
-
-      const mockFind = {
-        sort: jest.fn().mockReturnThis(),
-        skip: jest.fn().mockReturnThis(),
-        limit: jest.fn().mockReturnThis(),
-        populate: jest.fn().mockReturnThis(),
-        lean: jest.fn().mockResolvedValue(mockFriendships),
-      };
-      (Friendship.find as jest.Mock).mockReturnValue(mockFind);
-      (Friendship.countDocuments as jest.Mock).mockResolvedValue(1);
-
-      const result = await friendshipService.getFriends(userId);
-
-      expect(result.friends).toHaveLength(1);
-      expect(result.total).toBe(1);
-    });
-  });
-
-  describe('areFriends', () => {
-    it('should return true for friends', async () => {
-      (Friendship.areFriends as jest.Mock).mockResolvedValue(true);
-
-      const result = await friendshipService.areFriends('user1', 'user2');
-
-      expect(result).toBe(true);
-    });
-
-    it('should return false for non-friends', async () => {
-      (Friendship.areFriends as jest.Mock).mockResolvedValue(false);
-
-      const result = await friendshipService.areFriends('user1', 'user2');
-
-      expect(result).toBe(false);
-    });
+    expect(feedService.unfollow).toHaveBeenCalledWith(requesterId, targetId);
   });
 });

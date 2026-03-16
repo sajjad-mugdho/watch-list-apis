@@ -1,10 +1,9 @@
 import request from "supertest";
-import { Types } from "mongoose";
 import { app } from "../../src/app";
 import { User } from "../../src/models/User";
-import { Friendship } from "../../src/models/Friendship";
+import { Connection } from "../../src/networks/models/Connection";
 
-describe("Friendship Endpoints Integration", () => {
+describe("Connection Endpoints Integration", () => {
   let userA: any;
   let userB: any;
   let userC: any;
@@ -12,7 +11,7 @@ describe("Friendship Endpoints Integration", () => {
   beforeEach(async () => {
     // Clean up first (though setup.ts does this, being explicit helps)
     await User.deleteMany({});
-    await Friendship.deleteMany({});
+    await Connection.deleteMany({});
 
     // Create User A (Buyer US Complete) - ID from customClerkMw
     userA = await User.create({
@@ -48,128 +47,137 @@ describe("Friendship Endpoints Integration", () => {
     });
   });
 
-  describe("POST /api/v1/user/friends/requests", () => {
-    it("should send a friend request", async () => {
+  describe("POST /api/v1/networks/user/connections/:id", () => {
+    it("should send a connection request", async () => {
       const response = await request(app)
-        .post("/api/v1/user/friends/requests")
+        .post(`/api/v1/networks/user/connections/${userB._id}`)
         .set("x-test-user", "buyer_us_complete")
-        .send({ user_id: userB._id.toString() });
+        .send({});
 
       expect(response.status).toBe(201);
-      expect(response.body.message).toBe("Friend request sent");
-      expect(response.body.data.status).toBe("pending");
-      expect(response.body.data.addressee_id).toBe(userB._id.toString());
+      expect(response.body.message).toBe("Connection request sent");
+      expect(response.body.connection.status).toBe("pending");
+      expect(response.body.connection.following_id).toBe(userB._id.toString());
     });
 
     it("should return 400 if sending to self", async () => {
       const response = await request(app)
-        .post("/api/v1/user/friends/requests")
+        .post(`/api/v1/networks/user/connections/${userA._id}`)
         .set("x-test-user", "buyer_us_complete")
-        .send({ user_id: userA._id.toString() });
+        .send({});
 
       expect(response.status).toBe(400);
-      expect(response.body.error.message).toContain("Cannot send friend request to yourself");
+      expect(response.body.error.message).toContain(
+        "Cannot connect with yourself",
+      );
     });
   });
 
-  describe("GET /api/v1/user/friends/requests/pending", () => {
+  describe("GET /api/v1/networks/user/connections/requests", () => {
     it("should get pending requests received by user", async () => {
-      // Create a pending request from B to A
-      await Friendship.create({
-        requester_id: userB._id,
-        addressee_id: userA._id,
+      await Connection.create({
+        follower_id: userB._id,
+        following_id: userA._id,
         status: "pending",
       });
 
       const response = await request(app)
-        .get("/api/v1/user/friends/requests/pending")
+        .get("/api/v1/networks/user/connections/requests")
         .set("x-test-user", "buyer_us_complete");
 
       expect(response.status).toBe(200);
-      expect(response.body.count).toBe(1);
-      expect(response.body.data[0].requester_id._id).toBe(userB._id.toString());
+      expect(response.body.total).toBe(1);
+      expect(response.body.requests[0].user._id).toBe(userB._id.toString());
     });
   });
 
-  describe("POST /api/v1/user/friends/requests/:friendship_id/accept", () => {
-    it("should accept a friend request", async () => {
-      const friendship = await Friendship.create({
-        requester_id: userB._id,
-        addressee_id: userA._id,
+  describe("POST /api/v1/networks/user/connections/requests/:id/accept", () => {
+    it("should accept a connection request", async () => {
+      const connection = await Connection.create({
+        follower_id: userB._id,
+        following_id: userA._id,
         status: "pending",
       });
 
       const response = await request(app)
-        .post(`/api/v1/user/friends/requests/${friendship._id}/accept`)
+        .post(
+          `/api/v1/networks/user/connections/requests/${connection._id}/accept`,
+        )
         .set("x-test-user", "buyer_us_complete");
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe("Friend request accepted");
-      expect(response.body.data.status).toBe("accepted");
+      expect(response.body.message).toBe("Connection request accepted");
+      expect(response.body.connection.status).toBe("accepted");
     });
   });
 
-  describe("GET /api/v1/user/friends", () => {
-    it("should return friends list", async () => {
-      // Create an accepted friendship
-      await Friendship.create({
-        requester_id: userA._id,
-        addressee_id: userB._id,
+  describe("GET /api/v1/networks/user/connections/outgoing", () => {
+    it("should return outgoing accepted connections", async () => {
+      await Connection.create({
+        follower_id: userA._id,
+        following_id: userB._id,
         status: "accepted",
+        accepted_at: new Date(),
       });
 
       const response = await request(app)
-        .get("/api/v1/user/friends")
+        .get("/api/v1/networks/user/connections/outgoing")
         .set("x-test-user", "buyer_us_complete");
 
       expect(response.status).toBe(200);
-      expect(response.body.data.length).toBe(1);
-      // Depending on serialization, friend might be userB
+      expect(response.body.total).toBe(1);
+      expect(response.body.connections.length).toBe(1);
     });
   });
 
-  describe("GET /api/v1/user/friends/mutual/:user_id", () => {
-    it("should return mutual friends", async () => {
-      // A is friends with C
-      await Friendship.create({
-        requester_id: userA._id,
-        addressee_id: userC._id,
+  describe("GET /api/v1/networks/users/:id/connection-status", () => {
+    it("should return directional connection status", async () => {
+      await Connection.create({
+        follower_id: userA._id,
+        following_id: userC._id,
         status: "accepted",
+        accepted_at: new Date(),
       });
 
-      // B is friends with C
-      await Friendship.create({
-        requester_id: userB._id,
-        addressee_id: userC._id,
+      await Connection.create({
+        follower_id: userC._id,
+        following_id: userA._id,
         status: "accepted",
+        accepted_at: new Date(),
       });
 
       const response = await request(app)
-        .get(`/api/v1/user/friends/mutual/${userB._id}`)
+        .get(`/api/v1/networks/users/${userC._id}/connection-status`)
         .set("x-test-user", "buyer_us_complete");
 
       expect(response.status).toBe(200);
-      expect(response.body.data.length).toBe(1);
-      expect(response.body.data[0]._id).toBe(userC._id.toString());
+      expect(response.body.is_connected_to).toBe(true);
+      expect(response.body.is_connected_by).toBe(true);
+      expect(response.body.outgoing_status).toBe("accepted");
+      expect(response.body.incoming_status).toBe("accepted");
     });
   });
 
-  describe("DELETE /api/v1/user/friends/:friendship_id", () => {
-    it("should remove a friend", async () => {
-      const friendship = await Friendship.create({
-        requester_id: userA._id,
-        addressee_id: userB._id,
+  describe("DELETE /api/v1/networks/user/connections/:id", () => {
+    it("should remove an outgoing connection", async () => {
+      await Connection.create({
+        follower_id: userA._id,
+        following_id: userB._id,
         status: "accepted",
+        accepted_at: new Date(),
       });
 
       const response = await request(app)
-        .delete(`/api/v1/user/friends/${friendship._id}`)
+        .delete(`/api/v1/networks/user/connections/${userB._id}`)
         .set("x-test-user", "buyer_us_complete");
 
       expect(response.status).toBe(200);
-      expect(response.body.message).toBe("Friend removed");
+      expect(response.body.message).toBe("Connection removed");
 
-      const exists = await Friendship.findById(friendship._id);
+      const exists = await Connection.findOne({
+        follower_id: userA._id,
+        following_id: userB._id,
+      });
       expect(exists).toBeNull();
     });
   });

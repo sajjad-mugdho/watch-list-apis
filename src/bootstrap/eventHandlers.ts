@@ -6,7 +6,6 @@
  */
 
 import { events } from "../utils/events";
-import { notificationService } from "../services";
 import { isoMatchingService } from "../services/ISOMatchingService";
 import logger from "../utils/logger";
 import { ReferenceCheck } from "../models/ReferenceCheck";
@@ -38,39 +37,18 @@ export function registerEventHandlers(): void {
   // The import triggers constructor which calls initialize()
   void isoMatchingService;
 
-  /**
-   * Welcome Notification for New Users
-   */
-  events.on("user:registered", async ({ userId, firstName }) => {
-    logger.info("Sending welcome notification", { userId });
+  // TODO: Event handlers for notifications have been temporarily disabled
+  // Migrations in progress: Notifications segregated by platform (Networks vs Marketplace)
+  // These handlers should be replaced with platform-specific notification services.
+  // See: src/networks/services/NotificationService.ts and src/marketplace/services/NotificationService.ts
 
-    await notificationService.create({
-      userId,
-      type: "welcome",
-      title: `Welcome to Dialist${firstName ? `, ${firstName}` : ""}!`,
-      body: "Start exploring luxury watches from trusted collectors.",
-      actionUrl: "/explore",
-      sendPush: true,
-    });
-  });
-
-  /**
-   * Onboarding Complete Notification
-   */
-  events.on("user:onboarding_complete", async ({ userId }) => {
-    await notificationService.create({
-      userId,
-      type: "onboarding_complete",
-      title: "Profile Complete!",
-      body: "You're all set. Start browsing or list your first watch.",
-      actionUrl: "/marketplace",
-      sendPush: true,
-    });
-  });
-
-  /**
-   * Channel Created Side Effects
-   */
+  /*
+  // -- DISABLED: Notification event handlers
+  // -- USE: Platform-specific notification services instead
+  
+  //
+  // Channel Created Side Effects
+  //
   events.on(
     "channel:created",
     async ({ sellerId, channelId, platform, createdFrom }) => {
@@ -94,9 +72,9 @@ export function registerEventHandlers(): void {
     },
   );
 
-  /**
+  //
    * Offer Sent Side Effects
-   */
+   //
   events.on(
     "offer:sent",
     async ({ receiverId, channelId, platform, amount, listingId }) => {
@@ -112,9 +90,9 @@ export function registerEventHandlers(): void {
     },
   );
 
-  /**
+  //
    * Offer Accepted Side Effects
-   */
+   //
   events.on(
     "offer:accepted",
     async ({ buyerId, sellerId, orderId, platform, amount }) => {
@@ -154,9 +132,9 @@ export function registerEventHandlers(): void {
     },
   );
 
-  /**
+  //
    * Offer Countered Side Effects
-   */
+   //
   events.on(
     "offer:countered",
     async ({ receiverId, channelId, platform, amount, previousAmount }) => {
@@ -172,9 +150,9 @@ export function registerEventHandlers(): void {
     },
   );
 
-  /**
+  //
    * Offer Rejected Side Effects
-   */
+   //
   events.on(
     "offer:rejected",
     async ({ buyerId, amount, platform, channelId }) => {
@@ -191,9 +169,9 @@ export function registerEventHandlers(): void {
     },
   );
 
-  /**
+  //
    * Offer Expired Side Effects
-   */
+   //
   events.on("offer:expired", async ({ buyerId, amount, channelId }) => {
     logger.debug("Handling offer:expired event", { channelId });
 
@@ -207,9 +185,9 @@ export function registerEventHandlers(): void {
     });
   });
 
-  /**
+  //
    * Message Read Side Effects
-   */
+   //
   events.on("message:read", async ({ channelId, userId, messageCount }) => {
     logger.debug("Handling message:read event", {
       channelId,
@@ -219,9 +197,9 @@ export function registerEventHandlers(): void {
     // Potential logic: update user last_read index, clear app badges, etc.
   });
 
-  /**
+  //
    * Listing Published Notification
-   */
+   //
   events.on("listing:created", async ({ userId, listingId, title }) => {
     await notificationService.create({
       userId,
@@ -244,9 +222,9 @@ export function registerEventHandlers(): void {
     });
   });
 
-  /**
+  //
    * Order Lifecycle Notifications
-   */
+   //
   events.on("order:created", async ({ sellerId, orderId, amount }) => {
     // Notify seller
     await notificationService.create({
@@ -302,9 +280,9 @@ export function registerEventHandlers(): void {
     }
   });
 
-  /**
+  //
    * Social Notifications
-   */
+   //
   events.on("user:followed", async ({ followedUserId, followerName }) => {
     await notificationService.create({
       userId: followedUserId,
@@ -315,9 +293,9 @@ export function registerEventHandlers(): void {
     });
   });
 
-  /**
+  //
    * ISO Match Notifications
-   */
+   //
   events.on("iso:matched", async ({ userId, isoId, matchedListingId }) => {
     await notificationService.create({
       userId,
@@ -334,9 +312,9 @@ export function registerEventHandlers(): void {
   // Vouch Events
   // ===========================================================
 
-  /**
+  //
    * Vouch Added — Notify the user who was vouched for
-   */
+   //
   events.on(
     "vouch:added",
     async ({ vouchedUserId, voucherName, referenceCheckId }) => {
@@ -362,9 +340,9 @@ export function registerEventHandlers(): void {
   // Trust Case Events
   // ===========================================================
 
-  /**
+  //
    * Trust Case Created — Notify admin team (placeholder: logs for now)
-   */
+   //
   events.on(
     "trustCase:created",
     async ({ caseId, caseNumber, reportedUserId, category, priority }) => {
@@ -379,9 +357,9 @@ export function registerEventHandlers(): void {
     },
   );
 
-  /**
+  //
    * Trust Case Escalated — Notify the escalation target admin
-   */
+   //
   events.on(
     "trustCase:escalated",
     async ({ caseId, caseNumber, escalatedTo, reason }) => {
@@ -402,9 +380,9 @@ export function registerEventHandlers(): void {
     },
   );
 
-  /**
+  //
    * User Suspended — Notify the suspended user
-   */
+   //
   events.on("user:suspended", async ({ userId, reason, durationDays }) => {
     logger.warn("[TrustCase] User suspended", { userId, durationDays });
 
@@ -416,6 +394,8 @@ export function registerEventHandlers(): void {
       sendPush: true,
     });
   });
+
+  */
 
   // No longer started via IIFE to prevent multiple starts
   // Call startOutboxPublisherOnce from app bootstrap instead

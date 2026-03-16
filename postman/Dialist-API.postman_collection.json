@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "dialist-api-collection-v1",
     "name": "Dialist API",
-    "description": "Full Dialist API collection \u2014 all 213+ endpoints across Marketplace, Networks, User, Auth, and Admin modules.\n\n## Quick Start\n1. Import both this collection AND the `Dialist-LocalDev.postman_environment.json` file\n2. Select **Dialist - Local Dev** as the active environment\n3. Start the server: `npm run dev` (listens on port 5050)\n4. Run `Debug > Get All Mock Users` to see available personas\n5. Change `{{mockUser}}` in the environment to switch testing persona\n6. Use Collection Runner to run folders in order for end-to-end flows\n\n## Auth\nControlled by the `authMode` environment variable:\n\n**Mode 1 \u2014 Mock (default, `authMode = mock`)**\nInjects `x-test-user: {{mockUser}}` header \u2014 no Clerk account needed.\nChange `{{mockUser}}` to switch persona:\n- `buyer_us_complete` \u2014 fully onboarded US buyer\n- `merchant_approved` \u2014 approved US seller\n- `merchant_approved_ca` \u2014 approved Canadian seller\n- `new_user_us` \u2014 fresh US user (test onboarding)\n- `new_user_ca` \u2014 fresh Canadian user\n- `merchant_pending` / `merchant_provisioning` / `merchant_rejected`\n\n**Mode 2 \u2014 Real Clerk JWT (`authMode = jwt`)**\nInjects `Authorization: Bearer {{token}}` header for a real Clerk user.\nSupports: `{{token}}`, `{{buyerToken}}`, or `{{sellerToken}}`\nHow to use:\n1. Open the app in the browser, sign in as the real user\n2. Open DevTools \u2192 Network tab \u2192 any API request \u2192 copy the `Authorization` header value (without the `Bearer ` prefix)\n3a. For general token: paste into `token` env variable\n3b. For buyer requests: paste into `buyerToken` env variable + set `tokenRole = buyer`\n3c. For seller requests: paste into `sellerToken` env variable + set `tokenRole = seller`\n4. Set `authMode` to `jwt`\nNote: Tokens valid ~12 hours \u2014 refresh from DevTools when they expire.\n\n## ID Chaining\nCreate requests auto-save response IDs to environment variables:\n`{{listingId}}`, `{{orderId}}`, `{{offerId}}`, `{{connectionId}}`, `{{groupId}}`, etc.\nSubsequent requests reference these automatically.",
+    "description": "Full Dialist API collection — all 213+ endpoints across Marketplace, Networks, User, Auth, and Admin modules.\n\n## Quick Start\n1. Import both this collection AND the `Dialist-LocalDev.postman_environment.json` file\n2. Select **Dialist - Local Dev** as the active environment\n3. Start the server: `npm run dev` (listens on port 5050)\n4. Run `Debug > Get All Mock Users` to see available personas\n5. Change `{{mockUser}}` in the environment to switch testing persona\n6. Use Collection Runner to run folders in order for end-to-end flows\n\n## Auth\nControlled by the `authMode` environment variable:\n\n**Mode 1 — Mock (default, `authMode = mock`)**\nInjects `x-test-user: {{mockUser}}` header — no Clerk account needed.\nChange `{{mockUser}}` to switch persona:\n- `buyer_us_complete` — fully onboarded US buyer\n- `merchant_approved` — approved US seller\n- `merchant_approved_ca` — approved Canadian seller\n- `new_user_us` — fresh US user (test onboarding)\n- `new_user_ca` — fresh Canadian user\n- `merchant_pending` / `merchant_provisioning` / `merchant_rejected`\n\n**Mode 2 — Real Clerk JWT (`authMode = jwt`)**\nInjects `Authorization: Bearer {{token}}` header for a real Clerk user.\nSupports: `{{token}}`, `{{buyerToken}}`, or `{{sellerToken}}`\nHow to use:\n1. Open the app in the browser, sign in as the real user\n2. Open DevTools → Network tab → any API request → copy the `Authorization` header value (without the `Bearer ` prefix)\n3a. For general token: paste into `token` env variable\n3b. For buyer requests: paste into `buyerToken` env variable + set `tokenRole = buyer`\n3c. For seller requests: paste into `sellerToken` env variable + set `tokenRole = seller`\n4. Set `authMode` to `jwt`\nNote: Tokens valid ~12 hours — refresh from DevTools when they expire.\n\n## ID Chaining\nCreate requests auto-save response IDs to environment variables:\n`{{listingId}}`, `{{orderId}}`, `{{offerId}}`, `{{connectionId}}`, `{{groupId}}`, etc.\nSubsequent requests reference these automatically.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -17,8 +17,8 @@
           "// ============================================================",
           "",
           "// Auth mode is controlled by the 'authMode' environment variable:",
-          "//   'mock' (default) \u2014 injects x-test-user header  (no Clerk needed)",
-          "//   'jwt'            \u2014 injects Authorization: Bearer <token>",
+          "//   'mock' (default) — injects x-test-user header  (no Clerk needed)",
+          "//   'jwt'            — injects Authorization: Bearer <token>",
           "",
           "const authMode = pm.environment.get('authMode') || 'mock';",
           "",
@@ -90,8 +90,8 @@
   ],
   "item": [
     {
-      "name": "\ud83d\udd27 Debug",
-      "description": "Debug endpoints \u2014 inspect mock users, server health, and spec.",
+      "name": "🔧 Debug",
+      "description": "Debug endpoints — inspect mock users, server health, and spec.",
       "item": [
         {
           "name": "Health Check",
@@ -100,12 +100,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/health",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "health"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["health"]
             }
           }
         },
@@ -116,15 +112,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/debug/mock-users",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "debug",
-                "mock-users"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "debug", "mock-users"]
             }
           }
         },
@@ -135,19 +124,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api-docs.json",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api-docs.json"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api-docs.json"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udc64 User \u2014 Profile",
+      "name": "👤 User — Profile",
       "description": "Current user profile, avatar, status, verification, wishlist.\nSet {{mockUser}} in environment to control which user you're acting as.",
       "item": [
         {
@@ -170,14 +155,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user"]
             }
           }
         },
@@ -188,15 +167,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "profile"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "profile"]
             }
           }
         },
@@ -216,15 +188,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "profile"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "profile"]
             }
           }
         },
@@ -245,15 +210,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/avatar",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "avatar"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "avatar"]
             }
           }
         },
@@ -264,15 +222,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/verification",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "verification"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "verification"]
             }
           }
         },
@@ -292,15 +243,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "status"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "status"]
             }
           }
         },
@@ -329,15 +273,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/deactivate",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "deactivate"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "deactivate"]
             }
           }
         },
@@ -348,15 +285,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/wishlist",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "wishlist"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "wishlist"]
             }
           }
         },
@@ -376,15 +306,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/wishlist",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "wishlist"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "wishlist"]
             }
           }
         },
@@ -395,9 +318,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/wishlist/check/{{listingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -416,16 +337,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/wishlist/{{listingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "wishlist",
-                "{{listingId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "wishlist", "{{listingId}}"]
             }
           }
         },
@@ -436,21 +349,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user"]
             }
           }
         }
       ]
     },
     {
-      "name": "\u2b50 Networks \u2014 Favorites",
+      "name": "⭐ Networks — Favorites",
       "item": [
         {
           "name": "Get Favorites (Networks)",
@@ -459,9 +366,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/favorites?platform=networks",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -485,9 +390,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/favorites?platform=marketplace",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -520,16 +423,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/favorites",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "favorites"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "favorites"]
             }
           }
         },
@@ -540,9 +435,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/favorites/check/listing/{{listingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -563,9 +456,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/favorites/listing/{{listingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -581,7 +472,7 @@
       ]
     },
     {
-      "name": "\ud83d\udd0d Networks \u2014 Searches",
+      "name": "🔍 Networks — Searches",
       "item": [
         {
           "name": "Get Recent Searches",
@@ -590,17 +481,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "searches",
-                "recent"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "searches", "recent"]
             }
           }
         },
@@ -620,17 +502,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "searches",
-                "recent"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "searches", "recent"]
             }
           }
         },
@@ -641,17 +514,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "searches",
-                "recent"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "searches", "recent"]
             }
           }
         },
@@ -662,9 +526,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent/SEARCH_ID",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -680,7 +542,7 @@
       ]
     },
     {
-      "name": "\ud83d\udcb3 User \u2014 Subscription",
+      "name": "💳 User — Subscription",
       "item": [
         {
           "name": "Get Subscription",
@@ -689,15 +551,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/subscription",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "subscription"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "subscription"]
             }
           }
         },
@@ -717,16 +572,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/subscription/upgrade",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "subscription",
-                "upgrade"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "subscription", "upgrade"]
             }
           }
         },
@@ -737,23 +584,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/subscription/cancel",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "subscription",
-                "cancel"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "subscription", "cancel"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udd14 User \u2014 Notifications",
+      "name": "🔔 User — Notifications",
       "item": [
         {
           "name": "Get Notifications",
@@ -762,15 +601,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "notifications"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "notifications"]
             }
           }
         },
@@ -781,16 +613,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications/unread-count",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "notifications",
-                "unread-count"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "notifications", "unread-count"]
             }
           }
         },
@@ -801,16 +625,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications/read-all",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "notifications",
-                "read-all"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "notifications", "read-all"]
             }
           }
         },
@@ -821,9 +637,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications/NOTIFICATION_ID/read",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -842,23 +656,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/notifications/NOTIFICATION_ID",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "notifications",
-                "NOTIFICATION_ID"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "notifications", "NOTIFICATION_ID"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83c\udfab User \u2014 Tokens",
+      "name": "🎫 User — Tokens",
       "item": [
         {
           "name": "Get Chat Token",
@@ -867,16 +673,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/tokens/chat",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "tokens",
-                "chat"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "tokens", "chat"]
             }
           }
         },
@@ -887,16 +685,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/tokens/feed",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "tokens",
-                "feed"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "tokens", "feed"]
             }
           }
         },
@@ -907,16 +697,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/tokens/push",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "tokens",
-                "push"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "tokens", "push"]
             }
           }
         },
@@ -936,194 +718,15 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/tokens/push",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "tokens",
-                "push"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "tokens", "push"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udd04 Networks \u2014 Follow Management",
-      "item": [
-        {
-          "name": "Get My Followers",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/followers?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "followers"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "20"
-                },
-                {
-                  "key": "offset",
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get My Following",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/following?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "following"
-              ],
-              "query": [
-                {
-                  "key": "limit",
-                  "value": "20"
-                },
-                {
-                  "key": "offset",
-                  "value": "0"
-                }
-              ]
-            }
-          }
-        },
-        {
-          "name": "Get Pending Follow Requests",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/follow-requests",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "follow-requests"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Follow User",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/following/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "following",
-                "{{userId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Unfollow User",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/following/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "following",
-                "{{userId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Accept Follow Request",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/following/{{userId}}/accept",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "following",
-                "{{userId}}",
-                "accept"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Reject Follow Request",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/following/{{userId}}/reject",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "following",
-                "{{userId}}",
-                "reject"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "\ud83d\udccb User \u2014 Support",
+      "name": "📋 User — Support",
       "item": [
         {
           "name": "List Support Tickets",
@@ -1132,16 +735,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "support",
-                "tickets"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "support", "tickets"]
             }
           }
         },
@@ -1173,16 +768,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "support",
-                "tickets"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "user", "support", "tickets"]
             }
           }
         },
@@ -1193,9 +780,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1223,9 +808,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}/messages",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1245,9 +828,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}/reopen",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1267,9 +848,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/user/support/tickets/count/open",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1285,7 +864,7 @@
       ]
     },
     {
-      "name": "\ud83c\udff7\ufe0f Networks \u2014 Listings",
+      "name": "🏷️ Networks — Listings",
       "description": "Create, update, publish, and manage Networks listings.\nIMPORTANT: Use `merchant_approved` as mockUser when creating listings.",
       "item": [
         {
@@ -1295,15 +874,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "listings"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "listings"]
             }
           }
         },
@@ -1339,15 +911,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "listings"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "listings"]
             }
           }
         },
@@ -1358,16 +923,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "listings",
-                "{{listingId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
             }
           }
         },
@@ -1383,20 +940,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"price\": 11500,\n  \"subtitle\": \"Updated \u2014 priced to sell!\"\n}"
+              "raw": "{\n  \"price\": 11500,\n  \"subtitle\": \"Updated — priced to sell!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "listings",
-                "{{listingId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
             }
           }
         },
@@ -1407,9 +956,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/preview",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1428,9 +975,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/publish",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1449,9 +994,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/reserve",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1488,9 +1031,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1518,9 +1059,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/inquire",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1548,9 +1087,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/concierge",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1569,23 +1106,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "listings",
-                "{{listingId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udcb0 Networks \u2014 Offers",
+      "name": "💰 Networks — Offers",
       "description": "Send and manage offers on listings.\nSet mockUser to `buyer_us_complete` to send; `merchant_approved` to receive.",
       "item": [
         {
@@ -1595,15 +1124,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/offers?type=sent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "offers"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "offers"],
               "query": [
                 {
                   "key": "type",
@@ -1641,9 +1163,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/offers",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1662,9 +1182,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/offers",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1679,7 +1197,7 @@
       ]
     },
     {
-      "name": "\ud83d\udce6 Networks \u2014 Orders",
+      "name": "📦 Networks — Orders",
       "item": [
         {
           "name": "Get My Orders",
@@ -1688,15 +1206,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/orders?type=buying",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "orders"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "orders"]
             }
           }
         },
@@ -1728,15 +1239,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/orders",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "orders"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "orders"]
             }
           }
         },
@@ -1747,9 +1251,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/orders/{{orderId}}/complete",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -1765,47 +1267,148 @@
       ]
     },
     {
-      "name": "\ud83d\udd17 Networks \u2014 Connections",
+      "name": "🔗 Networks — Connections",
       "item": [
         {
-          "name": "Get My Connections",
+          "name": "Get My Incoming Connections",
+          "description": "Get pending incoming connection requests (people wanting to connect with me) - includes requester info",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/connections?status=accepted",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "connections"
+              "raw": "{{baseUrl}}/api/v1/networks/connections/my-incoming?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "connections", "my-incoming"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             }
           }
         },
         {
-          "name": "Get Connection Listings Feed",
+          "name": "Get My Outgoing Connections",
+          "description": "Get pending outgoing connection requests (people I asked to connect with)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/connections/listings",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "raw": "{{baseUrl}}/api/v1/networks/connections/my-outgoing?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "connections", "my-outgoing"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+
+        {
+          "name": "Remove Connection (Unfollow)",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/connections/{{userId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "connections", "{{userId}}"]
+            }
+          }
+        },
+        {
+          "name": "Accept Connection Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"accepted\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/connections/{{connectionId}}/accept",
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
                 "networks",
                 "connections",
-                "listings"
+                "{{connectionId}}",
+                "accept"
               ]
             }
           }
         },
+        {
+          "name": "Reject Connection Request",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"rejected\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/connections/{{connectionId}}/reject",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "connections",
+                "{{connectionId}}",
+                "reject"
+              ]
+            }
+          }
+        },
+
+        {
+          "name": "Get My Accepted Connections",
+          "description": "Get my accepted/active connections",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/connections?page=1&limit=50",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "connections"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                }
+              ]
+            }
+          }
+        },
+
         {
           "name": "Send Connection Request",
           "event": [
@@ -1830,57 +1433,19 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"recipient_id\": \"{{userId}}\",\n  \"message\": \"Hey, would love to connect!\"\n}"
+              "raw": "{\n  \"target_user_id\": \"{{userId}}\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/connections/request",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "connections",
-                "request"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Accept / Decline Connection Request",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"action\": \"accept\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/connections/{{connectionId}}/respond",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "connections",
-                "{{connectionId}}",
-                "respond"
-              ]
+              "raw": "{{baseUrl}}/api/v1/networks/connections/send-request",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "connections", "send-request"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udcac Networks \u2014 Chat",
+      "name": "💬 Networks — Chat",
       "item": [
         {
           "name": "Get Chat Token",
@@ -1901,16 +1466,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/chat/token",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "chat",
-                "token"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "chat", "token"]
             }
           }
         },
@@ -1934,16 +1491,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/chat/channels",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "chat",
-                "channels"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "chat", "channels"]
             }
           }
         },
@@ -1963,16 +1512,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/chat/channel",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "chat",
-                "channel"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "chat", "channel"]
             }
           }
         },
@@ -1983,23 +1524,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/chat/unread",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "chat",
-                "unread"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "chat", "unread"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udce8 Networks \u2014 Conversations",
+      "name": "📨 Networks — Conversations",
       "item": [
         {
           "name": "Get Conversations",
@@ -2021,15 +1554,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "conversations"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "conversations"]
             }
           }
         },
@@ -2040,16 +1566,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/search?q=Rolex",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "conversations",
-                "search"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "conversations", "search"],
               "query": [
                 {
                   "key": "q",
@@ -2066,9 +1584,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2086,9 +1602,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/media",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2107,9 +1621,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/shared/media",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2129,9 +1641,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/shared/files",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2151,9 +1661,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/shared/links",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2169,7 +1677,7 @@
       ]
     },
     {
-      "name": "\ud83d\udcac Networks \u2014 Messages",
+      "name": "💬 Networks — Messages",
       "item": [
         {
           "name": "Get Messages by Channel",
@@ -2178,9 +1686,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2208,9 +1714,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2225,7 +1729,7 @@
       ]
     },
     {
-      "name": "\ud83d\udc65 Networks \u2014 Social Groups",
+      "name": "👥 Networks — Social Groups",
       "item": [
         {
           "name": "List Groups",
@@ -2247,16 +1751,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "social",
-                "groups"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "social", "groups"]
             }
           }
         },
@@ -2288,16 +1784,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "social",
-                "groups"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "social", "groups"]
             }
           }
         },
@@ -2308,9 +1796,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2329,9 +1815,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/join",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2351,9 +1835,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/leave",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2382,9 +1864,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/members",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2413,9 +1893,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/members/{{userId}}/role",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2437,9 +1915,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/members/{{userId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2460,9 +1936,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/groups/{{groupId}}/mute",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2478,7 +1952,7 @@
       ]
     },
     {
-      "name": "\u2709\ufe0f Networks \u2014 Social Invites",
+      "name": "✉️ Networks — Social Invites",
       "item": [
         {
           "name": "Create Invite Link",
@@ -2508,16 +1982,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/invites",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "social",
-                "invites"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "social", "invites"]
             }
           }
         },
@@ -2528,9 +1994,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/social/invites/{{inviteToken}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2545,7 +2009,7 @@
       ]
     },
     {
-      "name": "\ud83d\udcca Networks \u2014 User & Dashboard",
+      "name": "📊 Networks — User & Dashboard",
       "item": [
         {
           "name": "Get My Networks Profile",
@@ -2554,15 +2018,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user"]
             }
           }
         },
@@ -2573,16 +2030,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/listings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "listings"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "listings"]
             }
           }
         },
@@ -2593,17 +2042,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/dashboard/stats",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "dashboard",
-                "stats"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "dashboard", "stats"]
             }
           }
         },
@@ -2614,16 +2054,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/blocks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "blocks"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "blocks"]
             }
           }
         },
@@ -2634,16 +2066,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/favorites?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "favorites"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "favorites"],
               "query": [
                 {
                   "key": "limit",
@@ -2664,16 +2088,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/favorites",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "favorites"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "favorites"]
             },
             "body": {
               "mode": "raw",
@@ -2693,9 +2109,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/favorites/listing/{{listingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2715,17 +2129,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "searches",
-                "recent"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "searches", "recent"]
             }
           }
         },
@@ -2736,17 +2141,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "searches",
-                "recent"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "searches", "recent"]
             },
             "body": {
               "mode": "raw",
@@ -2766,17 +2162,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "searches",
-                "recent"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "searches", "recent"]
             }
           }
         },
@@ -2787,9 +2174,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent/{{searchId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2809,16 +2194,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/reviews?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "reviews"
-              ],
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "reviews"],
               "query": [
                 {
                   "key": "limit",
@@ -2839,16 +2216,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/reviews",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "reviews"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "reviews"]
             },
             "body": {
               "mode": "raw",
@@ -2864,7 +2233,7 @@
       ]
     },
     {
-      "name": "\ud83d\udc64 Networks \u2014 Users (Other)",
+      "name": "👤 Networks — Users (Other)",
       "item": [
         {
           "name": "Get User Public Profile",
@@ -2873,9 +2242,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/profile",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2894,9 +2261,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/listings?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2925,9 +2290,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/references",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2946,9 +2309,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/common-groups",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2967,9 +2328,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/reviews?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -2998,9 +2357,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/review-summary",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3019,17 +2376,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/block",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "users",
-                "{{userId}}",
-                "block"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "users", "{{userId}}", "block"]
             }
           }
         },
@@ -3040,17 +2388,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/block",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "users",
-                "{{userId}}",
-                "block"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "users", "{{userId}}", "block"]
             }
           }
         },
@@ -3061,17 +2400,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/users/{{userId}}/report",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "users",
-                "{{userId}}",
-                "report"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "users", "{{userId}}", "report"]
             },
             "body": {
               "mode": "raw",
@@ -3087,7 +2417,7 @@
       ]
     },
     {
-      "name": "\ud83c\udfea Marketplace \u2014 Listings",
+      "name": "🏪 Marketplace — Listings",
       "description": "Use mockUser = `merchant_approved` for create/update/delete.\nUse `buyer_us_complete` for browsing.",
       "item": [
         {
@@ -3097,15 +2427,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "listings"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "listings"]
             }
           }
         },
@@ -3137,15 +2460,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "listings"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "listings"]
             }
           }
         },
@@ -3156,9 +2472,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings/{{marketplaceListingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3185,9 +2499,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings/{{marketplaceListingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3205,9 +2517,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/listings/{{marketplaceListingId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3225,16 +2535,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/user/listings",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "user",
-                "listings"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "user", "listings"]
             }
           }
         },
@@ -3245,24 +2547,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/user/offers",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "user",
-                "offers"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "user", "offers"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\uded2 Marketplace \u2014 Orders (Finix Payments)",
-      "description": "Full Finix payment flow:\n1. Reserve \u2192 get fraud_session_id\n2. Tokenize \u2192 get Finix config for CardTokenForm\n3. Pay (with payment_token from Finix.js)\n4. Refund\n\nUse mockUser = `buyer_us_complete` as buyer.",
+      "name": "🛒 Marketplace — Orders (Finix Payments)",
+      "description": "Full Finix payment flow:\n1. Reserve → get fraud_session_id\n2. Tokenize → get Finix config for CardTokenForm\n3. Pay (with payment_token from Finix.js)\n4. Refund\n\nUse mockUser = `buyer_us_complete` as buyer.",
       "item": [
         {
           "name": "Reserve Order (+ get fraud_session_id)",
@@ -3293,16 +2587,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/reserve",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "orders",
-                "reserve"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "orders", "reserve"]
             }
           }
         },
@@ -3313,9 +2599,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/{{orderId}}/tokenize",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3343,9 +2627,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/{{orderId}}/payment",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3373,9 +2655,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/{{orderId}}/refund",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3394,23 +2674,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/orders/{{orderId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "orders",
-                "{{orderId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "orders", "{{orderId}}"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83c\udfe2 Marketplace \u2014 Merchant Onboarding",
+      "name": "🏢 Marketplace — Merchant Onboarding",
       "description": "Finix merchant onboarding flow.\nUse mockUser = `new_user_us` or `merchant_pending`.",
       "item": [
         {
@@ -3420,15 +2692,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/merchant",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "merchant"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "merchant"]
             }
           }
         },
@@ -3448,16 +2713,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "merchant",
-                "onboard"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "merchant", "onboard"]
             }
           }
         },
@@ -3477,9 +2734,7 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard/refresh-link",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3498,9 +2753,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard/status",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3515,7 +2768,7 @@
       ]
     },
     {
-      "name": "\ud83d\udd0e Networks \u2014 ISOs",
+      "name": "🔎 Networks — ISOs",
       "item": [
         {
           "name": "List ISOs",
@@ -3524,9 +2777,7 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/isos?limit=20&offset=0",
-              "host": [
-                "{{baseUrl}}"
-              ],
+              "host": ["{{baseUrl}}"],
               "path": [
                 "api",
                 "v1",
@@ -3565,16 +2816,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/isos",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "isos"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "isos"]
             }
           }
         },
@@ -3585,17 +2828,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/isos/{{isoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "isos",
-                "{{isoId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "isos", "{{isoId}}"]
             }
           }
         },
@@ -3615,17 +2849,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/isos/{{isoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "isos",
-                "{{isoId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "isos", "{{isoId}}"]
             }
           }
         },
@@ -3636,24 +2861,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/user/isos/{{isoId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "user",
-                "isos",
-                "{{isoId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "user", "isos", "{{isoId}}"]
             }
           }
         }
       ]
     },
     {
-      "name": "\u231a Watches",
+      "name": "⌚ Watches",
       "item": [
         {
           "name": "Search Watches",
@@ -3662,14 +2878,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/watches?q=Rolex&limit=20",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "watches"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"]
             }
           }
         },
@@ -3680,22 +2890,15 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/watches/{{watchId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "watches",
-                "{{watchId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches", "{{watchId}}"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udd10 Reference Checks",
+      "name": "🔐 Reference Checks",
       "item": [
         {
           "name": "List Reference Checks",
@@ -3704,15 +2907,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/reference-checks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "reference-checks"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "reference-checks"]
             }
           }
         },
@@ -3732,23 +2928,16 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/reference-checks",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "reference-checks"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "reference-checks"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udee1\ufe0f Admin",
-      "description": "Admin endpoints \u2014 switch mockUser if needed (check with /debug/mock-users which users have admin role).",
+      "name": "🛡️ Admin",
+      "description": "Admin endpoints — switch mockUser if needed (check with /debug/mock-users which users have admin role).",
       "item": [
         {
           "name": "List Trust Cases",
@@ -3770,15 +2959,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/trust-cases",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "trust-cases"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "trust-cases"]
             }
           }
         },
@@ -3789,16 +2971,8 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/trust-cases/{{trustCaseId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "trust-cases",
-                "{{trustCaseId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "trust-cases", "{{trustCaseId}}"]
             }
           }
         },
@@ -3818,16 +2992,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/trust-cases/{{trustCaseId}}",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "trust-cases",
-                "{{trustCaseId}}"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "trust-cases", "{{trustCaseId}}"]
             }
           }
         },
@@ -3838,23 +3004,16 @@
             "header": [],
             "url": {
               "raw": "{{baseUrl}}/api/v1/admin/finix-webhook-events",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "admin",
-                "finix-webhook-events"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "admin", "finix-webhook-events"]
             }
           }
         }
       ]
     },
     {
-      "name": "\ud83d\udd17 Webhooks",
-      "description": "Webhook receiver endpoints \u2014 these are called by external services (Finix, Clerk), not by the frontend.",
+      "name": "🔗 Webhooks",
+      "description": "Webhook receiver endpoints — these are called by external services (Finix, Clerk), not by the frontend.",
       "item": [
         {
           "name": "Finix Webhook (test signature validation)",
@@ -3876,15 +3035,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/webhooks/finix",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "webhooks",
-                "finix"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "webhooks", "finix"]
             }
           }
         },
@@ -3916,15 +3068,8 @@
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/webhooks/clerk",
-              "host": [
-                "{{baseUrl}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "webhooks",
-                "clerk"
-              ]
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "webhooks", "clerk"]
             }
           }
         }

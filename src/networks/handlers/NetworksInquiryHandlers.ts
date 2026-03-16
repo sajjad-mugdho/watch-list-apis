@@ -13,7 +13,6 @@ import mongoose from "mongoose";
 import { NetworkListing } from "../models/NetworkListing";
 import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { chatService } from "../../services/ChatService";
-import { Notification } from "../../models/Notification";
 import { User } from "../../models/User";
 import { ValidationError, NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
@@ -206,7 +205,8 @@ export const networks_listing_inquire = async (
 
     // 7. Create notification for seller
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: sellerId,
         type: "new_inquiry",
         title: "New Inquiry",
@@ -217,7 +217,7 @@ export const networks_listing_inquire = async (
           buyer_id: buyerId,
         },
         action_url: `/chat/${channel.getstream_channel_id}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create inquiry notification", { notifError });
     }

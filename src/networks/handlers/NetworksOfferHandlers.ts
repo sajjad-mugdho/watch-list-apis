@@ -21,7 +21,6 @@ import {
   GetListingChannelsInput,
 } from "../../validation/schemas";
 import { chatService } from "../../services/ChatService";
-import { Notification } from "../../models/Notification";
 import logger from "../../utils/logger";
 
 import {
@@ -206,7 +205,8 @@ export const networks_offer_send = async (
 
       // Create in-app notification for seller
       try {
-        await Notification.create({
+        // TODO: Use platform-specific notification service
+        /*        await Notification.create({
           user_id: listing.dialist_id,
           type: "offer_received",
           title: "New Offer Received",
@@ -217,7 +217,7 @@ export const networks_offer_send = async (
             amount,
           },
           action_url: `/networks/offers/${(existingChannel._id as any).toString()}`,
-        });
+        }); */
       } catch (notifError) {
         logger.warn("Failed to create networks offer notification", {
           notifError,
@@ -320,7 +320,8 @@ export const networks_offer_send = async (
 
     // Create in-app notification for seller
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: listing.dialist_id,
         type: "offer_received",
         title: "New Offer Received",
@@ -331,7 +332,7 @@ export const networks_offer_send = async (
           amount,
         },
         action_url: `/networks/offers/${(channel._id as any).toString()}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create networks offer notification", {
         notifError,
@@ -443,7 +444,8 @@ export const networks_offer_counter = async (
     try {
       const recipientId =
         role === "buyer" ? channel.seller_id : channel.buyer_id;
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: recipientId,
         type: "counter_offer",
         title: "Counter Offer Received",
@@ -454,7 +456,7 @@ export const networks_offer_counter = async (
           amount,
         },
         action_url: `/networks/offers/${(channel._id as any).toString()}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create networks counter offer notification", {
         notifError,

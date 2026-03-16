@@ -6,19 +6,147 @@ import {
   ValidationError,
   NotFoundError,
 } from "../../utils/errors";
-import { followService } from "../../services/follow/FollowService";
+import { connectionService } from "../../services/connection/ConnectionService";
 import {
-  FriendRequestInput,
-  RespondFriendRequestInput,
+  ConnectionRequestInput,
+  RespondConnectionRequestInput,
 } from "../../validation/schemas";
-import { feedService } from "../../services/FeedService";
+import { connectionRepository } from "../../repositories/ConnectionRepository";
+import { User } from "../../models/User";
+
+// ============================================================
+// Input Validation Helpers
+// ============================================================
+
+const MAX_PAGE_SIZE = 100;
+
+const parsePositiveInt = (
+  value: unknown,
+  fallback: number,
+  max: number,
+): number => {
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+};
+
+const parseNonNegativeInt = (value: unknown): number => {
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+};
 
 /**
- * Follow a user (replaces friend request)
- * POST /api/v1/networks/connections/request
+ * Get pending incoming connection requests (people who want to connect with me).
+ * GET /api/v1/networks/connections/my-incoming
+ * Returns connection requests with populated requester user info for UI display.
  */
-export const networks_friend_request_send = async (
-  req: Request<{}, {}, FriendRequestInput["body"]>,
+export const networks_connection_incoming_pending = async (
+  req: Request,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = String((req as any).user.dialist_id);
+
+    const limit = parsePositiveInt(req.query.limit, 20, MAX_PAGE_SIZE);
+    const offset = parseNonNegativeInt(req.query.offset);
+
+    const result = await connectionRepository.getIncomingPending(userId, {
+      limit,
+      offset,
+    });
+
+    // Enhance response with requester user info for UI display
+    const enrichedData = await Promise.all(
+      result.data.map(async (connection: any) => {
+        const requester = await User.findById(connection.follower_id).select(
+          "display_name avatar bio",
+        );
+        return {
+          id: connection._id?.toString(),
+          requester: {
+            user_id: connection.follower_id?.toString(),
+            display_name: requester?.display_name || "Unknown User",
+            avatar: requester?.avatar || null,
+            bio: requester?.bio || null,
+          },
+          status: connection.status,
+          created_at: connection.createdAt,
+        };
+      }),
+    );
+
+    res.status(200).json({
+      data: enrichedData,
+      _metadata: {
+        paging: {
+          count: enrichedData.length,
+          total: result.total,
+          limit: result.limit,
+          offset: result.offset,
+          hasMore: result.hasMore,
+        },
+      },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err: any) {
+    if (err instanceof MissingUserContextError) {
+      next(err);
+    } else {
+      next(err);
+    }
+  }
+};
+
+/**
+ * Get pending outgoing connection requests (people I asked to connect with).
+ * GET /api/v1/networks/connections/my-outgoing
+ */
+export const networks_connection_outgoing_pending = async (
+  req: Request,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = String((req as any).user.dialist_id);
+
+    const limit = parsePositiveInt(req.query.limit, 20, MAX_PAGE_SIZE);
+    const offset = parseNonNegativeInt(req.query.offset);
+
+    const result = await connectionRepository.getOutgoingPending(userId, {
+      limit,
+      offset,
+    });
+
+    res.status(200).json({
+      data: result.data,
+      _metadata: {
+        paging: {
+          count: result.data.length,
+          total: result.total,
+          limit: result.limit,
+          offset: result.offset,
+          hasMore: result.hasMore,
+        },
+      },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err: any) {
+    if (err instanceof MissingUserContextError) {
+      next(err);
+    } else {
+      next(err);
+    }
+  }
+};
+
+/**
+ * POST /api/v1/networks/connections/send-request
+ */
+export const networks_connection_request_create = async (
+  req: Request<{}, {}, ConnectionRequestInput["body"]>,
   res: Response<ApiResponse<any>>,
   next: NextFunction,
 ): Promise<void> => {
@@ -27,7 +155,10 @@ export const networks_friend_request_send = async (
     const followerId = String((req as any).user.dialist_id);
     const { target_user_id } = req.body;
 
-    const result = await followService.follow(followerId, target_user_id);
+    const result = await connectionService.requestConnection(
+      followerId,
+      target_user_id,
+    );
 
     res.status(201).json({
       data: result,
@@ -45,30 +176,38 @@ export const networks_friend_request_send = async (
 };
 
 /**
- * Respond to a follow request (accept/decline)
- * PATCH /api/v1/networks/connections/:id/respond
+ * Respond to a connection request (accept/reject)
+ * POST /api/v1/networks/connections/:id/accept or /:id/reject
+ * Route path determines action (accept vs reject)
  */
-export const networks_friend_request_respond = async (
-  req: Request<
-    RespondFriendRequestInput["params"],
-    {},
-    RespondFriendRequestInput["body"]
-  >,
+export const networks_connection_request_respond = async (
+  req: Request,
   res: Response<ApiResponse<any>>,
   next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = String((req as any).user.dialist_id);
-    const { id: followId } = req.params;
-    const { status } = req.body;
+    const { id: connectionId } = req.params;
+    
+    // Determine action from route path, not body
+    const route = req.route.path;
+    const isAccept = route.includes("/accept");
+    const isReject = route.includes("/reject");
+
+    if (!isAccept && !isReject) {
+      throw new Error("Invalid route - must be /accept or /reject");
+    }
 
     let result;
-    if (status === "accepted") {
-      result = await followService.acceptFollowRequest(userId, followId);
-    } else {
-      await followService.rejectFollowRequest(userId, followId);
-      result = { message: "Request declined" };
+    if (isAccept) {
+      result = await connectionService.acceptConnectionRequest(
+        userId,
+        connectionId,
+      );
+    } else if (isReject) {
+      await connectionService.rejectConnectionRequest(userId, connectionId);
+      result = { message: "Connection request rejected" };
     }
 
     res.json({
@@ -76,12 +215,20 @@ export const networks_friend_request_respond = async (
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err: any) {
-    next(new ValidationError(err.message));
+    if (
+      err instanceof MissingUserContextError ||
+      err instanceof NotFoundError ||
+      err instanceof ValidationError
+    ) {
+      next(err);
+    } else {
+      next(new ValidationError(err?.message ?? "Unknown error"));
+    }
   }
 };
 
 /**
- * Get user connections (following)
+ * Get accepted outgoing connections for current user.
  * GET /api/v1/networks/connections
  */
 export const networks_connections_get = async (
@@ -93,21 +240,22 @@ export const networks_connections_get = async (
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = String((req as any).user.dialist_id);
 
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 50;
+    const page = parsePositiveInt(req.query.page, 1, Number.MAX_SAFE_INTEGER);
+    const limit = parsePositiveInt(req.query.limit, 50, MAX_PAGE_SIZE);
     const offset = (page - 1) * limit;
 
-    const { following, total } = await followService.getFollowing(userId, {
-      limit,
-      offset,
-    });
+    const { connections, total } =
+      await connectionService.getOutgoingConnections(userId, {
+        limit,
+        offset,
+      });
 
     res.json({
-      data: following,
+      data: connections,
       requestId: req.headers["x-request-id"] as string,
       _metadata: {
         paging: {
-          count: following.length,
+          count: connections.length,
           total,
           page,
           limit,
@@ -121,40 +269,27 @@ export const networks_connections_get = async (
 };
 
 /**
- * Get listings from followed users (timeline feed)
- * GET /api/v1/networks/connections/listings
+ * Remove an accepted connection (unfollow)
+ * DELETE /api/v1/networks/connections/:id
+ * :id is the user ID to unfollow, removing the connection.
  */
-export const networks_connections_listings_get = async (
-  req: Request,
-  res: Response<ApiResponse<any[]>>,
+export const networks_connections_remove = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<any>>,
   next: NextFunction,
 ): Promise<void> => {
   try {
     if (!(req as any).user) throw new MissingUserContextError();
-    const userId = (req as any).user.dialist_id;
+    const userId = String((req as any).user.dialist_id);
+    const { id: targetUserId } = req.params;
 
-    const limit = Math.min(Number(req.query.limit) || 20, 50);
-    const offset = Number(req.query.offset) || 0;
-
-    const activities = await feedService.getTimeline(
-      String(userId),
-      limit,
-      offset,
-    );
+    await connectionService.removeConnection(userId, targetUserId);
 
     res.json({
-      data: activities,
+      data: { message: "Connection removed successfully" },
       requestId: req.headers["x-request-id"] as string,
-      _metadata: {
-        paging: {
-          count: activities.length,
-          total: activities.length,
-          limit,
-          offset,
-        },
-      },
     });
-  } catch (err) {
-    next(err);
+  } catch (err: any) {
+    next(new ValidationError(err.message));
   }
 };

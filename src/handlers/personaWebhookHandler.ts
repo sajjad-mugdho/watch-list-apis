@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import { verifyPersonaWebhookSignature } from "../utils/persona";
 import { User } from "../models/User";
-import { notificationService } from "../services";
 import logger from "../utils/logger";
 
 export async function handlePersonaWebhook(
@@ -96,14 +95,15 @@ async function handleInquiryApproved(event: any): Promise<void> {
 
   // Send in-app notification when identity is verified
   try {
-    await notificationService.create({
+    // TODO: Use platform-specific notification service
+    /*    await notificationService.create({
       userId: user._id.toString(),
       type: "IDENTITY_VERIFIED",
       title: "Identity Verified",
       body: "Your identity has been successfully verified.",
       data: { personaInquiryId: event.data.id },
       sendPush: true,
-    });
+    }); */
   } catch (notifErr) {
     logger.error(
       "[Persona] Failed to create identity verification notification",
@@ -152,14 +152,15 @@ async function handleInquiryFailed(event: any): Promise<void> {
   if (user) {
     // Send in-app notification when identity verification fails
     try {
-      await notificationService.create({
+      // TODO: Use platform-specific notification service
+      /*      await notificationService.create({
         userId: user._id.toString(),
         type: "IDENTITY_VERIFICATION_FAILED",
         title: "Verification Failed",
         body: "Your identity verification was unsuccessful. Please try again.",
         data: { personaInquiryId: event.data.id },
         sendPush: true,
-      });
+      }); */
     } catch (notifErr) {
       logger.error(
         "[Persona] Failed to create identity verification failure notification",

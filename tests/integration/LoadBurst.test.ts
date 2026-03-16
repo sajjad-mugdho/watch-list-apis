@@ -8,7 +8,6 @@ import { Order } from "../../src/models/Order";
 import { Types } from "mongoose";
 
 import { events } from "../../src/utils/events";
-import { Notification } from "../../src/models/Notification";
 import { feedService } from "../../src/services/FeedService";
 import { auditService } from "../../src/services/AuditService";
 

@@ -15,7 +15,7 @@ import mongoose, { Types } from "mongoose";
 import { Vouch, IVouch, ConnectionType } from "../../models/Vouch";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
 import { User } from "../../models/User";
-import { Follow } from "../../models/Follow";
+import { Connection } from "../../networks/models/Connection";
 import { EventOutbox } from "../../models/EventOutbox";
 import logger from "../../utils/logger";
 
@@ -281,12 +281,12 @@ export class VouchService {
   ): Promise<{ type: ConnectionType } | null> {
     // Check for mutual follow (replaces friendship — both follow each other with accepted status)
     const [followsOther, followedByOther] = await Promise.all([
-      Follow.findOne({
+      Connection.findOne({
         follower_id: new Types.ObjectId(userId),
         following_id: new Types.ObjectId(otherUserId),
         status: "accepted",
       }),
-      Follow.findOne({
+      Connection.findOne({
         follower_id: new Types.ObjectId(otherUserId),
         following_id: new Types.ObjectId(userId),
         status: "accepted",

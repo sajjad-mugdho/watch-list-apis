@@ -1,12 +1,10 @@
 import { Types } from "mongoose";
 import { offerService } from "../../src/services/offer/OfferService";
-import { notificationService } from "../../src/services/notification/NotificationService";
 import { chatService } from "../../src/services/ChatService";
 import { registerEventHandlers } from "../../src/bootstrap/eventHandlers";
 import { User } from "../../src/models/User";
 import { MarketplaceListing } from "../../src/models/Listings";
 import { MarketplaceListingChannel } from "../../src/models/MarketplaceListingChannel";
-import { Notification } from "../../src/models/Notification";
 import { ChatMessage } from "../../src/models/ChatMessage";
 import { Order } from "../../src/models/Order";
 import { EventOutbox } from "../../src/models/EventOutbox";
