@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
 import { Order } from "../../models/Order";
-import { Notification } from "../../models/Notification";
 
 import {
   AppError,
@@ -207,7 +206,8 @@ export const networks_order_complete = async (
           order.buyer_id.toString(),
           order.seller_id.toString(),
         ]) {
-          await Notification.create({
+          // TODO: Use platform-specific notification service
+          /*          await Notification.create({
             user_id: partyId,
             type: "order_completed",
             title: "Order Completed!",
@@ -216,10 +216,11 @@ export const networks_order_complete = async (
               order_id: orderId,
             },
             action_url: `/networks/orders/${orderId}`,
-          });
+          }); */
         }
       } else {
-        await Notification.create({
+        // TODO: Use platform-specific notification service
+        /*        await Notification.create({
           user_id: otherPartyId,
           type: "order_confirmation_pending",
           title: `${role} Confirmed Completion`,
@@ -228,7 +229,7 @@ export const networks_order_complete = async (
             order_id: orderId,
           },
           action_url: `/networks/orders/${orderId}`,
-        });
+        }); */
       }
     } catch (notifErr) {
       logger.warn("Failed to create order completion notification", {

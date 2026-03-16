@@ -17,12 +17,6 @@ export {
   MessageService,
 } from "../shared/services/message/MessageService";
 
-// Notification service
-export {
-  notificationService,
-  NotificationService,
-} from "./notification/NotificationService";
-
 // Offer service
 export { offerService, OfferService } from "./offer/OfferService";
 

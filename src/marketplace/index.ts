@@ -7,6 +7,7 @@ import chatRoutes from "./routes/chatRoutes";
 import messageRoutes from "./routes/messageRoutes";
 import conversationRoutes from "./routes/conversationRoutes";
 import userRoutes from "./routes/userRoutes";
+import notificationRoutes from "./routes/notificationRoutes";
 import { marketplaceWebhookRoutes as webhookRoutes } from "./routes/webhookRoutes";
 import { refundRequestRoutes } from "./routes/refundRequestRoutes";
 
@@ -27,5 +28,6 @@ router.use("/messages", messageRoutes);
 router.use("/conversations", conversationRoutes);
 router.use("/webhooks", webhookRoutes);
 router.use("/refund-requests", refundRequestRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;

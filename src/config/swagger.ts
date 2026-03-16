@@ -2499,9 +2499,8 @@ Use this to test API endpoints without real authentication.
           "GetStream Activity Feeds - Social timeline and activity feeds",
       },
       {
-        name: "Follow",
-        description:
-          "Follow System - User follow/unfollow relationships (Networks only)",
+        name: "Networks - Connections",
+        description: "Connection requests and accepted network relationships",
       },
       {
         name: "ISO",
@@ -8852,64 +8851,39 @@ Once approved:
       },
     },
   },
-  "/api/v1/networks/users/{id}/follow": {
+  "/api/v1/networks/users/{id}/connections": {
     post: {
-      tags: ["Follow"],
-      summary: "Follow a user",
+      tags: ["Networks - Connections"],
+      summary: "Send a connection request to another user",
       security: [{ bearerAuth: [] }],
       parameters: [
         { in: "path", name: "id", required: true, schema: { type: "string" } },
       ],
       responses: {
-        200: { description: "Successfully followed user" },
-        400: { description: "Already following or cannot follow yourself" },
+        201: { description: "Connection request sent or established" },
+        400: { description: "Already connected, blocked, or invalid target" },
         401: { description: "Unauthorized" },
         404: { description: "User not found" },
       },
     },
     delete: {
-      tags: ["Follow"],
-      summary: "Unfollow a user",
+      tags: ["Networks - Connections"],
+      summary: "Remove an outgoing connection or pending request",
       security: [{ bearerAuth: [] }],
       parameters: [
         { in: "path", name: "id", required: true, schema: { type: "string" } },
       ],
       responses: {
-        200: { description: "Successfully unfollowed user" },
+        200: { description: "Connection removed" },
         401: { description: "Unauthorized" },
-        404: { description: "Not following this user" },
+        404: { description: "No outgoing connection found" },
       },
     },
   },
-  "/api/v1/networks/users/{id}/followers": {
+  "/api/v1/networks/users/{id}/connections/incoming": {
     get: {
-      tags: ["Follow"],
-      summary: "Get user's followers",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { in: "path", name: "id", required: true, schema: { type: "string" } },
-        {
-          in: "query",
-          name: "limit",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          in: "query",
-          name: "offset",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: {
-        200: { description: "Followers list retrieved" },
-        401: { description: "Unauthorized" },
-        404: { description: "User not found" },
-      },
-    },
-  },
-  "/api/v1/networks/users/{id}/following": {
-    get: {
-      tags: ["Follow"],
-      summary: "Get users being followed",
+      tags: ["Networks - Connections"],
+      summary: "Get another user's incoming accepted connections",
       security: [{ bearerAuth: [] }],
       parameters: [
         { in: "path", name: "id", required: true, schema: { type: "string" } },
@@ -8925,33 +8899,58 @@ Once approved:
         },
       ],
       responses: {
-        200: { description: "Following list retrieved" },
+        200: { description: "Incoming connections retrieved" },
         401: { description: "Unauthorized" },
         404: { description: "User not found" },
       },
     },
   },
-  "/api/v1/networks/users/{id}/follow/status": {
+  "/api/v1/networks/users/{id}/connections/outgoing": {
     get: {
-      tags: ["Follow"],
-      summary: "Check follow status",
+      tags: ["Networks - Connections"],
+      summary: "Get another user's outgoing accepted connections",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: "path", name: "id", required: true, schema: { type: "string" } },
+        {
+          in: "query",
+          name: "limit",
+          schema: { type: "integer", default: 20 },
+        },
+        {
+          in: "query",
+          name: "offset",
+          schema: { type: "integer", default: 0 },
+        },
+      ],
+      responses: {
+        200: { description: "Outgoing connections retrieved" },
+        401: { description: "Unauthorized" },
+        404: { description: "User not found" },
+      },
+    },
+  },
+  "/api/v1/networks/users/{id}/connection-status": {
+    get: {
+      tags: ["Networks - Connections"],
+      summary: "Check directional connection status with another user",
       security: [{ bearerAuth: [] }],
       parameters: [
         { in: "path", name: "id", required: true, schema: { type: "string" } },
       ],
       responses: {
-        200: { description: "Follow status retrieved" },
+        200: { description: "Connection status retrieved" },
         401: { description: "Unauthorized" },
         404: { description: "User not found" },
       },
     },
   },
-  "/api/v1/user/followers": {
+  "/api/v1/networks/user/connections/incoming": {
     get: {
-      tags: ["Follow"],
-      summary: "Get current user's followers",
+      tags: ["Networks - Connections"],
+      summary: "Get current user's incoming accepted connections",
       description:
-        "Returns the list of users following the authenticated user (Networks only)",
+        "Returns accepted incoming connections for the authenticated networks user",
       security: [{ bearerAuth: [] }],
       parameters: [
         {
@@ -8966,17 +8965,17 @@ Once approved:
         },
       ],
       responses: {
-        200: { description: "Followers list retrieved" },
+        200: { description: "Incoming connections retrieved" },
         401: { description: "Unauthorized" },
       },
     },
   },
-  "/api/v1/user/following": {
+  "/api/v1/networks/user/connections/outgoing": {
     get: {
-      tags: ["Follow"],
-      summary: "Get current user's following",
+      tags: ["Networks - Connections"],
+      summary: "Get current user's outgoing accepted connections",
       description:
-        "Returns the list of users the authenticated user is following (Networks only)",
+        "Returns accepted outgoing connections for the authenticated networks user",
       security: [{ bearerAuth: [] }],
       parameters: [
         {
@@ -8991,8 +8990,93 @@ Once approved:
         },
       ],
       responses: {
-        200: { description: "Following list retrieved" },
+        200: { description: "Outgoing connections retrieved" },
         401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/user/connections/requests": {
+    get: {
+      tags: ["Networks - Connections"],
+      summary: "Get current user's pending incoming connection requests",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          in: "query",
+          name: "limit",
+          schema: { type: "integer", default: 20 },
+        },
+        {
+          in: "query",
+          name: "offset",
+          schema: { type: "integer", default: 0 },
+        },
+      ],
+      responses: {
+        200: { description: "Pending requests retrieved" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/user/connections/{id}": {
+    post: {
+      tags: ["Networks - Connections"],
+      summary: "Send a connection request from the current user",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: "path", name: "id", required: true, schema: { type: "string" } },
+      ],
+      responses: {
+        201: { description: "Connection request sent or established" },
+        400: { description: "Already connected, blocked, or invalid target" },
+        401: { description: "Unauthorized" },
+        404: { description: "User not found" },
+      },
+    },
+    delete: {
+      tags: ["Networks - Connections"],
+      summary:
+        "Remove an outgoing connection or pending request from the current user",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: "path", name: "id", required: true, schema: { type: "string" } },
+      ],
+      responses: {
+        200: { description: "Connection removed" },
+        401: { description: "Unauthorized" },
+        404: { description: "No outgoing connection found" },
+      },
+    },
+  },
+  "/api/v1/networks/user/connections/requests/{id}/accept": {
+    post: {
+      tags: ["Networks - Connections"],
+      summary: "Accept a pending incoming connection request",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: "path", name: "id", required: true, schema: { type: "string" } },
+      ],
+      responses: {
+        200: { description: "Connection request accepted" },
+        400: { description: "Request cannot be accepted" },
+        401: { description: "Unauthorized" },
+        404: { description: "Connection request not found" },
+      },
+    },
+  },
+  "/api/v1/networks/user/connections/requests/{id}/reject": {
+    post: {
+      tags: ["Networks - Connections"],
+      summary: "Reject a pending incoming connection request",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        { in: "path", name: "id", required: true, schema: { type: "string" } },
+      ],
+      responses: {
+        200: { description: "Connection request rejected" },
+        400: { description: "Request cannot be rejected" },
+        401: { description: "Unauthorized" },
+        404: { description: "Connection request not found" },
       },
     },
   },
@@ -10203,9 +10287,9 @@ Once approved:
   "/api/v1/networks/connections/listings": {
     get: {
       tags: ["Networks - Connections"],
-      summary: "Get listings from followed users",
+      summary: "Get listings from connected users",
       description:
-        "Returns activity feed containing listings from users you follow",
+        "Returns an activity feed containing listings from connected users",
       security: [{ bearerAuth: [] }, { mockUser: [] }],
       responses: { 200: { description: "Success" } },
     },
@@ -11003,27 +11087,22 @@ Once approved:
   "/api/v1/networks/connections": {
     get: {
       tags: ["Networks - Connections"],
-      summary: "Get current user's connections",
+      summary: "Get current user's outgoing connections",
       security: [{ bearerAuth: [] }],
       parameters: [
         {
-          name: "status",
+          name: "page",
           in: "query",
-          schema: { type: "string", enum: ["pending", "accepted", "all"] },
+          schema: { type: "integer", default: 1 },
         },
         {
           name: "limit",
           in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
+          schema: { type: "integer", default: 50 },
         },
       ],
       responses: {
-        200: { description: "Connections retrieved" },
+        200: { description: "Outgoing connections retrieved" },
         401: { description: "Unauthorized" },
       },
     },
@@ -11039,10 +11118,9 @@ Once approved:
           "application/json": {
             schema: {
               type: "object",
-              required: ["recipient_id"],
+              required: ["target_user_id"],
               properties: {
-                recipient_id: { type: "string" },
-                message: { type: "string" },
+                target_user_id: { type: "string" },
               },
             },
           },
@@ -11050,7 +11128,7 @@ Once approved:
       },
       responses: {
         201: { description: "Connection request sent" },
-        400: { description: "Already connected or request pending" },
+        400: { description: "Already connected, blocked, or request pending" },
         401: { description: "Unauthorized" },
         404: { description: "User not found" },
       },
@@ -11076,16 +11154,17 @@ Once approved:
           "application/json": {
             schema: {
               type: "object",
-              required: ["action"],
+              required: ["status"],
               properties: {
-                action: { type: "string", enum: ["accept", "decline"] },
+                status: { type: "string", enum: ["accepted", "declined"] },
               },
             },
           },
         },
       },
       responses: {
-        200: { description: "Request responded" },
+        200: { description: "Connection request responded to" },
+        400: { description: "Request cannot be processed" },
         401: { description: "Unauthorized" },
         404: { description: "Request not found" },
       },

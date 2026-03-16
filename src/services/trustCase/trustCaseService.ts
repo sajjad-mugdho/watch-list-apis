@@ -23,7 +23,6 @@ import { Vouch } from "../../models/Vouch";
 import { Offer } from "../../models/Offer";
 import { OfferRevision } from "../../models/OfferRevision";
 import { EventOutbox, EventType } from "../../models/EventOutbox";
-import { Notification } from "../../models/Notification";
 import logger from "../../utils/logger";
 
 // ============================================================
@@ -185,7 +184,7 @@ export class TrustCaseService {
   async assignCase(
     caseId: string,
     assigneeId: string,
-    assignedById: string
+    assignedById: string,
   ): Promise<ITrustCase> {
     const isTest = process.env.NODE_ENV === "test";
     const session = isTest ? null : await mongoose.startSession();
@@ -256,7 +255,7 @@ export class TrustCaseService {
     caseId: string,
     escalatedToId: string,
     escalatedById: string,
-    reason: string
+    reason: string,
   ): Promise<ITrustCase> {
     const isTest = process.env.NODE_ENV === "test";
     const session = isTest ? null : await mongoose.startSession();
@@ -482,7 +481,7 @@ export class TrustCaseService {
       user.suspension_reason = reason;
       user.suspended_by = new Types.ObjectId(suspendedById);
       user.suspension_expires_at = new Date(
-        Date.now() + durationDays * 24 * 60 * 60 * 1000
+        Date.now() + durationDays * 24 * 60 * 60 * 1000,
       );
       user.adminOverride = true; // Mark as admin action to skip user logic filters
       await (session ? user.save({ session }) : user.save());
@@ -523,20 +522,21 @@ export class TrustCaseService {
 
       // Notify suspended user (non-blocking)
       try {
-        await Notification.create({
+        // TODO: Use platform-specific notification service
+        /*        await Notification.create({
           user_id: new Types.ObjectId(userId),
           type: "account_suspended",
           title: "Account Suspended",
           body: `Your account has been suspended for ${durationDays} days. Reason: ${reason}`,
           data: { caseNumber: trustCase.case_number },
-        });
+        }); */
       } catch (err) {
         logger.warn(
           "[TrustCaseService] Failed to send suspension notification",
           {
             userId,
             err,
-          }
+          },
         );
       }
 
@@ -595,8 +595,7 @@ export class TrustCaseService {
     if (status) filter.status = status;
     if (priority) filter.priority = priority;
     if (category) filter.category = category;
-    if (assignedTo)
-      filter.assigned_to = new Types.ObjectId(assignedTo);
+    if (assignedTo) filter.assigned_to = new Types.ObjectId(assignedTo);
 
     const [cases, total] = await Promise.all([
       TrustCase.aggregate([
@@ -618,7 +617,7 @@ export class TrustCaseService {
         TrustCase.populate(results, [
           { path: "reported_user_id", select: "_id display_name avatar" },
           { path: "assigned_to", select: "_id display_name avatar" },
-        ])
+        ]),
       ),
       TrustCase.countDocuments(filter),
     ]);

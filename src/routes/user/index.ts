@@ -15,7 +15,7 @@
 
 import { Router } from "express";
 import { attachUser, getUser } from "../../middleware/attachUser";
-import { userNotificationRoutes } from "./notifications";
+import userNotificationRoutes from "./notifications";
 import { userSubscriptionRoutes } from "./subscription";
 import { userTokenRoutes } from "./tokens";
 import { userProfileRoutes } from "./profile";

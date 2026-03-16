@@ -136,7 +136,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.createOnboardingForm as jest.Mock).mockResolvedValue(
-        mockFormResponse
+        mockFormResponse,
       );
 
       const result = await finixUtils.createOnboardingForm({
@@ -157,7 +157,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.createOnboardingForm as jest.Mock).mockResolvedValue(
-        mockFormResponse
+        mockFormResponse,
       );
 
       const result = await finixUtils.createOnboardingForm({
@@ -184,7 +184,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.authorizePayment as jest.Mock).mockResolvedValue(
-        mockAuthorization
+        mockAuthorization,
       );
 
       const result = await finixUtils.authorizePayment({
@@ -269,7 +269,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.authorizePayment as jest.Mock).mockResolvedValue(
-        mockDeclined
+        mockDeclined,
       );
 
       const result = await finixUtils.authorizePayment({
@@ -293,7 +293,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.authorizePayment as jest.Mock).mockResolvedValue(
-        mockInsufficient
+        mockInsufficient,
       );
 
       const result = await finixUtils.authorizePayment({
@@ -482,7 +482,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
 
       expect(refundRequest.requested_amount).toBe(partialAmount);
       expect(refundRequest.requested_amount).toBeLessThan(
-        refundRequest.original_transfer_amount
+        refundRequest.original_transfer_amount,
       );
     });
   });
@@ -548,7 +548,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.authorizePayment as jest.Mock).mockResolvedValue(
-        mockAuthWithAVS
+        mockAuthWithAVS,
       );
 
       const result = await finixUtils.authorizePayment({
@@ -572,7 +572,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.authorizePayment as jest.Mock).mockResolvedValue(
-        mockAuthAVSFail
+        mockAuthAVSFail,
       );
 
       const result = await finixUtils.authorizePayment({
@@ -615,7 +615,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       expect(finixUtils.authorizePayment).toHaveBeenCalledWith(
         expect.objectContaining({
           fraud_session_id: fraudSessionId,
-        })
+        }),
       );
     });
   });
@@ -633,7 +633,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.createPaymentInstrument as jest.Mock).mockResolvedValue(
-        mockToken
+        mockToken,
       );
 
       const result = await finixUtils.createPaymentInstrument({
@@ -653,7 +653,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.createPaymentInstrument as jest.Mock).mockResolvedValue(
-        mockBankToken
+        mockBankToken,
       );
 
       const result = await finixUtils.createPaymentInstrument({
@@ -695,7 +695,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
           amount: 1250000,
           transfer_id: "TR_disputed_123",
           respond_by: new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000
+            Date.now() + 7 * 24 * 60 * 60 * 1000,
           ).toISOString(),
         },
         created_at: new Date().toISOString(),
@@ -732,7 +732,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       };
 
       (finixUtils.createTransfer as jest.Mock).mockResolvedValue(
-        mockACHTransfer
+        mockACHTransfer,
       );
 
       const result = await finixUtils.createTransfer({
@@ -883,7 +883,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
       expect(finixUtils.authorizePayment).toHaveBeenCalledWith(
         expect.objectContaining({
           idempotency_id: idempotencyId,
-        })
+        }),
       );
     });
 
@@ -920,7 +920,7 @@ describe("Finix Sandbox E2E Certification Tests", () => {
           product_return_confirmed: false,
           finix_transfer_id: "TR_idem_123",
           idempotency_id: idempotencyId, // Same idempotency_id
-        })
+        }),
       ).rejects.toThrow();
     });
   });

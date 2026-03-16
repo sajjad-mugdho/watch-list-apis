@@ -5,7 +5,6 @@ import {
   REFERENCE_RATING_VALUES,
 } from "../../models/ReferenceCheck";
 import { User } from "../../models/User";
-import { Notification } from "../../models/Notification";
 import { feedService } from "../../services/FeedService";
 import { chatService } from "../../services/ChatService";
 import { Order } from "../../models/Order";
@@ -188,7 +187,8 @@ export const networks_reference_check_create = async (
     }
 
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: target_id,
         type: "reference_check_request",
         title: "Reference Check Request",
@@ -198,7 +198,7 @@ export const networks_reference_check_create = async (
           requester_id: user._id.toString(),
         },
         action_url: `/reference-checks/${referenceCheck._id}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create reference check notification", {
         notifError,
@@ -396,7 +396,8 @@ export const networks_reference_check_respond = async (
     await check.save();
 
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: check.requester_id,
         type: "reference_check_response",
         title: "New Reference Check Response",
@@ -406,7 +407,7 @@ export const networks_reference_check_respond = async (
           responder_id: user._id.toString(),
         },
         action_url: `/reference-checks/${check._id}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create reference response notification", {
         notifError,

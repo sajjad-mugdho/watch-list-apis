@@ -23,7 +23,7 @@ import {
 } from "../../validation/schemas";
 import { validateRequest } from "../../middleware/validation";
 import { User } from "../../models/User";
-import { followService } from "../../services/follow/FollowService";
+import { connectionService } from "../../services/connection/ConnectionService";
 import { reviewService } from "../../services/review/ReviewService";
 import { ReviewRole } from "../../models/Review";
 import mongoose from "mongoose";
@@ -136,18 +136,15 @@ router.get("/:id/references", networks_user_references_get as any);
 router.get("/:id/common-groups", social_common_groups_get as any);
 
 // ──────────────────────────────────────────────────────────────────────
-// Follow actions
+// Connection actions
 // ──────────────────────────────────────────────────────────────────────
 
 /**
  * @swagger
- * /api/v1/networks/users/{id}/follow:
+ * /api/v1/networks/users/{id}/connections:
  *   post:
- *     summary: Follow a user
- *     description: >
- *       If the target account is public the follow is immediately accepted.
- *       If the target account is private a pending follow request is created
- *       and the target user is notified.
+ *     summary: Send a connection request
+ *     description: Creates a pending connection request unless an opposite pending request exists (auto-accept).
  *     tags: [Networks - Users]
  *     security:
  *       - bearerAuth: []
@@ -157,16 +154,16 @@ router.get("/:id/common-groups", social_common_groups_get as any);
  *         required: true
  *         schema:
  *           type: string
- *         description: User ID of the person to follow
+ *         description: User ID of the person to connect with
  *     responses:
  *       201:
- *         description: Follow created (status = "accepted" or "pending").
+ *         description: Connection created (status = "accepted" or "pending").
  *       400:
- *         description: Cannot follow yourself / already following / request pending.
+ *         description: Cannot connect with yourself / already connected / request pending.
  *       404:
  *         description: Target user not found.
  *   delete:
- *     summary: Unfollow a user (or cancel a pending follow request)
+ *     summary: Remove an outgoing connection/request
  *     tags: [Networks - Users]
  *     security:
  *       - bearerAuth: []
@@ -178,12 +175,12 @@ router.get("/:id/common-groups", social_common_groups_get as any);
  *           type: string
  *     responses:
  *       200:
- *         description: Unfollowed successfully.
+ *         description: Connection removed successfully.
  *       404:
- *         description: Not following this user.
+ *         description: No outgoing connection/request found.
  */
 router.post(
-  "/:id/follow",
+  "/:id/connections",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const auth = (req as any).auth;
@@ -205,22 +202,23 @@ router.post(
         return;
       }
 
-      const follow = await followService.follow(
+      const connection = await connectionService.requestConnection(
         followerUser._id.toString(),
         targetId,
       );
 
       const message =
-        follow.status === "pending"
-          ? "Follow request sent"
-          : "Successfully followed user";
+        connection.status === "pending"
+          ? "Connection request sent"
+          : "Connection established";
 
-      res.status(201).json({ message, follow: follow.toJSON() });
+      res.status(201).json({ message, connection: connection.toJSON() });
     } catch (error: any) {
       if (
-        error.message === "Cannot follow yourself" ||
-        error.message === "Already following this user" ||
-        error.message === "Follow request already pending"
+        error.message === "Cannot connect with yourself" ||
+        error.message === "Already connected with this user" ||
+        error.message === "Connection request already pending" ||
+        error.message === "Cannot connect due to block relationship"
       ) {
         res.status(400).json({ error: { message: error.message } });
         return;
@@ -235,7 +233,7 @@ router.post(
 );
 
 router.delete(
-  "/:id/follow",
+  "/:id/connections",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const auth = (req as any).auth;
@@ -257,11 +255,14 @@ router.delete(
         return;
       }
 
-      await followService.unfollow(followerUser._id.toString(), targetId);
+      await connectionService.removeConnection(
+        followerUser._id.toString(),
+        targetId,
+      );
 
-      res.json({ message: "Successfully unfollowed user" });
+      res.json({ message: "Connection removed" });
     } catch (error: any) {
-      if (error.message === "Not following this user") {
+      if (error.message === "No connection found for this user") {
         res.status(404).json({ error: { message: error.message } });
         return;
       }
@@ -271,14 +272,14 @@ router.delete(
 );
 
 // ──────────────────────────────────────────────────────────────────────
-// Follow read-only (other user's followers/following/status)
+// Connection read-only (other user's incoming/outgoing/status)
 // ──────────────────────────────────────────────────────────────────────
 
 /**
  * @swagger
- * /api/v1/networks/users/{id}/followers:
+ * /api/v1/networks/users/{id}/connections/incoming:
  *   get:
- *     summary: Get a user's accepted followers
+ *     summary: Get a user's accepted incoming connections
  *     tags: [Networks - Users]
  *     security:
  *       - bearerAuth: []
@@ -300,10 +301,10 @@ router.delete(
  *           default: 0
  *     responses:
  *       200:
- *         description: Paginated follower list (accepted follows only).
+ *         description: Paginated incoming connection list (accepted only).
  */
 router.get(
-  "/:id/followers",
+  "/:id/connections/incoming",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id: userId } = req.params;
@@ -322,7 +323,7 @@ router.get(
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      const result = await followService.getFollowers(userId, {
+      const result = await connectionService.getIncomingConnections(userId, {
         limit,
         offset,
       });
@@ -335,7 +336,7 @@ router.get(
 );
 
 router.get(
-  "/:id/following",
+  "/:id/connections/outgoing",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const { id: userId } = req.params;
@@ -354,7 +355,7 @@ router.get(
       const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
       const offset = parseInt(req.query.offset as string) || 0;
 
-      const result = await followService.getFollowing(userId, {
+      const result = await connectionService.getOutgoingConnections(userId, {
         limit,
         offset,
       });
@@ -367,7 +368,7 @@ router.get(
 );
 
 router.get(
-  "/:id/follow-status",
+  "/:id/connection-status",
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const auth = (req as any).auth;
@@ -389,7 +390,7 @@ router.get(
         return;
       }
 
-      const status = await followService.getFollowStatus(
+      const status = await connectionService.getConnectionStatus(
         currentUser._id.toString(),
         targetId,
       );

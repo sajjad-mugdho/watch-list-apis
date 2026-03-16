@@ -13,7 +13,6 @@ import { Request, Response, NextFunction } from "express";
 import { MarketplaceListing } from "../models/MarketplaceListing";
 import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
 import { chatService } from "../../services/ChatService";
-import { Notification } from "../../models/Notification";
 import { User } from "../../models/User";
 import { ValidationError, NotFoundError } from "../../utils/errors";
 import logger from "../../utils/logger";
@@ -178,18 +177,23 @@ export const marketplace_listing_inquire = async (
         ? `/chat/${channel.getstream_channel_id}`
         : `/listings/${listingId}`; // Fallback if getstream_channel_id is missing
 
-      await Notification.create({
-        user_id: sellerId,
-        type: "new_inquiry",
-        title: "New Inquiry",
-        body: `Someone is interested in your ${listing.brand} ${listing.model}`,
-        data: {
-          listing_id: listingId,
-          channel_id: (channel._id as any).toString(),
-          buyer_id: buyerId,
-        },
-        action_url: actionUrl,
-      });
+      // TODO: Replace with platform-specific notification service (marketplace)
+      logger.debug(
+        "[DEPRECATED] Notification creation disabled - use marketplace notification service",
+        { sellerId, type: "new_inquiry" },
+      );
+      // await Notification.create({
+      //   user_id: sellerId,
+      //   type: "new_inquiry",
+      //   title: "New Inquiry",
+      //   body: `Someone is interested in your ${listing.brand} ${listing.model}`,
+      //   data: {
+      //     listing_id: listingId,
+      //     channel_id: (channel._id as any).toString(),
+      //     buyer_id: buyerId,
+      //   },
+      //   action_url: actionUrl,
+      // });
     } catch (notifError) {
       logger.warn("Failed to create inquiry notification", { notifError });
     }

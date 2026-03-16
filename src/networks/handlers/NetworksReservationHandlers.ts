@@ -17,7 +17,6 @@ import { CreateReservationInput } from "../../validation/schemas";
 import { transitionListingStatus } from "../../utils/listingStatusMachine";
 import logger from "../../utils/logger";
 
-import { Notification } from "../../models/Notification";
 import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { NetworkListing } from "../models/NetworkListing";
 
@@ -192,7 +191,8 @@ export const networks_reservation_create = async (
 
     // Notify seller and buyer (non-critical)
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: listing.dialist_id,
         type: "item_reserved",
         title: "Your Item was Reserved!",
@@ -202,7 +202,7 @@ export const networks_reservation_create = async (
           order_id: createdOrder._id.toString(),
         },
         action_url: `/networks/orders/${createdOrder._id}`,
-      });
+      }); */
     } catch (notifErr) {
       logger.warn("Failed to create reservation notification", { notifErr });
     }

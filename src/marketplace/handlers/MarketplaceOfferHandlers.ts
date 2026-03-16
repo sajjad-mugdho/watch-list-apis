@@ -29,7 +29,6 @@ import { Order } from "../../models/Order";
 import { chatService } from "../../services/ChatService";
 import { marketplaceOfferService } from "../services/MarketplaceOfferService";
 import { Offer } from "../../models/Offer";
-import { Notification } from "../../models/Notification";
 import logger from "../../utils/logger";
 
 // ----------------------------------------------------------
@@ -259,7 +258,8 @@ export const marketplace_offer_send = async (
 
     // 3. Create Notification (Retaining legacy behavior)
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: listing.dialist_id,
         type: "offer_received",
         title: "New Offer Received",
@@ -270,7 +270,7 @@ export const marketplace_offer_send = async (
           amount,
         },
         action_url: `/marketplace/offers/${channelId}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create marketplace offer notification", {
         notifError,
@@ -394,7 +394,8 @@ export const marketplace_offer_counter = async (
     try {
       const recipientId =
         role === "buyer" ? channel.seller_id : channel.buyer_id;
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: recipientId,
         type: "counter_offer",
         title: "Counter Offer Received",
@@ -405,7 +406,7 @@ export const marketplace_offer_counter = async (
           amount,
         },
         action_url: `/marketplace/offers/${(channel._id as any).toString()}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create counter offer notification", {
         notifError,

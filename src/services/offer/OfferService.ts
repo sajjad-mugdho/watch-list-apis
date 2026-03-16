@@ -19,7 +19,6 @@ import { MarketplaceListingChannel } from "../../models/MarketplaceListingChanne
 import { Order } from "../../models/Order";
 import { Offer, IOffer } from "../../models/Offer";
 import { OfferRevision, IOfferRevision } from "../../models/OfferRevision";
-import { ReservationTerms } from "../../models/ReservationTerms";
 import { EventOutbox, EventType } from "../../models/EventOutbox";
 import { chatService } from "../ChatService";
 import logger from "../../utils/logger";
@@ -160,17 +159,14 @@ export class OfferService {
       });
       await offer.save({ session: txnSession });
 
-      // Get current terms
-      // Note: ReservationTerms.getCurrent() doesn't seem to support session in its static method if not modified
-      const currentTerms = await ReservationTerms.getCurrent();
-
+      // TODO: ReservationTerms model has been deprecated
       // Create revision
       revision = new OfferRevision({
         offer_id: offer._id,
         amount,
         currency,
         note,
-        reservation_terms_id: currentTerms?._id,
+        reservation_terms_id: null,
         created_by: new Types.ObjectId(senderId),
         revision_number: 1,
       });
@@ -298,10 +294,8 @@ export class OfferService {
         ? latestRevision.revision_number + 1
         : 1;
 
-      // 4. Get current terms
-      const currentTerms = await ReservationTerms.getCurrent();
-
-      // 5. Resolve seller reservation terms (carry forward if not provided)
+      // TODO: ReservationTerms model has been deprecated
+      // 4. Resolve seller reservation terms (carry forward if not provided)
       let resolvedTerms: string | null = null;
       if (reservation_terms !== undefined) {
         resolvedTerms = reservation_terms || null;
@@ -317,7 +311,7 @@ export class OfferService {
             amount,
             currency,
             note,
-            reservation_terms_id: currentTerms?._id,
+            reservation_terms_id: null,
             reservation_terms: resolvedTerms,
             created_by: new Types.ObjectId(counterById),
             revision_number: nextRevisionNumber,

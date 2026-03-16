@@ -7,15 +7,14 @@
 
 import { Types } from "mongoose";
 import { ISO, IISO } from "../models/ISO";
-import { Notification } from "../models/Notification";
 import { feedService } from "./FeedService";
 import logger from "../utils/logger";
 
 // Interface for listing data we receive
 interface ListingData {
-  _id?: any;  // Can be ObjectId or string
+  _id?: any; // Can be ObjectId or string
   id?: string;
-  dialist_id?: any;  // Can be ObjectId or string
+  dialist_id?: any; // Can be ObjectId or string
   brand?: string;
   model?: string;
   reference?: string;
@@ -25,10 +24,13 @@ interface ListingData {
   thumbnail?: string;
 }
 
-import { listingEvents, LISTING_EVENTS, ListingPublishedPayload } from "../events/listingEvents";
+import {
+  listingEvents,
+  LISTING_EVENTS,
+  ListingPublishedPayload,
+} from "../events/listingEvents";
 
 class ISOMatchingService {
-  
   constructor() {
     this.initialize();
   }
@@ -37,23 +39,31 @@ class ISOMatchingService {
    * Initialize event listeners
    */
   private initialize(): void {
-    listingEvents.on(LISTING_EVENTS.PUBLISHED, this.handleListingPublished.bind(this));
+    listingEvents.on(
+      LISTING_EVENTS.PUBLISHED,
+      this.handleListingPublished.bind(this),
+    );
     logger.info("ISOMatchingService initialized and listening for events");
   }
 
   /**
    * Handle 'listing:published' event
    */
-  private async handleListingPublished(listing: ListingPublishedPayload): Promise<void> {
+  private async handleListingPublished(
+    listing: ListingPublishedPayload,
+  ): Promise<void> {
     try {
       // Cast to match internal ListingData interface if needed
       // The event payload (Mongoose doc) usually satisfies or exceeds ListingData
       await this.matchNewListing(listing as unknown as ListingData);
     } catch (error) {
-      logger.error("Error handling listing published event in ISOMatchingService", { 
-        error, 
-        listingId: (listing as any)._id 
-      });
+      logger.error(
+        "Error handling listing published event in ISOMatchingService",
+        {
+          error,
+          listingId: (listing as any)._id,
+        },
+      );
     }
   }
 
@@ -64,7 +74,7 @@ class ISOMatchingService {
   async matchNewListing(listing: ListingData): Promise<void> {
     try {
       const listingId = listing._id || listing.id;
-      
+
       // Build query for matching ISOs
       const query: any = {
         status: "active",
@@ -87,8 +97,11 @@ class ISOMatchingService {
 
         if (isMatch) {
           // Fire and forget notification to avoid blocking the match loop
-          this.notifyISOOwner(iso, listing).catch(err => 
-            logger.error("Async notification failed during matching", { err, isoId: iso._id })
+          this.notifyISOOwner(iso, listing).catch((err) =>
+            logger.error("Async notification failed during matching", {
+              err,
+              isoId: iso._id,
+            }),
           );
         }
       }
@@ -120,7 +133,11 @@ class ISOMatchingService {
 
     // Reference match (if specified)
     if (criteria.reference && listing.reference) {
-      if (!listing.reference.toLowerCase().includes(criteria.reference.toLowerCase())) {
+      if (
+        !listing.reference
+          .toLowerCase()
+          .includes(criteria.reference.toLowerCase())
+      ) {
         return false;
       }
     }
@@ -134,7 +151,9 @@ class ISOMatchingService {
 
     // Condition match (if specified)
     if (criteria.condition && listing.condition) {
-      if (criteria.condition.toLowerCase() !== listing.condition.toLowerCase()) {
+      if (
+        criteria.condition.toLowerCase() !== listing.condition.toLowerCase()
+      ) {
         return false;
       }
     }
@@ -149,7 +168,7 @@ class ISOMatchingService {
   private async notifyISOOwner(iso: IISO, listing: ListingData): Promise<void> {
     try {
       const listingId = String(listing._id || listing.id);
-      
+
       logger.info("ISO match found - notifying owner", {
         isoId: iso._id,
         isoUserId: iso.user_id,
@@ -173,9 +192,10 @@ class ISOMatchingService {
           notification_message: `A listing matching your ISO "${iso.title}" has been posted!`,
         },
       });
-      
+
       // Also create an in-app notification
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: iso.user_id,
         type: "iso_match",
         title: "Match Found!",
@@ -185,14 +205,13 @@ class ISOMatchingService {
           listing_id: listingId,
         },
         action_url: `/listings/${listingId}`,
-      });
+      }); */
 
       // Increment match count on ISO (if field exists)
       await ISO.findByIdAndUpdate(iso._id, {
         $inc: { match_count: 1 },
         $set: { last_matched_at: new Date() },
       });
-
     } catch (error) {
       logger.error("Failed to notify ISO owner", { error, isoId: iso._id });
     }
@@ -240,7 +259,7 @@ class ISOMatchingService {
           _id: String(listing._id),
           dialist_id: String(listing.dialist_id),
         };
-        
+
         // Only add optional fields if they exist
         if (listing.brand) listingData.brand = listing.brand;
         if (listing.model) listingData.model = listing.model;
@@ -249,10 +268,13 @@ class ISOMatchingService {
         if (listing.condition) listingData.condition = listing.condition;
         if (listing.title) listingData.title = listing.title;
         if (listing.thumbnail) listingData.thumbnail = listing.thumbnail;
-        
+
         if (this.checkMatch(iso, listingData)) {
-          this.notifyISOOwner(iso, listingData).catch(err =>
-             logger.error("Async notification failed for manual check", { err, isoId })
+          this.notifyISOOwner(iso, listingData).catch((err) =>
+            logger.error("Async notification failed for manual check", {
+              err,
+              isoId,
+            }),
           );
         }
       }

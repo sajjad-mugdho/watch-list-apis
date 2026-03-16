@@ -27,7 +27,6 @@ import { createBuyerIdentity } from "../../utils/finix";
 import logger from "../../utils/logger";
 import { validateAndFormatPostalCode } from "../../utils/location";
 import { chatService } from "../../services/ChatService";
-import { Notification } from "../../models/Notification";
 
 /**
  *  STEP 1: RESERVE LISTING (45-minute window)
@@ -210,7 +209,8 @@ export const reserveListing = async (
 
     // Notification for Seller
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: order.seller_id,
         type: "listing_reserved",
         title: "Listing Reserved",
@@ -220,7 +220,7 @@ export const reserveListing = async (
           order_id: order._id.toString(),
         },
         action_url: `/orders/${order._id}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create reservation notification", { notifError });
     }
@@ -1492,7 +1492,8 @@ export const processPayment = async (
 
     // Notification for Seller
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: order.seller_id,
         type: "order_paid",
         title: "Payment Received",
@@ -1502,7 +1503,7 @@ export const processPayment = async (
           amount: order.amount,
         },
         action_url: `/orders/${order._id}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create payment notification", { notifError });
     }
@@ -1649,7 +1650,8 @@ export const uploadTracking = async (
 
     // Notification for Buyer
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: order.buyer_id,
         type: "order_shipped",
         title: "Order Shipped!",
@@ -1660,7 +1662,7 @@ export const uploadTracking = async (
           carrier: carrierValue,
         },
         action_url: `/orders/${order._id}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create shipping notification", { notifError });
     }
@@ -1783,7 +1785,8 @@ export const confirmDelivery = async (
 
     // Notification for Seller
     try {
-      await Notification.create({
+      // TODO: Use platform-specific notification service
+      /*      await Notification.create({
         user_id: order.seller_id,
         type: "order_completed",
         title: "Order Completed",
@@ -1792,7 +1795,7 @@ export const confirmDelivery = async (
           order_id: order._id.toString(),
         },
         action_url: `/orders/${order._id}`,
-      });
+      }); */
     } catch (notifError) {
       logger.warn("Failed to create completion notification", { notifError });
     }
