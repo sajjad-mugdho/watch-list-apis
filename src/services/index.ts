@@ -1,33 +1,39 @@
 /**
  * Services Index - Dependency Injection Container
- * 
+ *
  * Exports all service instances as singletons.
  * Services depend on repositories and each other via this container.
  */
 
 // Channel service
-export { channelService, ChannelService } from './channel/ChannelService';
+export {
+  channelService,
+  ChannelService,
+} from "../shared/services/channel/ChannelService";
 
 // Message service
-export { messageService, MessageService } from './message/MessageService';
+export {
+  messageService,
+  MessageService,
+} from "../shared/services/message/MessageService";
 
 // Notification service
-export { notificationService, NotificationService } from './notification/NotificationService';
+export {
+  notificationService,
+  NotificationService,
+} from "./notification/NotificationService";
 
 // Offer service
-export { offerService, OfferService } from './offer/OfferService';
-
-// User service
-export { userService, UserService } from './user/UserService';
+export { offerService, OfferService } from "./offer/OfferService";
 
 // Favorite service
-export { favoriteService, FavoriteService } from './favorite/FavoriteService';
+export { favoriteService, FavoriteService } from "./favorite/FavoriteService";
 
 // Recent Search service
-export { recentSearchService, RecentSearchService } from './search/RecentSearchService';
-
-// ISO service
-export { isoService } from './iso/ISOService';
+export {
+  recentSearchService,
+  RecentSearchService,
+} from "./search/RecentSearchService";
 
 // Events
-export { events, TypedEventEmitter } from '../utils/events';
+export { events, TypedEventEmitter } from "../utils/events";

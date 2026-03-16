@@ -1,49 +1,33 @@
-// src/models/OfferRevision.ts
-import mongoose, { Document, Model, Schema, Types } from "mongoose";
+import mongoose, { Model, Schema, Types } from "mongoose";
 
 // ----------------------------------------------------------
-// Constants
+// Interfaces
 // ----------------------------------------------------------
-export const CURRENCY_VALUES = ["USD", "CAD"] as const;
-export type Currency = (typeof CURRENCY_VALUES)[number];
-
-// ----------------------------------------------------------
-// Interface
-// ----------------------------------------------------------
-export interface IOfferRevision extends Document {
+export interface IOfferRevision {
   _id: Types.ObjectId;
-
-  // Parent offer
   offer_id: Types.ObjectId;
-
-  // Revision details
   amount: number;
-  currency: Currency;
+  currency: string;
   note?: string;
-
-  // Legal terms reference
   reservation_terms_id?: Types.ObjectId;
-
-  // Who made this revision
+  reservation_terms?: string; // Seller's free-text terms for this revision
   created_by: Types.ObjectId;
   revision_number: number;
 
-  // Timestamps
   createdAt: Date;
 }
 
 export interface IOfferRevisionModel extends Model<IOfferRevision> {
-  findByOffer(offerId: string | Types.ObjectId): Promise<IOfferRevision[]>;
-
-  getLatestRevision(
-    offerId: string | Types.ObjectId
-  ): Promise<IOfferRevision | null>;
+  getLatestRevision(offerId: string): Promise<IOfferRevision | null>;
 }
 
 // ----------------------------------------------------------
 // Schema
 // ----------------------------------------------------------
-const OfferRevisionSchema = new Schema<IOfferRevision>(
+// Import CURRENCY_VALUES from User model
+const CURRENCY_VALUES = ["USD", "CAD"] as const;
+
+const offerRevisionSchema = new Schema<IOfferRevision>(
   {
     offer_id: {
       type: Schema.Types.ObjectId,
@@ -51,97 +35,37 @@ const OfferRevisionSchema = new Schema<IOfferRevision>(
       required: true,
       index: true,
     },
-
-    amount: {
-      type: Number,
-      required: true,
-      min: 0,
-    },
-
+    amount: { type: Number, required: true, min: 0 },
     currency: {
       type: String,
       enum: CURRENCY_VALUES,
       default: "USD",
       required: true,
     },
-
-    note: {
-      type: String,
-      trim: true,
-      maxlength: 1000,
-    },
-
+    note: { type: String, trim: true, maxlength: 1000 },
     reservation_terms_id: {
       type: Schema.Types.ObjectId,
       ref: "ReservationTerms",
     },
-
-    created_by: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
-
-    revision_number: {
-      type: Number,
-      required: true,
-      min: 1,
-    },
+    reservation_terms: { type: String, default: null, maxlength: 2000 },
+    created_by: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    revision_number: { type: Number, required: true, min: 1 },
   },
-  {
-    timestamps: { createdAt: true, updatedAt: false }, // No updates allowed
-  }
+  { timestamps: { createdAt: true, updatedAt: false } },
 );
 
-// ----------------------------------------------------------
-// Indexes
-// ----------------------------------------------------------
-
-// Unique revision number per offer
-OfferRevisionSchema.index(
+// Prevent duplicate revision numbers for the same offer
+offerRevisionSchema.index(
   { offer_id: 1, revision_number: 1 },
-  { unique: true }
+  { unique: true },
 );
 
-// Query by offer, sorted by revision
-OfferRevisionSchema.index({ offer_id: 1, createdAt: -1 });
-
-// ----------------------------------------------------------
-// Immutability Guards
-// ----------------------------------------------------------
-OfferRevisionSchema.pre("findOneAndUpdate", function () {
-  throw new Error("OfferRevision documents are immutable and cannot be updated");
-});
-
-OfferRevisionSchema.pre("updateOne", function () {
-  throw new Error("OfferRevision documents are immutable and cannot be updated");
-});
-
-OfferRevisionSchema.pre("updateMany", function () {
-  throw new Error("OfferRevision documents are immutable and cannot be updated");
-});
-
-// ----------------------------------------------------------
-// Static Methods
-// ----------------------------------------------------------
-OfferRevisionSchema.statics.findByOffer = function (
-  offerId: string | Types.ObjectId
-) {
-  return this.find({ offer_id: offerId }).sort({ revision_number: 1 });
-};
-
-OfferRevisionSchema.statics.getLatestRevision = function (
-  offerId: string | Types.ObjectId
-) {
+// Statics
+offerRevisionSchema.statics.getLatestRevision = function (offerId: string) {
   return this.findOne({ offer_id: offerId }).sort({ revision_number: -1 });
 };
 
-// ----------------------------------------------------------
-// Model
-// ----------------------------------------------------------
 export const OfferRevision = mongoose.model<
   IOfferRevision,
   IOfferRevisionModel
->("OfferRevision", OfferRevisionSchema, "offer_revisions");
-
-export default OfferRevision;
+>("OfferRevision", offerRevisionSchema, "offer_revisions");

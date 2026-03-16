@@ -44,8 +44,10 @@ describe("Marketplace Listing Creation", () => {
     });
     watchId = watch._id.toString();
 
-    // Create approved merchant user
+    // Create approved merchant user — _id must match the mock session claim's
+    // dialist_id so DB lookup and MerchantOnboarding query align
     const approvedMerchant = await User.create({
+      _id: "ddd333333333333333333333",
       external_id: "merchant_approved", // Use mock user ID
       email: "merchant@example.com",
       first_name: "John",
@@ -117,7 +119,7 @@ describe("Marketplace Listing Creation", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error.message).toContain(
-        "Only approved merchants can create marketplace listings"
+        "Only approved merchants can create marketplace listings",
       );
     });
 
@@ -144,7 +146,7 @@ describe("Marketplace Listing Creation", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error.message).toContain(
-        "Only approved merchants can create marketplace listings"
+        "Only approved merchants can create marketplace listings",
       );
     });
 
@@ -171,7 +173,7 @@ describe("Marketplace Listing Creation", () => {
 
       expect(response.status).toBe(403);
       expect(response.body.error.message).toContain(
-        "Only approved merchants can create marketplace listings"
+        "Only approved merchants can create marketplace listings",
       );
     });
 

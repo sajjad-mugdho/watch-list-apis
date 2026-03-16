@@ -1,24 +1,24 @@
 /**
  * User Route Aggregator
- * 
+ *
  * Consolidates all current-user endpoints under /api/v1/user/**
  * All "current user" endpoints under single namespace
- * 
+ *
  * The attachUser middleware is applied at router level, so all sub-routes
  * have access to req.user and req.dialistUserId without needing User.findOne().
+ *
+ * NOTE: /user/favorites and /user/searches are now served by platform-scoped routes:
+ *   GET/POST/DELETE /api/v1/networks/user/favorites
+ *   GET/POST/DELETE /api/v1/networks/user/searches/recent
+ *   GET/POST/DELETE /api/v1/networks/isos  (for ISOs)
  */
 
 import { Router } from "express";
 import { attachUser, getUser } from "../../middleware/attachUser";
 import { userNotificationRoutes } from "./notifications";
-import { userFavoriteRoutes } from "./favorites";
-import { userSearchRoutes } from "./searches";
-import { userFollowRoutes } from "./follows";
-import { userIsoRoutes } from "./isos";
 import { userSubscriptionRoutes } from "./subscription";
 import { userTokenRoutes } from "./tokens";
 import { userProfileRoutes } from "./profile";
-import { userFriendshipRoutes } from "./friendship";
 import { userSupportRoutes } from "./support";
 
 const router = Router();
@@ -30,51 +30,24 @@ router.use(attachUser);
 /**
  * @route GET /api/v1/user
  * @desc Get current authenticated user profile
- * Note: req.user is already populated by attachUser middleware
  */
 router.get("/", (req, res) => {
   const user = getUser(req);
-  res.json({
-    data: user,
-  });
+  res.json({ data: user });
 });
 
-/**
- * USER ROUTES
- */
 router.use("/support", userSupportRoutes);
 
-/**
- * /api/v1/user/notifications/*
- */
+// /api/v1/user/notifications/*
 router.use("/notifications", userNotificationRoutes);
 
-/**
- * /api/v1/user/favorites/*
- */
-router.use("/favorites", userFavoriteRoutes);
-
-/**
- * /api/v1/user/searches/*
- */
-router.use("/searches", userSearchRoutes);
-
-router.use("/", userFollowRoutes);
-
-// Move /api/v1/isos/my → /api/v1/user/isos
-router.use("/isos", userIsoRoutes);
-
-// Move /api/v1/subscriptions/current → /api/v1/user/subscription
+// /api/v1/user/subscription — current subscription tier
 router.use("/subscription", userSubscriptionRoutes);
 
-// user/tokens/feed and user/tokens/chat for GetStream tokens
+// /api/v1/user/tokens — GetStream feed + chat tokens
 router.use("/tokens", userTokenRoutes);
 
-// user/profile routes for bio, social links, wishlist
+// /api/v1/user/profile, /avatar, /wishlist, /verification, /status
 router.use("/", userProfileRoutes);
 
-// user/friends routes for friendship management
-router.use("/", userFriendshipRoutes);
-
 export { router as userSubRoutes };
-

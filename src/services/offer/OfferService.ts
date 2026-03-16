@@ -1,8 +1,8 @@
 /**
  * Offer Service
- * 
+ *
  * Business logic for offer lifecycle management.
- * 
+ *
  * Key features:
  * - Uses first-class Offer and OfferRevision models
  * - Atomic transactions for state changes
@@ -11,17 +11,10 @@
  * - Listing reservation on acceptance
  */
 
-import mongoose, { Types } from "mongoose";
+import mongoose, { Model, Types } from "mongoose";
 import { NotFoundError, ValidationError } from "../../utils/errors";
-import { 
-  Platform,
-  channelRepository,
-} from "../../repositories";
-import { 
-  MarketplaceListing, 
-  NetworkListing 
-} from "../../models/Listings";
-import { NetworkListingChannel } from "../../models/ListingChannel";
+import { Platform, channelRepository } from "../../repositories";
+
 import { MarketplaceListingChannel } from "../../models/MarketplaceListingChannel";
 import { Order } from "../../models/Order";
 import { Offer, IOffer } from "../../models/Offer";
@@ -30,6 +23,8 @@ import { ReservationTerms } from "../../models/ReservationTerms";
 import { EventOutbox, EventType } from "../../models/EventOutbox";
 import { chatService } from "../ChatService";
 import logger from "../../utils/logger";
+import { MarketplaceListing, NetworkListing } from "../../models/Listings";
+import { NetworkListingChannel } from "../../models/ListingChannel";
 
 // ----------------------------------------------------------
 // Types
@@ -60,6 +55,7 @@ export interface CounterOfferParams {
   currency?: string;
   note?: string;
   expiresInHours?: number;
+  reservation_terms?: string | null;
 }
 
 export interface AcceptOfferResponse {
@@ -81,7 +77,10 @@ export class OfferService {
    * Send an initial offer on a listing channel.
    * Creates Offer + first OfferRevision + EventOutbox entry in a transaction.
    */
-  async sendOffer(params: SendOfferParams, session?: mongoose.ClientSession): Promise<SendOfferResponse> {
+  async sendOffer(
+    params: SendOfferParams,
+    session?: mongoose.ClientSession,
+  ): Promise<SendOfferResponse> {
     const {
       channelId,
       listingId,
@@ -96,7 +95,9 @@ export class OfferService {
     } = params;
 
     const useExternalSession = !!session;
-    const txnSession = useExternalSession ? session : await mongoose.startSession();
+    const txnSession = useExternalSession
+      ? session
+      : await mongoose.startSession();
     if (!useExternalSession) txnSession.startTransaction();
 
     let offer: any;
@@ -106,12 +107,17 @@ export class OfferService {
 
     try {
       // 1. Get the listing to validate + snapshot (inside transaction)
-      const ListingModel = platform === "networks" ? NetworkListing : MarketplaceListing;
-      const listing = await (ListingModel as any).findById(listingId).session(txnSession);
-      
+      const ListingModel =
+        platform === "networks" ? NetworkListing : MarketplaceListing;
+      const listing = await (ListingModel as any)
+        .findById(listingId)
+        .session(txnSession);
+
       if (!listing) throw new NotFoundError("Listing");
-      if (listing.status !== "active") throw new ValidationError("Listing is not active");
-      if (listing.price && amount >= listing.price) throw new ValidationError("Offer must be below asking price");
+      if (listing.status !== "active")
+        throw new ValidationError("Listing is not active");
+      if (listing.price && amount >= listing.price)
+        throw new ValidationError("Offer must be below asking price");
 
       listingSnapshot = {
         brand: (listing as any).brand || "",
@@ -123,21 +129,22 @@ export class OfferService {
       };
 
       // 2. Check for existing active offer (match unique index) - inside transaction
-      const existingOffer = await (Offer as any).findOne({
-        listing_id: new Types.ObjectId(listingId),
-        buyer_id: new Types.ObjectId(senderId),
-        state: { $in: ["CREATED", "COUNTERED"] },
-      }).session(txnSession);
+      const existingOffer = await (Offer as any)
+        .findOne({
+          listing_id: new Types.ObjectId(listingId),
+          buyer_id: new Types.ObjectId(senderId),
+          platform,
+          state: { $in: ["CREATED", "COUNTERED"] },
+        })
+        .session(txnSession);
 
       if (existingOffer) {
         throw new ValidationError(
-          "An active offer already exists. Accept, counter, or wait for expiry."
+          "An active offer already exists. Accept, counter, or wait for expiry.",
         );
       }
 
-      const expiresAt = new Date(
-        Date.now() + expiresInHours * 60 * 60 * 1000
-      );
+      const expiresAt = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
 
       // Create offer
       offer = new Offer({
@@ -205,7 +212,7 @@ export class OfferService {
     }
 
     // --- Post-Transaction Side Effects ---
-    
+
     // Also update channel for backward compatibility
     await this.updateChannelLastOffer(channelId, platform, {
       _id: offer._id,
@@ -227,7 +234,7 @@ export class OfferService {
             amount,
             message: `New offer for $${amount}`,
           },
-          senderId
+          senderId,
         );
       } catch (chatError) {
         logger.warn("[OfferService] Failed to send offer system message", {
@@ -260,6 +267,7 @@ export class OfferService {
       currency = "USD",
       note,
       expiresInHours = OfferService.DEFAULT_OFFER_EXPIRY_HOURS,
+      reservation_terms,
     } = params;
 
     const session = await mongoose.startSession();
@@ -274,9 +282,7 @@ export class OfferService {
       if (!offer) throw new Error("Offer not found");
 
       if (!offer.isActive()) {
-        throw new Error(
-          `Offer cannot be countered in state: ${offer.state}`
-        );
+        throw new Error(`Offer cannot be countered in state: ${offer.state}`);
       }
 
       // 2. Verify counter party is the other side of the offer
@@ -295,7 +301,15 @@ export class OfferService {
       // 4. Get current terms
       const currentTerms = await ReservationTerms.getCurrent();
 
-      // 5. Create new revision
+      // 5. Resolve seller reservation terms (carry forward if not provided)
+      let resolvedTerms: string | null = null;
+      if (reservation_terms !== undefined) {
+        resolvedTerms = reservation_terms || null;
+      } else if (latestRevision) {
+        resolvedTerms = latestRevision.reservation_terms ?? null;
+      }
+
+      // 6. Create new revision
       [revision] = await OfferRevision.create(
         [
           {
@@ -304,23 +318,22 @@ export class OfferService {
             currency,
             note,
             reservation_terms_id: currentTerms?._id,
+            reservation_terms: resolvedTerms,
             created_by: new Types.ObjectId(counterById),
             revision_number: nextRevisionNumber,
           },
         ],
-        { session }
+        { session },
       );
 
-      // 6. Update offer state
+      // 7. Update offer state
       const previousState = offer.state;
       offer.state = "COUNTERED";
       offer.active_revision_id = revision._id;
-      offer.expires_at = new Date(
-        Date.now() + expiresInHours * 60 * 60 * 1000
-      );
+      offer.expires_at = new Date(Date.now() + expiresInHours * 60 * 60 * 1000);
       await offer.save({ session });
 
-      // 7. Write outbox
+      // 8. Write outbox
       await EventOutbox.create(
         [
           {
@@ -340,7 +353,7 @@ export class OfferService {
             published: false,
           },
         ],
-        { session }
+        { session },
       );
 
       await session.commitTransaction();
@@ -365,7 +378,7 @@ export class OfferService {
             amount,
             message: `Counter offer for $${amount}`,
           },
-          counterById
+          counterById,
         );
       } catch (chatError) {
         logger.warn("[OfferService] Failed to send counter system message", {
@@ -391,8 +404,24 @@ export class OfferService {
   async acceptOffer(
     offerId: string,
     acceptorId: string,
-    _platform?: string // Backward compat: platform is stored on Offer doc
+    _platform?: string, // Backward compat: platform is stored on Offer doc
   ): Promise<AcceptOfferResponse> {
+    // Pre-fetch channel snapshot BEFORE starting the transaction to avoid
+    // implicit collection creation (DDL) while a transaction is in progress,
+    // which causes a "catalog changes" error in MongoMemoryReplSet / replica sets.
+    let channelSnapshot: any = null;
+    try {
+      const preOffer = await Offer.findById(offerId).lean();
+      if (preOffer) {
+        channelSnapshot = await channelRepository.findById(
+          preOffer.channel_id.toString(),
+          preOffer.platform,
+        );
+      }
+    } catch {
+      // Non-fatal — buyer_name falls back to "Buyer" if not available
+    }
+
     const session = await mongoose.startSession();
     session.startTransaction();
 
@@ -408,7 +437,7 @@ export class OfferService {
 
       if (!offer.canBeAccepted()) {
         throw new Error(
-          `Offer cannot be accepted in state: ${offer.state}${offer.isExpired() ? " (expired)" : ""}`
+          `Offer cannot be accepted in state: ${offer.state}${offer.isExpired() ? " (expired)" : ""}`,
         );
       }
 
@@ -434,34 +463,42 @@ export class OfferService {
       await offer.save({ session });
 
       // 4. Reserve listing
-      const ListingModel = offer.platform === "networks" ? NetworkListing : MarketplaceListing;
-      const channel = await channelRepository.findById(offer.channel_id.toString(), offer.platform);
-      
+      const ListingModel =
+        offer.platform === "networks" ? NetworkListing : MarketplaceListing;
+      // channelSnapshot was pre-fetched before the transaction to avoid DDL-during-txn errors
+
       await (ListingModel as any).updateOne(
         { _id: offer.listing_id },
-        { 
-          $set: { 
+        {
+          $set: {
             status: "reserved",
             order: {
               channel_id: offer.channel_id,
               reserved_at: new Date(),
-              buyer_name: (channel as any)?.buyer_snapshot?.name || "Buyer",
-              buyer_id: offer.buyer_id
-            }
-          } 
+              buyer_name:
+                (channelSnapshot as any)?.buyer_snapshot?.name || "Buyer",
+              buyer_id: offer.buyer_id,
+            },
+          },
         },
-        { session }
+        { session },
       );
 
       // 4. Create Order
       const order = new Order({
-        listing_type: offer.platform === "networks" ? "NetworkListing" : "MarketplaceListing",
+        listing_type:
+          offer.platform === "networks"
+            ? "NetworkListing"
+            : "MarketplaceListing",
         listing_id: offer.listing_id,
         listing_snapshot: {
-          brand: (channel as any)?.listing_snapshot?.brand || "",
-          model: (channel as any)?.listing_snapshot?.model || "",
-          reference: (channel as any)?.listing_snapshot?.reference || "",
-          price: (channel as any)?.listing_snapshot?.price || latestRevision.amount,
+          brand: (channelSnapshot as any)?.listing_snapshot?.brand || "",
+          model: (channelSnapshot as any)?.listing_snapshot?.model || "",
+          reference:
+            (channelSnapshot as any)?.listing_snapshot?.reference || "",
+          price:
+            (channelSnapshot as any)?.listing_snapshot?.price ||
+            latestRevision.amount,
         },
         buyer_id: offer.buyer_id,
         seller_id: offer.seller_id,
@@ -471,9 +508,13 @@ export class OfferService {
         offer_id: offer._id,
         offer_revision_id: latestRevision._id,
         channel_id: offer.channel_id,
-        channel_type: offer.platform === "networks" ? "NetworkListingChannel" : "MarketplaceListingChannel",
+        channel_type:
+          offer.platform === "networks"
+            ? "NetworkListingChannel"
+            : "MarketplaceListingChannel",
         getstream_channel_id: offer.getstream_channel_id,
         reserved_at: new Date(),
+        reservation_terms_snapshot: latestRevision.reservation_terms ?? null,
       });
       await order.save({ session });
       orderId = order._id.toString();
@@ -500,7 +541,7 @@ export class OfferService {
             published: false,
           },
         ],
-        { session }
+        { session },
       );
 
       // 5. Update channel status for backward compatibility
@@ -508,7 +549,7 @@ export class OfferService {
         offer.channel_id.toString(),
         offer.platform,
         "accepted",
-        session
+        session,
       );
 
       await session.commitTransaction();
@@ -532,16 +573,16 @@ export class OfferService {
             amount: latestRevision.amount,
             message: "Offer accepted!",
           },
-          acceptorId
+          acceptorId,
         );
-        
+
         await chatService.sendSystemMessage(
           offer.getstream_channel_id,
           {
             type: "listing_reserved",
             message: "Listing reserved",
           },
-          acceptorId
+          acceptorId,
         );
       } catch (chatError) {
         logger.warn("[OfferService] Failed to send acceptance system message", {
@@ -612,7 +653,7 @@ export class OfferService {
             published: false,
           },
         ],
-        { session }
+        { session },
       );
 
       await session.commitTransaction();
@@ -627,19 +668,19 @@ export class OfferService {
 
     // Side effect
     if (offer.getstream_channel_id) {
-        try {
-            await chatService.sendSystemMessage(
-              offer.getstream_channel_id,
-              {
-                type: "offer_rejected",
-                amount: latestRevision?.amount,
-                message: "Offer declined",
-              },
-              declinedById
-            );
-        } catch (e) {
-            logger.warn("[OfferService] Failed to send decline message", e);
-        }
+      try {
+        await chatService.sendSystemMessage(
+          offer.getstream_channel_id,
+          {
+            type: "offer_rejected",
+            amount: latestRevision?.amount,
+            message: "Offer declined",
+          },
+          declinedById,
+        );
+      } catch (e) {
+        logger.warn("[OfferService] Failed to send decline message", e);
+      }
     }
 
     return offer;
@@ -687,7 +728,7 @@ export class OfferService {
             published: false,
           },
         ],
-        { session }
+        { session },
       );
 
       await session.commitTransaction();
@@ -702,19 +743,19 @@ export class OfferService {
 
     // Side effect
     if (offer.getstream_channel_id) {
-        try {
-            await chatService.sendSystemMessage(
-              offer.getstream_channel_id,
-              {
-                type: "offer_expired",
-                amount: latestRevision?.amount,
-                message: "Offer expired",
-              },
-              "system"
-            );
-        } catch (e) {
-            logger.warn("[OfferService] Failed to send expiry message", e);
-        }
+      try {
+        await chatService.sendSystemMessage(
+          offer.getstream_channel_id,
+          {
+            type: "offer_expired",
+            amount: latestRevision?.amount,
+            message: "Offer expired",
+          },
+          "system",
+        );
+      } catch (e) {
+        logger.warn("[OfferService] Failed to send expiry message", e);
+      }
     }
 
     return offer;
@@ -723,8 +764,8 @@ export class OfferService {
   /**
    * Get all expired offers (CREATED/COUNTERED and passed expires_at)
    */
-  async getExpiredOffers(): Promise<IOffer[]> {
-    return Offer.findExpiredOffers();
+  async getExpiredOffers(platform?: Platform): Promise<IOffer[]> {
+    return Offer.findExpiredOffers(platform);
   }
 
   /**
@@ -734,12 +775,13 @@ export class OfferService {
     channelId: string,
     platform: Platform,
     lastOfferData: any,
-    session?: any
+    session?: any,
   ): Promise<void> {
-    const ChannelModel =
+    const ChannelModel = (
       platform === "marketplace"
         ? MarketplaceListingChannel
-        : NetworkListingChannel;
+        : NetworkListingChannel
+    ) as Model<any>;
 
     try {
       await ChannelModel.findByIdAndUpdate(
@@ -750,7 +792,7 @@ export class OfferService {
             last_event_type: "offer",
           },
         },
-        { session }
+        { session },
       );
     } catch (error) {
       logger.warn("[OfferService] Failed to update channel last offer", {
@@ -767,18 +809,19 @@ export class OfferService {
     channelId: string,
     platform: Platform,
     status: string,
-    session?: any
+    session?: any,
   ): Promise<void> {
-    const ChannelModel =
+    const ChannelModel = (
       platform === "marketplace"
         ? MarketplaceListingChannel
-        : NetworkListingChannel;
+        : NetworkListingChannel
+    ) as Model<any>;
 
     try {
       await ChannelModel.findByIdAndUpdate(
         channelId,
         { $set: { status } },
-        { session }
+        { session },
       );
     } catch (error) {
       logger.warn("[OfferService] Failed to update channel status", {
@@ -793,4 +836,5 @@ export class OfferService {
 export const offerService = new OfferService();
 
 // Backward-compat method aliases used by existing route handlers
-(OfferService.prototype as any).rejectOffer = OfferService.prototype.declineOffer;
+(OfferService.prototype as any).rejectOffer =
+  OfferService.prototype.declineOffer;

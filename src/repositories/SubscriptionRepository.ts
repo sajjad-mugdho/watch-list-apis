@@ -6,7 +6,7 @@
  */
 
 import { Types } from 'mongoose';
-import { BaseRepository } from './base/BaseRepository';
+import { BaseRepository } from '../shared/repositories/base/BaseRepository';
 import { Subscription, ISubscription, SUBSCRIPTION_TIER_VALUES } from '../models/Subscription';
 
 export type SubscriptionTier = typeof SUBSCRIPTION_TIER_VALUES[number];

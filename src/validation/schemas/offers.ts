@@ -5,7 +5,7 @@
  * Used by both Marketplace and Networks offer routes.
  */
 
-import { z } from 'zod';
+import { z } from "zod";
 
 /**
  * Offer ID parameter
@@ -25,18 +25,22 @@ export const counterOfferSchema = z.object({
   }),
   body: z.object({
     amount: z.number().positive(),
+    reservation_terms: z.string().max(2000).optional(),
     message: z.string().max(500).optional(),
     expires_in_hours: z.number().min(1).max(168).default(48), // 1 hour to 7 days
   }),
 });
 
 /**
- * Get offers query parameters  
+ * Get offers query parameters
  */
 export const getOffersSchema = z.object({
   query: z.object({
-    status: z.enum(['sent', 'accepted', 'rejected', 'expired', 'all']).optional().default('all'),
-    role: z.enum(['buyer', 'seller', 'all']).optional().default('all'),
+    status: z
+      .enum(["sent", "accepted", "rejected", "expired", "all"])
+      .optional()
+      .default("all"),
+    role: z.enum(["buyer", "seller", "all"]).optional().default("all"),
     limit: z.coerce.number().min(1).max(100).default(20),
     offset: z.coerce.number().min(0).default(0),
   }),
@@ -61,7 +65,9 @@ export const offerActionSchema = z.object({
   params: z.object({
     offerId: z.string().min(1),
   }),
-  body: z.object({
-    message: z.string().max(500).optional(),
-  }).optional(),
+  body: z
+    .object({
+      message: z.string().max(500).optional(),
+    })
+    .optional(),
 });

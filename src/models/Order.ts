@@ -1,185 +1,111 @@
-// src/models/Order.ts
-import mongoose, { Schema, Document, Types } from "mongoose";
+import mongoose, { Schema, Types } from "mongoose";
 
-export type OrderStatus =
-  | "reserved"
-  | "pending" // existing - waiting payment
-  | "processing" // NEW - payment captured, waiting for transfer confirmation
-  | "authorized" // NEW - Finix authorization created
-  | "paid" // existing - payment captured
-  | "shipped" // NEW - tracking uploaded
-  | "delivered" // NEW - buyer confirmed
-  | "completed" // existing - fully done
-  | "cancelled" // existing
-  | "expired" // NEW - reservation timeout
-  | "refunded"; // NEW - refunded (full or partial)
+// ----------------------------------------------------------
+// Constants
+// ----------------------------------------------------------
+export const ORDER_STATUS_VALUES = [
+  "pending",
+  "reserved",
+  "paid", // Marketplace only
+  "shipped",
+  "delivered",
+  "completed",
+  "cancelled",
+  "disputed",
+  "authorized",
+] as const;
+export type OrderStatus = (typeof ORDER_STATUS_VALUES)[number];
 
-export interface IOrder extends Document {
+// ----------------------------------------------------------
+// Interfaces
+// ----------------------------------------------------------
+export interface IOrder {
   _id: Types.ObjectId;
-  listing_type: "NetworkListing" | "MarketplaceListing"; // Discriminator for listing reference
+  listing_type: "MarketplaceListing" | "NetworkListing";
   listing_id: Types.ObjectId;
   listing_snapshot: {
-    brand?: string | null;
-    model?: string | null;
-    reference?: string | null;
-    condition?: string | null;
+    brand: string;
+    model: string;
+    reference: string;
     price: number;
-    images?: string[];
-    thumbnail?: string | null;
+    thumbnail?: string;
   };
-  // Enhanced offer/terms tracking
-  offer_id?: Types.ObjectId | null;
-  offer_revision_id?: Types.ObjectId | null;
-  reservation_terms_id?: Types.ObjectId | null;
-  from_offer_id: Types.ObjectId | null; // Legacy field - use offer_id instead
-  
-  // Seller snapshot for complete order record
-  seller_snapshot?: {
-    _id: Types.ObjectId;
-    display_name: string;
-    email: string;
-    avatar?: string;
-    location?: {
-      country?: string;
-      region?: string;
-      city?: string;
-    };
-    merchant_id?: string;
-  };
-  
+
   buyer_id: Types.ObjectId;
   seller_id: Types.ObjectId;
+
   amount: number;
   currency: string;
-  
-  // Optimistic concurrency
-  version: number;
-
   status: OrderStatus;
 
-  // Reservation (45-min window)
-  reserved_at?: Date | null;
-  reservation_expires_at?: Date | null;
+  reservation_terms_snapshot?: string;
 
-  // Finix fields
-  finix_buyer_identity_id?: string | null;
-  finix_payment_instrument_id?: string | null;
-  finix_authorization_id?: string | null;
-  finix_transaction_id?: string | null;
-  finix_transfer_id?: string | null;
-  fraud_session_id?: string | null;
+  offer_id?: Types.ObjectId;
+  offer_revision_id?: Types.ObjectId;
 
-  // Channel references
-  channel_id?: Types.ObjectId | null; // NetworkListingChannel._id or MarketplaceListingChannel._id
-  channel_type?: "NetworkListingChannel" | "MarketplaceListing Channel" | null; // Discriminator for channel reference
-  getstream_channel_id?: string | null;
+  buyer_confirmed_complete: boolean;
+  seller_confirmed_complete: boolean;
+  confirmed_by: {
+    user_id: Types.ObjectId;
+    confirmed_at: Date;
+  }[];
 
-  // Shipping info
-  tracking_number?: string | null;
-  tracking_carrier?: string | null;
-  shipped_at?: Date | null;
+  channel_id?: Types.ObjectId;
+  channel_type?: "MarketplaceListingChannel" | "NetworkListingChannel";
+  getstream_channel_id?: string;
 
-  // Delivery info
-  delivered_at?: Date | null;
-  auto_confirmed_at?: Date | null;
+  // Platform specific (Finix)
+  finix_transfer_id?: string;
+  finix_authorization_id?: string;
+  finix_buyer_identity_id?: string;
+  finix_payment_instrument_id?: string;
+  finix_transaction_id?: string;
+  fraud_session_id?: string;
 
-  // timestamps for status changes
-  authorized_at?: Date | null;
-  paid_at?: Date | null;
-  completed_at?: Date | null;
-  cancelled_at?: Date | null;
-  refunded_at?: Date | null;
-
-  // Dispute fields (Finix certification requirement)
-  dispute_id?: string | null;
-  dispute_state?: "INQUIRY" | "PENDING" | "WON" | "LOST" | null;
-  dispute_reason?: string | null;
-  dispute_amount?: number | null;
-  dispute_respond_by?: Date | null;
-  dispute_created_at?: Date | null;
-
-  // 3DS fields
-  three_ds_redirect_url?: string | null;
-  three_ds_started_at?: Date | null;
-  three_ds_completed_at?: Date | null;
-
-  // Payment method tracking
-  payment_method?: "card" | "bank" | "token" | null;
+  reserved_at?: Date;
+  reservation_expires_at?: Date;
+  paid_at?: Date;
+  shipped_at?: Date;
+  completed_at?: Date;
+  cancelled_at?: Date;
+  refunded_at?: Date;
+  authorized_at?: Date;
+  three_ds_completed_at?: Date;
 
   metadata?: Record<string, any>;
+
+  dispute_id?: string;
+  dispute_state?: string;
+  dispute_reason?: string;
+  dispute_amount?: number;
+  dispute_respond_by?: Date | undefined;
+  dispute_created_at?: Date;
+
   createdAt: Date;
   updatedAt: Date;
+
+  toJSON?(): Record<string, any>;
+  toObject?(): Record<string, any>;
 }
 
-const ListingSnapshotSchema = new Schema(
-  {
-    brand: { type: String, default: null },
-    model: { type: String, default: null },
-    reference: { type: String, default: null },
-    condition: { type: String, default: null },
-    price: { type: Number, required: true },
-    images: [{ type: String }],
-    thumbnail: { type: String, default: null },
-  },
-  { _id: false }
-);
-
-const OrderSchema = new Schema<IOrder>(
+// ----------------------------------------------------------
+// Schema
+// ----------------------------------------------------------
+const orderSchema = new Schema<IOrder>(
   {
     listing_type: {
       type: String,
-      enum: ["NetworkListing", "MarketplaceListing"],
+      enum: ["MarketplaceListing", "NetworkListing"],
       required: true,
-      default: "NetworkListing", // Default for backward compatibility
-      index: true,
     },
-    listing_id: {
-      type: Schema.Types.ObjectId,
-      refPath: "listing_type", // Dynamic reference based on listing_type
-      required: true,
-      index: true,
+    listing_id: { type: Schema.Types.ObjectId, required: true, index: true },
+    listing_snapshot: {
+      brand: { type: String, required: true },
+      model: { type: String, required: true },
+      reference: { type: String, required: true },
+      price: { type: Number, required: true },
+      thumbnail: { type: String },
     },
-    listing_snapshot: { type: ListingSnapshotSchema, required: true },
-    
-    // Enhanced offer/terms tracking
-    offer_id: {
-      type: Schema.Types.ObjectId,
-      ref: "Offer",
-      index: true,
-    },
-    offer_revision_id: {
-      type: Schema.Types.ObjectId,
-      ref: "OfferRevision",
-    },
-    reservation_terms_id: {
-      type: Schema.Types.ObjectId,
-      ref: "ReservationTerms",
-    },
-    from_offer_id: {
-      type: Schema.Types.ObjectId,
-      ref: "NetworkListingChannel", // Legacy field - use offer_id instead
-      required: false,
-    },
-    
-    // Seller snapshot
-    seller_snapshot: {
-      type: new Schema(
-        {
-          _id: { type: Schema.Types.ObjectId, required: true },
-          display_name: { type: String, required: true },
-          email: { type: String, required: true },
-          avatar: { type: String },
-          location: {
-            country: { type: String },
-            region: { type: String },
-            city: { type: String },
-          },
-          merchant_id: { type: String },
-        },
-        { _id: false }
-      ),
-    },
-    
     buyer_id: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -192,122 +118,56 @@ const OrderSchema = new Schema<IOrder>(
       required: true,
       index: true,
     },
-
     amount: { type: Number, required: true, min: 0 },
     currency: { type: String, default: "USD" },
-
     status: {
       type: String,
-      enum: [
-        "reserved",
-        "pending",
-        "processing",
-        "authorized",
-        "paid",
-        "shipped",
-        "delivered",
-        "completed",
-        "cancelled",
-        "expired",
-        "refunded",
-      ],
+      enum: ORDER_STATUS_VALUES,
       default: "pending",
       index: true,
     },
-
-    // Reservation (45-min window)
-    reserved_at: { type: Date, default: null },
-    reservation_expires_at: { type: Date, default: null },
-
-    // finix payment fields
-    finix_buyer_identity_id: { type: String, default: null },
-    finix_payment_instrument_id: { type: String, default: null },
-    finix_authorization_id: { type: String, default: null },
-    finix_transaction_id: { type: String, default: null },
-    finix_transfer_id: { type: String, default: null },
-    fraud_session_id: { type: String, default: null },
-
-    // Shipping info
-    tracking_number: { type: String, default: null },
-    tracking_carrier: { type: String, default: null },
-    shipped_at: { type: Date, default: null },
-
-    // Delivery info
-    delivered_at: { type: Date, default: null },
-    auto_confirmed_at: { type: Date, default: null },
-
+    reservation_terms_snapshot: { type: String, default: null },
+    offer_id: { type: Schema.Types.ObjectId, ref: "Offer" },
+    offer_revision_id: { type: Schema.Types.ObjectId, ref: "OfferRevision" },
+    buyer_confirmed_complete: { type: Boolean, default: false },
+    seller_confirmed_complete: { type: Boolean, default: false },
+    confirmed_by: [
+      {
+        user_id: { type: Schema.Types.ObjectId, ref: "User" },
+        confirmed_at: { type: Date },
+      },
+    ],
+    channel_id: { type: Schema.Types.ObjectId, required: false, index: true },
     channel_type: {
       type: String,
-      enum: ["NetworkListingChannel", "MarketplaceListingChannel", null],
-      default: null,
+      enum: ["MarketplaceListingChannel", "NetworkListingChannel"],
+      required: false,
     },
-    channel_id: {
-      type: Schema.Types.ObjectId,
-      refPath: "channel_type", // Dynamic reference based on channel_type
-      default: null,
-    },
-    getstream_channel_id: { type: String, default: null },
-
-    authorized_at: { type: Date, default: null },
-    paid_at: { type: Date, default: null },
-    completed_at: { type: Date, default: null },
-    cancelled_at: { type: Date, default: null },
-    refunded_at: { type: Date, default: null },
-
-    // Dispute fields (Finix certification requirement)
-    dispute_id: { type: String, default: null },
-    dispute_state: {
-      type: String,
-      enum: ["INQUIRY", "PENDING", "WON", "LOST", null],
-      default: null,
-    },
-    dispute_reason: { type: String, default: null },
-    dispute_amount: { type: Number, default: null },
-    dispute_respond_by: { type: Date, default: null },
-    dispute_created_at: { type: Date, default: null },
-
-    // 3DS fields
-    three_ds_redirect_url: { type: String, default: null },
-    three_ds_started_at: { type: Date, default: null },
-    three_ds_completed_at: { type: Date, default: null },
-
-    // Payment method tracking
-    payment_method: {
-      type: String,
-      enum: ["card", "bank", "token", null],
-      default: null,
-    },
-
-    metadata: { type: Schema.Types.Mixed, default: {} },
-    
-    // Optimistic concurrency
-    version: { type: Number, default: 1 },
+    getstream_channel_id: { type: String, index: true },
+    finix_transfer_id: { type: String, index: true },
+    finix_authorization_id: { type: String, index: true },
+    finix_buyer_identity_id: { type: String, index: true },
+    finix_payment_instrument_id: { type: String, index: true },
+    finix_transaction_id: { type: String, index: true },
+    fraud_session_id: { type: String, index: true },
+    reserved_at: { type: Date },
+    reservation_expires_at: { type: Date },
+    paid_at: { type: Date },
+    shipped_at: { type: Date },
+    completed_at: { type: Date },
+    cancelled_at: { type: Date },
+    refunded_at: { type: Date },
+    authorized_at: { type: Date },
+    three_ds_completed_at: { type: Date },
+    metadata: { type: Schema.Types.Mixed },
+    dispute_id: { type: String, index: true },
+    dispute_state: { type: String, index: true },
+    dispute_reason: { type: String },
+    dispute_amount: { type: Number },
+    dispute_respond_by: { type: Date },
+    dispute_created_at: { type: Date },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
-// Pre-save hook for optimistic concurrency
-OrderSchema.pre("save", function (next) {
-  if (!this.isNew && this.isModified()) {
-    this.version = ((this as any).version || 1) + 1;
-  }
-  next();
-});
-
-OrderSchema.index({ buyer_id: 1, status: 1 });
-OrderSchema.index({ seller_id: 1, status: 1 });
-OrderSchema.index({ reservation_expires_at: 1 });
-OrderSchema.index({ finix_authorization_id: 1 }, { sparse: true });
-OrderSchema.index({ finix_transaction_id: 1 }, { sparse: true });
-OrderSchema.index({ dispute_id: 1 }, { sparse: true });
-OrderSchema.index({ dispute_state: 1 }, { sparse: true });
-
-OrderSchema.set("toJSON", {
-  transform: (_doc: any, ret: any) => {
-    ret._id = ret._id?.toString?.();
-    return ret;
-  },
-});
-
-export const Order = mongoose.model<IOrder>("Order", OrderSchema, "orders");
-export default Order;
+export const Order = mongoose.model<IOrder>("Order", orderSchema, "orders");

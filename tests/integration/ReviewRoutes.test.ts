@@ -60,6 +60,7 @@ describe("Review Endpoints Integration", () => {
       dialist_id: seller._id,
       clerk_id: "seller_test",
       watch_id: watch._id,
+      title: `${watch.brand} ${watch.model}`,
       brand: watch.brand,
       model: watch.model,
       reference: watch.reference,
@@ -85,6 +86,7 @@ describe("Review Endpoints Integration", () => {
       listing_snapshot: {
         brand: watch.brand,
         model: watch.model,
+        reference: watch.reference || "126610LN",
         price: 10000,
       },
       amount: 10000,
@@ -102,7 +104,12 @@ describe("Review Endpoints Integration", () => {
         seller_id: seller._id,
         listing_id: listing._id,
         listing_type: "NetworkListing",
-        listing_snapshot: { brand: watch.brand, model: watch.model, price: 10000 },
+        listing_snapshot: {
+          brand: watch.brand,
+          model: watch.model,
+          reference: watch.reference || "126610LN",
+          price: 10000,
+        },
         amount: 10000,
         status: "completed",
       });
@@ -137,6 +144,7 @@ describe("Review Endpoints Integration", () => {
         listing_snapshot: {
           brand: watch.brand,
           model: watch.model,
+          reference: watch.reference || "126610LN",
           price: 10000,
         },
         amount: 10000,
@@ -155,7 +163,9 @@ describe("Review Endpoints Integration", () => {
         });
 
       expect(response.status).toBe(400);
-      expect(response.body.error.message).toContain("must be delivered or completed");
+      expect(response.body.error.message).toContain(
+        "must be delivered or completed",
+      );
     });
 
     it("should prevent duplicate reviews", async () => {
@@ -164,7 +174,12 @@ describe("Review Endpoints Integration", () => {
         seller_id: seller._id,
         listing_id: listing._id,
         listing_type: "NetworkListing",
-        listing_snapshot: { brand: watch.brand, model: watch.model, price: 10000 },
+        listing_snapshot: {
+          brand: watch.brand,
+          model: watch.model,
+          reference: watch.reference || "126610LN",
+          price: 10000,
+        },
         amount: 10000,
         status: "completed",
       });
@@ -201,7 +216,7 @@ describe("Review Endpoints Integration", () => {
       const feedback = "Excellent communication, highly recommended!";
       const bId = "ccc111111111111111111111"; // current user (buyer)
       const sId = "ddd333333333333333333333";
-      
+
       await Review.create({
         reviewer_id: bId, // I AM THE REVIEWER
         target_user_id: sId,
@@ -262,7 +277,7 @@ describe("Review Endpoints Integration", () => {
           rating: 4,
           feedback: "Good seller, accurate.",
           role: "buyer",
-        }
+        },
       ]);
 
       const response = await request(app)

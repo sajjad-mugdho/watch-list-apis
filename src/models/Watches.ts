@@ -55,7 +55,7 @@ const watchSchema = new Schema<IWatch>(
   },
   {
     strict: true,
-  }
+  },
 );
 
 watchSchema.set("toJSON", {
@@ -64,5 +64,8 @@ watchSchema.set("toJSON", {
     return ret;
   },
 });
+
+// Text index for fast partial search on brand / model / reference
+watchSchema.index({ brand: "text", model: "text", reference: "text" });
 
 export const Watch = mongoose.model<IWatch, IWatchModel>("Watch", watchSchema);

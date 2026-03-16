@@ -13,7 +13,7 @@ function locationByGranularity(
     city?: string;
     postal_code?: string;
   },
-  mode: "country" | "country_region" | "city" | "full" = "country_region"
+  mode: "country" | "country_region" | "city" | "full" = "country_region",
 ) {
   const country = loc?.country ?? "";
   const region = loc?.region ?? "";
@@ -27,7 +27,7 @@ function locationByGranularity(
       return [city, region].filter(Boolean).join(", ");
     case "full":
     default:
-      return [region, country].filter(Boolean).join(", ");
+      return [city, region, country].filter(Boolean).join(", ");
   }
 }
 
@@ -44,6 +44,7 @@ export interface IUserLocation {
   line1?: string | null; // Street address
   line2?: string | null; // Apt/Suite number
   time_zone?: string | null;
+  currency?: string | null;
 }
 
 export interface IUser extends Document {
@@ -70,6 +71,12 @@ export interface IUser extends Document {
   marketplace_last_accessed: Date | null;
   networks_last_accessed: Date | null;
 
+  // Persona Identity Verification
+  identityVerified: boolean;
+  identityVerifiedAt: Date | null;
+  personaInquiryId: string | null;
+  personaStatus: "pending" | "approved" | "failed" | "expired" | null;
+
   // Marketplace merchant account / status (Finix onboarding)
   merchant?: {
     // Finix resource IDs (for linking webhook events)
@@ -95,6 +102,7 @@ export interface IUser extends Document {
     show_name: boolean;
   };
   marketplace_published: boolean;
+  is_private: boolean;
   // Networks
   networks_application_id: Types.ObjectId | null;
   networks_published: boolean;
@@ -114,6 +122,7 @@ export interface IUser extends Document {
         city?: string | null; // City name
         line1?: string | null; // Street address
         line2?: string | null; // Apt/Suite number
+        currency?: string | null;
         updated_at: Date | null;
       };
       business_info?: {
@@ -178,6 +187,17 @@ export interface IUser extends Document {
     review_count_as_seller: number;
   };
 
+  // Reputation (Batch 2)
+  rating_average: number;
+  rating_count: number;
+  reference_count: number;
+
+  // Status (Batch 2)
+  deactivated_at: Date | null;
+  presence_status: "online" | "offline" | "away" | "busy";
+  full_name: string;
+  isActive: boolean;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -201,26 +221,7 @@ export interface IUser extends Document {
   networks_display_location?: string;
 }
 
-export interface IUserModel extends Model<IUser> {
-  getMarketplaceProfile(id: string): Promise<{
-    _id: string;
-    display_name: string | null;
-    location: string;
-    avatar?: string | undefined;
-    stats?: {
-      avg_rating: number;
-      rating_count: number;
-      follower_count: number;
-    };
-  } | null>;
-
-  getNetworksProfile(id: string): Promise<{
-    _id: string;
-    display_name: string | null;
-    location: string;
-    avatar?: string | undefined;
-  } | null>;
-}
+export interface IUserModel extends Model<IUser> {}
 
 // ----------------------------------------------------------
 // Schemas
@@ -234,9 +235,10 @@ const OBLocationSchema = new Schema(
     city: { type: String, default: null },
     line1: { type: String, default: null }, // Street address
     line2: { type: String, default: null }, // Apt/Suite number
+    currency: { type: String, trim: true, default: null },
     updated_at: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 const OBDisplayNameSchema = new Schema(
   {
@@ -245,7 +247,7 @@ const OBDisplayNameSchema = new Schema(
     confirmed: { type: Boolean, default: false },
     updated_at: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 const OBAvatarSchema = new Schema(
   {
@@ -254,7 +256,7 @@ const OBAvatarSchema = new Schema(
     confirmed: { type: Boolean, default: false },
     updated_at: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 const OBAcksSchema = new Schema(
   {
@@ -263,7 +265,7 @@ const OBAcksSchema = new Schema(
     rules: { type: Boolean, default: false },
     updated_at: { type: Date },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Business Information Schema
@@ -276,7 +278,7 @@ const OBBusinessInfoSchema = new Schema(
     tax_id: { type: String, default: null, select: false }, // Encrypted, sensitive
     updated_at: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // Personal Information Schema (for merchant verification)
@@ -291,7 +293,7 @@ const OBPersonalInfoSchema = new Schema(
     title: { type: String, default: null }, // Job title (e.g., "Owner", "CEO")
     updated_at: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const OnboardingSchema = new Schema(
@@ -314,7 +316,7 @@ const OnboardingSchema = new Schema(
     last_step: { type: String, default: null },
     completed_at: { type: Date, default: null },
   },
-  { _id: false }
+  { _id: false },
 );
 
 export const UserLocationSchema = new Schema<IUserLocation>(
@@ -326,8 +328,9 @@ export const UserLocationSchema = new Schema<IUserLocation>(
     line1: { type: String, required: false, trim: true },
     line2: { type: String, required: false, trim: true },
     time_zone: { type: String, required: false, trim: true },
+    currency: { type: String, required: false, trim: true },
   },
-  { _id: false, timestamps: true }
+  { _id: false, timestamps: true },
 );
 
 const userSchema = new Schema<IUser>(
@@ -360,6 +363,7 @@ const userSchema = new Schema<IUser>(
 
     networks_published: { type: Boolean, default: false },
     marketplace_published: { type: Boolean, default: false },
+    is_private: { type: Boolean, default: false },
 
     marketplace_last_accessed: { type: Date },
     networks_last_accessed: { type: Date },
@@ -382,6 +386,25 @@ const userSchema = new Schema<IUser>(
         enum: ["country", "country_region", "city", "full"],
         default: "country_region",
       },
+    },
+
+    // Persona Identity Verification
+    identityVerified: {
+      type: Boolean,
+      default: false,
+    },
+    identityVerifiedAt: {
+      type: Date,
+      default: null,
+    },
+    personaInquiryId: {
+      type: String,
+      default: null,
+    },
+    personaStatus: {
+      type: String,
+      enum: ["pending", "approved", "failed", "expired", null],
+      default: null,
     },
 
     // ❌ REMOVED: merchant field - now using MerchantOnboarding collection as single source of truth
@@ -415,10 +438,12 @@ const userSchema = new Schema<IUser>(
     },
 
     // Wishlist of listings user wants to track
-    wishlist: [{
-      type: Schema.Types.ObjectId,
-      ref: 'NetworkListing',
-    }],
+    wishlist: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "NetworkListing",
+      },
+    ],
 
     // Cached stats (denormalized for performance)
     // Updated via ReviewService and FriendshipService
@@ -433,6 +458,14 @@ const userSchema = new Schema<IUser>(
       review_count_as_seller: { type: Number, default: 0 },
     },
 
+    // Status (Batch 2)
+    deactivated_at: { type: Date, default: null },
+    presence_status: {
+      type: String,
+      enum: ["online", "offline", "away", "busy"],
+      default: "offline",
+    },
+
     // ===== Trust & Safety: Suspension Fields =====
     suspended_at: { type: Date, default: null },
     suspension_reason: { type: String, default: null, trim: true },
@@ -443,7 +476,7 @@ const userSchema = new Schema<IUser>(
   {
     strict: false, // per request
     timestamps: true,
-  }
+  },
 );
 
 // Transform _id to string in JSON responses
@@ -492,85 +525,17 @@ userSchema.virtual("networks_display_location").get(function (this: any) {
   return locationByGranularity(this.location, mode) || "Unknown";
 });
 
+userSchema.virtual("full_name").get(function (this: any) {
+  return [this.first_name, this.last_name].filter(Boolean).join(" ");
+});
+
+userSchema.virtual("isActive").get(function (this: any) {
+  return !this.deactivated_at && !this.suspended_at;
+});
+
 // ❌ REMOVED: isMerchant virtual - now query MerchantOnboarding collection directly
 // Old implementation relied on user.merchant field which is being deprecated
 // New approach: await MerchantOnboarding.findOne({ dialist_user_id, onboarding_state: "APPROVED" })
-
-userSchema.statics.getMarketplaceProfile = async function (
-  this: Model<IUser>,
-  id: string
-) {
-  // NOTE: many fields in your schema are `select: false`, so we must include them explicitly.
-  const doc = await this.findOne({ _id: id, marketplace_published: true }) // <-- added condition
-    .select(
-      [
-        "_id",
-        "avatar",
-        "display_name",
-        "first_name",
-        "last_name",
-
-        "marketplace_profile_config.location",
-        "marketplace_profile_config.show_name",
-
-        "location.country",
-        "location.region",
-        "location.city",
-        "location.postal_code",
-        "stats",
-      ].join(" ")
-    )
-    .lean({ virtuals: true });
-  if (!doc) return null;
-  // Virtuals available on the lean doc now:
-  const location = (doc as any).marketplace_display_location ?? "";
-  return {
-    _id: String(doc._id),
-    location, // computed by virtual based on granularity
-    display_name: doc.display_name,
-    avatar: (doc as any).avatar,
-    stats: {
-      avg_rating: doc.stats?.avg_rating || 0,
-      rating_count: doc.stats?.rating_count || 0,
-      follower_count: doc.stats?.follower_count || 0,
-    },
-  };
-};
-userSchema.statics.getNetworksProfile = async function (
-  this: Model<IUser>,
-  id: string
-) {
-  // NOTE: many fields in your schema are `select: false`, so we must include them explicitly.
-  const doc = await this.findOne({ _id: id, networks_published: true }) // <-- added condition
-    .select(
-      [
-        "_id",
-        "avatar",
-        "display_name",
-        "first_name",
-        "last_name",
-        "networks_profile_config.location",
-        "networks_profile_config.show_name",
-        "location.country",
-        "location.region",
-        "location.city",
-        "location.postal_code",
-      ].join(" ")
-    )
-    .lean({ virtuals: true });
-
-  if (!doc) return null;
-
-  // Virtuals available on the lean doc now:
-  const location = (doc as any).networks_display_location ?? "";
-
-  return {
-    _id: String(doc._id),
-    location,
-    display_name: doc.display_name,
-    avatar: (doc as any).avatar,
-  };
-};
 
 /** Guard: prevent writing onboarding once completed (except by admin paths). */
 
@@ -609,5 +574,5 @@ userSchema.plugin(mongooseLeanVirtuals);
 export const User = mongoose.model<IUser, IUserModel>(
   "User",
   userSchema,
-  "users"
+  "users",
 );

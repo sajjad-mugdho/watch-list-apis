@@ -2,6 +2,7 @@
  * Shared utility for extracting watch specification data
  * Removes code duplication between marketplace and networks listing handlers
  */
+import logger from "./logger";
 
 export interface WatchSpecData {
   watch_id: any;
@@ -45,7 +46,7 @@ export function ExtractWatchSpecData(data: any): WatchSpecData | null {
       bracelet: data.bracelet,
     };
   } catch (e) {
-    console.log("error ExtractWatchSpecData: ", e);
+    logger.error("Error in ExtractWatchSpecData", { error: e });
     return null;
   }
 }

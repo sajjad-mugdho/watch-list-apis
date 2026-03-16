@@ -8,7 +8,6 @@
 import mongoose from "mongoose";
 import { MarketplaceListing } from "../models/Listings";
 
-
 const MONGO_URI = process.env.MONGO_URI || "mongodb://localhost:27017/dialist";
 
 async function migrateMarketplaceListings() {
@@ -41,22 +40,18 @@ async function migrateMarketplaceListings() {
           brand: listing.brand,
           model: listing.model,
           reference: listing.reference,
-          diameter: listing.diameter,
-          bezel: listing.bezel,
-          materials: listing.materials,
-          bracelet: listing.bracelet,
-          color: listing.color,
+          // diameter: listing.diameter,
+          // bezel: listing.bezel,
+          // materials: listing.materials,
+          // bracelet: listing.bracelet,
+          // color: listing.color,
         };
 
         // Validate that required fields exist
         if (
           !watchSnapshot.brand ||
           !watchSnapshot.model ||
-          !watchSnapshot.reference ||
-          !watchSnapshot.diameter ||
-          !watchSnapshot.bezel ||
-          !watchSnapshot.materials ||
-          !watchSnapshot.bracelet
+          !watchSnapshot.reference
         ) {
           throw new Error("Missing required watch fields");
         }
@@ -64,7 +59,7 @@ async function migrateMarketplaceListings() {
         // Update listing with watch_snapshot
         await MarketplaceListing.updateOne(
           { _id: listing._id },
-          { $set: { watch_snapshot: watchSnapshot } }
+          { $set: { watch_snapshot: watchSnapshot } },
         );
 
         successCount++;
@@ -76,7 +71,7 @@ async function migrateMarketplaceListings() {
           error: error.message,
         });
         console.error(
-          `✗ Failed to migrate listing ${listing._id}: ${error.message}`
+          `✗ Failed to migrate listing ${listing._id}: ${error.message}`,
         );
       }
     }

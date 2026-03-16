@@ -9,7 +9,7 @@
  */
 
 import { Types, FilterQuery } from 'mongoose';
-import { BaseRepository, PaginatedResult } from './base/BaseRepository';
+import { BaseRepository, PaginatedResult } from '../shared/repositories/base/BaseRepository';
 import { Follow, IFollow } from '../models/Follow';
 
 class FollowRepository extends BaseRepository<IFollow> {

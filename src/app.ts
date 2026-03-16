@@ -54,7 +54,7 @@ app.use(
       includeSubDomains: true,
       preload: true,
     },
-  })
+  }),
 );
 
 // API Documentation (before other middleware to avoid authentication on docs)
@@ -67,8 +67,15 @@ app.use(
     swaggerOptions: {
       persistAuthorization: true,
     },
-  })
+  }),
 );
+
+// Raw OpenAPI spec — used to import directly into Postman
+// curl http://localhost:5050/api-docs.json -o dialist-openapi.json
+app.get("/api-docs.json", (_req, res) => {
+  res.setHeader("Content-Type", "application/json");
+  res.json(swaggerSpec);
+});
 
 // CORS - Conditional based on environment
 app.use(
@@ -77,22 +84,24 @@ app.use(
       process.env.NODE_ENV === "development"
         ? true // Allow all origins in development
         : process.env.ALLOWED_ORIGINS &&
-          process.env.ALLOWED_ORIGINS.trim().length > 0
-        ? process.env.ALLOWED_ORIGINS.split(",").map((origin) => origin.trim())
-        : [
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "https://localhost:3000",
-            "https://localhost:3001",
-            "http://mackerel-needed-frequently.ngrok-free.app",
-            "https://mackerel-needed-frequently.ngrok-free.app",
-            "http://unappliable-darcey-projectively.ngrok-free.dev",
-            "https://unappliable-darcey-projectively.ngrok-free.dev",
-          ],
+            process.env.ALLOWED_ORIGINS.trim().length > 0
+          ? process.env.ALLOWED_ORIGINS.split(",").map((origin) =>
+              origin.trim(),
+            )
+          : [
+              "http://localhost:3000",
+              "http://localhost:3001",
+              "https://localhost:3000",
+              "https://localhost:3001",
+              "http://mackerel-needed-frequently.ngrok-free.app",
+              "https://mackerel-needed-frequently.ngrok-free.app",
+              "http://unappliable-darcey-projectively.ngrok-free.dev",
+              "https://unappliable-darcey-projectively.ngrok-free.dev",
+            ],
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allowedHeaders: ["Content-Type", "Authorization", "x-request-id"],
-  })
+  }),
 );
 
 // Operational middleware
@@ -100,16 +109,26 @@ app.use(requestId);
 app.use(requestLogger);
 app.use(rateLimit);
 
-// Webhook routes: preserve raw body for signature verification
+// Webhook routes: express.json verify callback captures raw body for signature
+// verification (works for both Clerk HMAC and Persona HMAC-SHA256)
 app.use(
   "/api/v1/webhooks",
   express.json({
     verify: (req: any, _res, buf) => {
-      // Attach raw body for signature verification
       req.rawBody = buf.toString("utf8");
     },
   }),
-  webhooksRoutes
+  webhooksRoutes,
+);
+
+// Marketplace webhooks (e.g., Finix) also require raw body for signature verification
+app.use(
+  "/api/v1/marketplace/webhooks",
+  express.json({
+    verify: (req: any, _res, buf) => {
+      req.rawBody = buf.toString("utf8");
+    },
+  }),
 );
 
 app.use(
@@ -117,14 +136,14 @@ app.use(
     limit: "1mb",
     strict: true,
     type: "application/json",
-  })
+  }),
 );
 app.use(
   express.urlencoded({
     extended: true,
     limit: "1mb",
     parameterLimit: 20,
-  })
+  }),
 );
 
 app.disable("x-powered-by");

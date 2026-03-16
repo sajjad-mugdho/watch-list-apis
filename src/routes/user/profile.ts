@@ -1,6 +1,6 @@
 /**
  * User Profile Routes
- * 
+ *
  * Handles profile updates (bio, social_links) and wishlist management
  */
 
@@ -14,8 +14,25 @@ import {
   getWishlistSchema,
 } from "../../validation/schemas";
 import { User } from "../../models/User";
-import { NetworkListing } from "../../models/Listings";
+
+import { Follow } from "../../models/Follow";
+import { Order } from "../../models/Order";
 import { Types } from "mongoose";
+import {
+  deactivateUserSchema,
+  userStatusSchema,
+} from "../../validation/schemas";
+import logger from "../../utils/logger";
+import { imageService, ImageContext } from "../../services/ImageService";
+import multer from "multer";
+import { NetworkListing } from "../../models/Listings";
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB
+  },
+});
 
 const router = Router();
 
@@ -33,9 +50,38 @@ router.patch(
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const userId = getUserId(req);
-      const { bio, social_links } = req.body;
+      const {
+        bio,
+        social_links,
+        fullName,
+        first_name,
+        last_name,
+        display_name,
+      } = req.body;
 
       const updateData: Record<string, any> = {};
+
+      // Handle explicit first_name / last_name fields
+      if (first_name !== undefined) {
+        updateData.first_name = first_name.trim();
+      }
+      if (last_name !== undefined) {
+        updateData.last_name = last_name.trim();
+      }
+
+      // Handle explicit display_name override
+      if (display_name !== undefined) {
+        updateData.display_name = display_name.trim();
+      }
+
+      // Legacy: fullName string split into first/last
+      if (fullName !== undefined && fullName !== null) {
+        const parts = fullName.trim().split(/\s+/);
+        if (parts.length > 0) {
+          updateData.first_name = parts[0];
+          updateData.last_name = parts.slice(1).join(" ") || "";
+        }
+      }
 
       // Only update fields that are provided
       if (bio !== undefined) {
@@ -65,8 +111,8 @@ router.patch(
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $set: updateData },
-        { new: true, runValidators: true }
-      ).select("bio social_links");
+        { new: true, runValidators: true },
+      ).select("bio social_links display_name +first_name +last_name");
 
       if (!updatedUser) {
         res.status(404).json({ error: "User not found" });
@@ -75,6 +121,10 @@ router.patch(
 
       res.json({
         data: {
+          first_name: (updatedUser as any).first_name,
+          last_name: (updatedUser as any).last_name,
+          full_name: (updatedUser as any).full_name,
+          display_name: updatedUser.display_name,
           bio: updatedUser.bio,
           social_links: updatedUser.social_links,
         },
@@ -82,7 +132,52 @@ router.patch(
     } catch (err) {
       next(err);
     }
-  }
+  },
+);
+
+/**
+ * @route POST /api/v1/user/avatar
+ * @desc Upload avatar for current user
+ */
+router.post(
+  "/avatar",
+  upload.single("avatar"),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = getUserId(req);
+      const file = req.file;
+
+      if (!file) {
+        res.status(400).json({ error: "No image file provided" });
+        return;
+      }
+
+      // Upload to S3 via ImageService
+      const metadata = await imageService.uploadImage(file, {
+        context: ImageContext.AVATAR,
+        entityId: userId,
+        optimize: true,
+        maxWidth: 500,
+        maxHeight: 500,
+      });
+
+      // Update user record
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { avatar: metadata.url } },
+        { new: true },
+      ).select("avatar");
+
+      res.json({
+        data: {
+          avatar_url: updatedUser?.avatar,
+          metadata,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 );
 
 /**
@@ -96,7 +191,57 @@ router.get(
       const userId = getUserId(req);
 
       const user = await User.findById(userId).select(
-        "bio social_links stats display_name avatar"
+        "bio social_links stats display_name avatar rating_average rating_count reference_count +first_name +last_name",
+      );
+
+      if (!user) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      // Fetch follow counts
+      const [follower_count, following_count] = await Promise.all([
+        Follow.getFollowersCount(userId),
+        Follow.getFollowingCount(userId),
+      ]);
+
+      res.json({
+        data: {
+          bio: user.bio || null,
+          social_links: user.social_links || {},
+          stats: {
+            ...((user as any).stats || {}),
+            follower_count,
+            following_count,
+            avg_rating: user.rating_average || 0,
+            rating_count: user.rating_count || 0,
+            reference_count: user.reference_count || 0,
+          },
+          display_name: user.display_name,
+          avatar: user.avatar,
+          deactivated_at: (user as any).deactivated_at,
+          isActive: (user as any).isActive,
+          full_name: (user as any).full_name,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
+ * @route GET /api/v1/user/verification
+ * @desc Get current user's Persona verification status
+ */
+router.get(
+  "/verification",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = getUserId(req);
+
+      const user = await User.findById(userId).select(
+        "identityVerified identityVerifiedAt personaStatus",
       );
 
       if (!user) {
@@ -106,25 +251,147 @@ router.get(
 
       res.json({
         data: {
-          bio: user.bio || null,
-          social_links: user.social_links || {},
-          stats: user.stats || {
-            follower_count: 0,
-            following_count: 0,
-            friend_count: 0,
-            avg_rating: 0,
-            rating_count: 0,
-            review_count_as_buyer: 0,
-            review_count_as_seller: 0,
-          },
-          display_name: user.display_name,
-          avatar: user.avatar,
+          status: user.personaStatus ?? "unverified",
+          identityVerified: user.identityVerified,
+          verifiedAt: user.identityVerifiedAt,
         },
       });
     } catch (err) {
       next(err);
     }
-  }
+  },
+);
+
+/**
+ * @route PATCH /api/v1/user/status
+ * @desc Update current user's presence status (online/offline/away/busy)
+ */
+router.patch(
+  "/status",
+  validateRequest(userStatusSchema),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = getUserId(req);
+      const { status } = req.body;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { presence_status: status } },
+        { new: true },
+      ).select("presence_status");
+
+      if (!updatedUser) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      res.json({
+        data: {
+          status: updatedUser.presence_status,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
+ * @route PATCH /api/v1/user/deactivate
+ * @desc Deactivate or reactivate current user's account
+ */
+router.patch(
+  "/deactivate",
+  validateRequest(deactivateUserSchema),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = getUserId(req);
+      const { active } = req.body;
+
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: { deactivated_at: active ? null : new Date() } },
+        { new: true },
+      );
+
+      if (!updatedUser) {
+        res.status(404).json({ error: "User not found" });
+        return;
+      }
+
+      logger.info(
+        `User ${userId} ${active ? "reactivated" : "deactivated"} their account`,
+      );
+
+      res.json({
+        data: {
+          active: !!active,
+          deactivated_at: updatedUser.deactivated_at || null,
+        },
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/**
+ * @route DELETE /api/v1/user
+ * @desc Permanently delete current user's account (requires checks)
+ */
+router.delete(
+  "/",
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    try {
+      const userId = getUserId(req);
+
+      // Check for active financial activity
+      const activeOrders = await Order.countDocuments({
+        $or: [{ buyer_id: userId }, { seller_id: userId }],
+        status: {
+          $in: ["pending", "processing", "authorized", "paid", "shipped"],
+        },
+      });
+
+      if (activeOrders > 0) {
+        res.status(400).json({
+          error:
+            "Cannot delete account while you have active orders. Please complete or cancel them first.",
+        });
+        return;
+      }
+
+      // TODO: Check for pending disputes/escrow if applicable
+
+      // For Clerk integration, usually the deletion is initiated from Clerk
+      // or we anonymize the user record here.
+      // In this case, we'll mark as deleted/anonymize.
+      await User.findByIdAndUpdate(userId, {
+        $set: {
+          first_name: "Deleted",
+          last_name: "User",
+          email: `deleted_${userId}@dialist.com`,
+          display_name: "Deleted User",
+          avatar: null,
+          external_id: null, // Unlink from Clerk
+          deactivated_at: new Date(),
+          "social_links.instagram": null,
+          "social_links.twitter": null,
+          "social_links.website": null,
+          bio: "This account has been deleted.",
+        },
+      });
+
+      logger.info(`User ${userId} deleted their account`);
+
+      res.json({
+        success: true,
+        message: "Your account has been deleted and anonymized.",
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
 );
 
 // ----------------------------------------------------------
@@ -175,7 +442,7 @@ router.get(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -201,7 +468,7 @@ router.post(
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $addToSet: { wishlist: new Types.ObjectId(listing_id) } },
-        { new: true }
+        { new: true },
       ).select("wishlist");
 
       if (!updatedUser) {
@@ -219,7 +486,7 @@ router.post(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -237,7 +504,7 @@ router.delete(
       const updatedUser = await User.findByIdAndUpdate(
         userId,
         { $pull: { wishlist: new Types.ObjectId(listing_id) } },
-        { new: true }
+        { new: true },
       ).select("wishlist");
 
       if (!updatedUser) {
@@ -255,7 +522,7 @@ router.delete(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 /**
@@ -277,7 +544,7 @@ router.get(
       }
 
       const isInWishlist = user.wishlist?.some(
-        (id) => id.toString() === listing_id
+        (id) => id.toString() === listing_id,
       );
 
       res.json({
@@ -289,7 +556,7 @@ router.get(
     } catch (err) {
       next(err);
     }
-  }
+  },
 );
 
 export { router as userProfileRoutes };

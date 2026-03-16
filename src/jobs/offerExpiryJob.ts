@@ -7,7 +7,8 @@
  * Offers expire after 48 hours automatically.
  */
 
-import { offerService } from '../services';
+import { marketplaceOfferService } from '../marketplace/services/MarketplaceOfferService';
+import { networksOfferService } from '../networks/services/NetworksOfferService';
 import logger from '../utils/logger';
 
 // Run every 15 minutes
@@ -31,20 +32,48 @@ async function processExpiredOffers(): Promise<void> {
   try {
     logger.info('Starting offer expiry job');
 
-    // Process all expired offers (no longer separated by platform)
-    const expiredOffers = await offerService.getExpiredOffers();
     let expiredCount = 0;
     
-    for (const offer of expiredOffers as any[]) {
-      try {
-        await offerService.expireOffer(offer._id.toString());
-        expiredCount++;
-      } catch (error) {
-        logger.error('Failed to expire offer', {
-          offerId: offer._id,
-          error: error instanceof Error ? error.message : error,
-        });
+    // Process Marketplace Expired Offers
+    try {
+      const marketplaceExpiredOffers = await marketplaceOfferService.getExpiredOffers();
+      
+      for (const offer of marketplaceExpiredOffers as any[]) {
+        try {
+          await marketplaceOfferService.expireOffer(offer._id.toString());
+          expiredCount++;
+        } catch (error) {
+          logger.error('Failed to expire marketplace offer', {
+            offerId: offer._id,
+            error: error instanceof Error ? error.message : error,
+          });
+        }
       }
+    } catch (err) {
+      logger.error('Failed to process marketplace offers in expiry job', {
+        error: err instanceof Error ? err.message : err,
+      });
+    }
+
+    // Process Networks Expired Offers
+    try {
+      const networksExpiredOffers = await networksOfferService.getExpiredOffers();
+      
+      for (const offer of networksExpiredOffers as any[]) {
+        try {
+          await networksOfferService.expireOffer(offer._id.toString());
+          expiredCount++;
+        } catch (error) {
+          logger.error('Failed to expire networks offer', {
+            offerId: offer._id,
+            error: error instanceof Error ? error.message : error,
+          });
+        }
+      }
+    } catch (err) {
+      logger.error('Failed to process networks offers in expiry job', {
+        error: err instanceof Error ? err.message : err,
+      });
     }
 
     const duration = Date.now() - startTime;

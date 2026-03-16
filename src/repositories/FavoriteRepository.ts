@@ -1,4 +1,4 @@
-import { BaseRepository } from './base/BaseRepository';
+import { BaseRepository } from '../shared/repositories/base/BaseRepository';
 import { Favorite, IFavorite, FavoriteType, Platform } from '../models/Favorite';
 import { FilterQuery } from 'mongoose';
 

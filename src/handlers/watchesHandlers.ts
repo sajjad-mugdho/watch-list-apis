@@ -3,6 +3,7 @@ import { NextFunction, Request, Response } from "express";
 import { GetWatchesInput } from "../validation/schemas";
 import { ApiResponse } from "../types";
 import { buildPaginationOptions } from "../utils/pagination";
+import logger from "../utils/logger";
 import { DatabaseError } from "../utils/errors";
 
 // ----------------------------------------------------------
@@ -16,7 +17,7 @@ import { DatabaseError } from "../utils/errors";
 export const watches_list_get = async (
   req: Request<{}, {}, {}, GetWatchesInput["query"]>,
   res: Response<ApiResponse<IWatch[]>>,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const q = (req.query.q ?? "").trim();
@@ -27,7 +28,7 @@ export const watches_list_get = async (
     const category = req.query.category;
     const { limit, skip } = buildPaginationOptions(
       req.query.limit,
-      req.query.offset
+      req.query.offset,
     );
 
     let items: IWatch[] = [];
@@ -82,11 +83,13 @@ export const watches_list_get = async (
         items = (faceted?.items ?? []) as IWatch[];
         total =
           Array.isArray(faceted?.meta) && faceted.meta.length > 0
-            ? faceted.meta[0]?.total ?? 0
+            ? (faceted.meta[0]?.total ?? 0)
             : items.length;
       } catch (searchError) {
         // Atlas Search not configured, fall back to regex search
-        console.log("Atlas Search failed, using regex fallback:", searchError);
+        logger.warn("Atlas Search failed, using regex fallback", {
+          searchError,
+        });
 
         const searchRegex = new RegExp(q, "i");
         const filter: Record<string, any> = {
@@ -147,7 +150,7 @@ export const watches_list_get = async (
       items = (faceted?.items ?? []) as IWatch[];
       total =
         Array.isArray(faceted?.meta) && faceted.meta.length > 0
-          ? faceted.meta[0]?.total ?? 0
+          ? (faceted.meta[0]?.total ?? 0)
           : items.length;
     }
 
@@ -167,7 +170,7 @@ export const watches_list_get = async (
 
     res.json(response);
   } catch (err) {
-    console.error(err);
+    logger.error("Error fetching watches", { error: err });
     next(new DatabaseError("Failed to fetch watches", err));
   }
 };

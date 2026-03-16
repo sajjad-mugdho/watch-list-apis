@@ -32,6 +32,8 @@ export interface IVouch extends Document {
   // Snapshot of voucher at time of vouch
   voucher_snapshot: IVoucherSnapshot;
 
+  legal_consent_accepted: boolean;
+
   // Timestamps
   createdAt: Date;
 }
@@ -115,6 +117,11 @@ const VouchSchema = new Schema<IVouch>(
     voucher_snapshot: {
       type: VoucherSnapshotSchema,
       required: true,
+    },
+    legal_consent_accepted: {
+      type: Boolean,
+      required: true,
+      default: false,
     },
   },
   {

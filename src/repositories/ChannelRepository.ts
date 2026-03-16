@@ -6,7 +6,7 @@
  */
 
 import { Types } from 'mongoose';
-import { BaseRepository } from './base/BaseRepository';
+import { BaseRepository } from '../shared/repositories/base/BaseRepository';
 import { 
   MarketplaceListingChannel, 
   IMarketplaceListingChannel 

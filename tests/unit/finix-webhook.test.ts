@@ -16,7 +16,7 @@ import { processFinixWebhook } from "../../src/workers/webhookProcessor";
 import { User } from "../../src/models/User";
 import { MerchantOnboarding } from "../../src/models/MerchantOnboarding";
 import { FinixWebhookEvent } from "../../src/models/FinixWebhookEvent";
-import Order from "../../src/models/Order";
+import { Order } from "../../src/models/Order";
 
 // Mock dependencies
 jest.mock("../../src/models/User");

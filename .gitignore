@@ -11,6 +11,9 @@ dist/
 *.log
 logs/
 
+# Test Reports
+playwright-report/
+
 # OS
 .DS_Store
 .idea

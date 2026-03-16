@@ -3,6 +3,10 @@ module.exports = {
   testEnvironment: "node",
   roots: ["<rootDir>/tests"],
   testMatch: ["**/*.test.ts"],
+  testPathIgnorePatterns: ["/node_modules/", "/tests/e2e/"],
+  // Run tests serially to avoid MongoMemoryReplSet catalog-changes errors when
+  // afterEach deleteMany runs concurrently with open multi-document transactions
+  maxWorkers: 1,
   transform: {
     "^.+\\.ts$": [
       "ts-jest",

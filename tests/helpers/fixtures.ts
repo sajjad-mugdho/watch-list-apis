@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { User, IUser } from "../../src/models/User";
 import { WebhookEvent, IWebhookEvent } from "../../src/models/WebhookEvent";
-import Order, { IOrder } from "../../src/models/Order";
+import { Order, IOrder } from "../../src/models/Order";
 
 /**
  * Test fixtures for consistent test data
@@ -91,7 +91,7 @@ export const mockFinixWebhookOnboardingUpdated = (
   userId: string,
   formId: string,
   status: string = "APPROVED",
-  merchantId: string = "MU_test_123"
+  merchantId: string = "MU_test_123",
 ) => ({
   entity: "onboarding_form",
   type: "updated",
@@ -133,7 +133,7 @@ export const mockFinixWebhookOnboardingCreated = (formId: string) => ({
 export const mockFinixWebhookTransferCreated = (
   transferId: string,
   authorizationId: string,
-  amount: number = 50000
+  amount: number = 50000,
 ) => ({
   entity: "transfer",
   type: "created",
@@ -164,7 +164,7 @@ export const mockFinixWebhookTransferUpdated = (
   transferId: string,
   state: "SUCCEEDED" | "FAILED" | "PENDING" | "CANCELED",
   failureCode?: string,
-  failureMessage?: string
+  failureMessage?: string,
 ) => ({
   entity: "transfer",
   type: "updated",
@@ -197,7 +197,7 @@ export const mockFinixWebhookTransferUpdated = (
 export const mockFinixWebhookMerchantCreated = (
   merchantId: string,
   identityId: string,
-  verificationId?: string
+  verificationId?: string,
 ) => ({
   entity: "merchant",
   type: "created",
@@ -221,7 +221,7 @@ export const mockFinixWebhookMerchantCreated = (
 export const mockFinixWebhookVerificationUpdated = (
   verificationId: string,
   merchantIdentity: string,
-  state: "SUCCEEDED" | "FAILED" | "PENDING"
+  state: "SUCCEEDED" | "FAILED" | "PENDING",
 ) => ({
   entity: "verification",
   type: "updated",
@@ -245,7 +245,7 @@ export const mockFinixWebhookVerificationUpdated = (
  */
 
 export async function createTestUser(
-  overrides: Partial<typeof mockUserData> = {}
+  overrides: Partial<typeof mockUserData> = {},
 ): Promise<IUser> {
   const userData = { ...mockUserData, ...overrides };
   return await User.create(userData);
@@ -253,7 +253,7 @@ export async function createTestUser(
 
 export async function createTestMerchantUser(
   status: "pending" | "approved" | "rejected" = "pending",
-  overrides: Partial<typeof mockMerchantUserPending> = {}
+  overrides: Partial<typeof mockMerchantUserPending> = {},
 ): Promise<IUser> {
   const baseData =
     status === "approved" ? mockMerchantUserApproved : mockMerchantUserPending;
@@ -275,7 +275,7 @@ export async function createTestMerchantUser(
 
 export async function createTestWebhookEvent(
   payload: any,
-  status: "received" | "processing" | "processed" | "failed" = "received"
+  status: "received" | "processing" | "processed" | "failed" = "received",
 ): Promise<IWebhookEvent> {
   const eventId = payload.id || `evt_test_${Date.now()}`;
 
@@ -291,7 +291,7 @@ export async function createTestWebhookEvent(
 }
 
 export async function createTestOrder(
-  overrides: Partial<IOrder> = {}
+  overrides: Partial<IOrder> = {},
 ): Promise<IOrder> {
   const defaultOrder = {
     listing_id: new mongoose.Types.ObjectId(),
@@ -320,13 +320,16 @@ export async function createTestOrder(
 }
 
 export async function createTestMarketplaceListing(
-  overrides: any = {}
+  overrides: any = {},
 ): Promise<any> {
   const { MarketplaceListing } = await import("../../src/models/Listings");
 
+  const defaultId = new mongoose.Types.ObjectId();
   const defaultListing = {
     dialist_id: new mongoose.Types.ObjectId(),
     clerk_id: "clerk_test_123",
+    title: "Rolex Submariner",
+    author: { _id: defaultId, name: "Test Seller" },
     brand: "Rolex",
     model: "Submariner",
     reference: "116610LN",
@@ -355,13 +358,16 @@ export async function createTestMarketplaceListing(
 }
 
 export async function createTestNetworkListing(
-  overrides: any = {}
+  overrides: any = {},
 ): Promise<any> {
   const { NetworkListing } = await import("../../src/models/Listings");
 
+  const defaultNetworkId = new mongoose.Types.ObjectId();
   const defaultListing = {
     dialist_id: new mongoose.Types.ObjectId(),
     clerk_id: "clerk_test_network_123",
+    title: "Omega Speedmaster",
+    author: { _id: defaultNetworkId, name: "Test Network Seller" },
     brand: "Omega",
     model: "Speedmaster",
     reference: "311.30.42.30.01.005",
@@ -423,7 +429,7 @@ export function generateBasicAuth(username: string, password: string): string {
  */
 export function generateWebhookSignature(
   payload: string,
-  secret: string
+  secret: string,
 ): string {
   const crypto = require("crypto");
   return crypto.createHmac("sha256", secret).update(payload).digest("hex");
