@@ -104,7 +104,16 @@ router.post(
   validateRequest(notificationIdSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const auth = (req as any).auth;
+      const user = await User.findOne({ external_id: auth.userId });
+      if (!user) {
+        res.status(404).json({ error: { message: "User not found" } });
+        return;
+      }
+
       const { id } = req.params;
+      // TODO: Add authorization check when persistence is implemented
+      // Verify notification.user_id === user._id before marking as read
       await marketplaceNotificationService.markAsRead(id);
       res.json({ platform: "marketplace", success: true, id });
     } catch (error) {
@@ -145,7 +154,16 @@ router.delete(
   validateRequest(notificationIdSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const auth = (req as any).auth;
+      const user = await User.findOne({ external_id: auth.userId });
+      if (!user) {
+        res.status(404).json({ error: { message: "User not found" } });
+        return;
+      }
+
       const { id } = req.params;
+      // TODO: Add authorization check when persistence is implemented
+      // Verify notification.user_id === user._id before deleting
       await marketplaceNotificationService.delete(id);
       res.json({ platform: "marketplace", success: true, id });
     } catch (error) {

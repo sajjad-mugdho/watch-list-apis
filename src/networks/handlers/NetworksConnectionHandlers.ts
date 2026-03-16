@@ -14,6 +14,27 @@ import {
 import { connectionRepository } from "../../repositories/ConnectionRepository";
 import { User } from "../../models/User";
 
+// ============================================================
+// Input Validation Helpers
+// ============================================================
+
+const MAX_PAGE_SIZE = 100;
+
+const parsePositiveInt = (
+  value: unknown,
+  fallback: number,
+  max: number,
+): number => {
+  const parsed = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
+  return Math.min(parsed, max);
+};
+
+const parseNonNegativeInt = (value: unknown): number => {
+  const parsed = Number.parseInt(String(value), 10);
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+};
+
 /**
  * Get pending incoming connection requests (people who want to connect with me).
  * GET /api/v1/networks/connections/my-incoming
@@ -28,8 +49,8 @@ export const networks_connection_incoming_pending = async (
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = String((req as any).user.dialist_id);
 
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-    const offset = parseInt(req.query.offset as string) || 0;
+    const limit = parsePositiveInt(req.query.limit, 20, MAX_PAGE_SIZE);
+    const offset = parseNonNegativeInt(req.query.offset);
 
     const result = await connectionRepository.getIncomingPending(userId, {
       limit,
@@ -91,8 +112,8 @@ export const networks_connection_outgoing_pending = async (
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = String((req as any).user.dialist_id);
 
-    const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-    const offset = parseInt(req.query.offset as string) || 0;
+    const limit = parsePositiveInt(req.query.limit, 20, MAX_PAGE_SIZE);
+    const offset = parseNonNegativeInt(req.query.offset);
 
     const result = await connectionRepository.getOutgoingPending(userId, {
       limit,
@@ -157,14 +178,10 @@ export const networks_connection_request_create = async (
 /**
  * Respond to a connection request (accept/reject)
  * POST /api/v1/networks/connections/:id/accept or /:id/reject
- * Route path determines action (accept vs reject), status body param used for logic branching
+ * Route path determines action (accept vs reject)
  */
 export const networks_connection_request_respond = async (
-  req: Request<
-    RespondConnectionRequestInput["params"],
-    {},
-    RespondConnectionRequestInput["body"]
-  >,
+  req: Request,
   res: Response<ApiResponse<any>>,
   next: NextFunction,
 ): Promise<void> => {
@@ -172,15 +189,23 @@ export const networks_connection_request_respond = async (
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = String((req as any).user.dialist_id);
     const { id: connectionId } = req.params;
-    const { status } = req.body;
+    
+    // Determine action from route path, not body
+    const route = req.route.path;
+    const isAccept = route.includes("/accept");
+    const isReject = route.includes("/reject");
+
+    if (!isAccept && !isReject) {
+      throw new Error("Invalid route - must be /accept or /reject");
+    }
 
     let result;
-    if (status === "accepted") {
+    if (isAccept) {
       result = await connectionService.acceptConnectionRequest(
         userId,
         connectionId,
       );
-    } else {
+    } else if (isReject) {
       await connectionService.rejectConnectionRequest(userId, connectionId);
       result = { message: "Connection request rejected" };
     }
@@ -190,7 +215,15 @@ export const networks_connection_request_respond = async (
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err: any) {
-    next(new ValidationError(err.message));
+    if (
+      err instanceof MissingUserContextError ||
+      err instanceof NotFoundError ||
+      err instanceof ValidationError
+    ) {
+      next(err);
+    } else {
+      next(new ValidationError(err?.message ?? "Unknown error"));
+    }
   }
 };
 
@@ -207,8 +240,8 @@ export const networks_connections_get = async (
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = String((req as any).user.dialist_id);
 
-    const page = Number(req.query.page) || 1;
-    const limit = Number(req.query.limit) || 50;
+    const page = parsePositiveInt(req.query.page, 1, Number.MAX_SAFE_INTEGER);
+    const limit = parsePositiveInt(req.query.limit, 50, MAX_PAGE_SIZE);
     const offset = (page - 1) * limit;
 
     const { connections, total } =

@@ -1,11 +1,11 @@
 import { Types } from "mongoose";
 import { ConnectionService } from "../../../src/services/connection/ConnectionService";
-import { Connection } from "../../../src/models/Connection";
+import { Connection } from "../../../src/networks/models/Connection";
 import { User } from "../../../src/models/User";
 import { Block } from "../../../src/networks/models/Block";
 import { feedService } from "../../../src/services/FeedService";
 
-jest.mock("../../../src/models/Connection");
+jest.mock("../../../src/networks/models/Connection");
 jest.mock("../../../src/models/User");
 jest.mock("../../../src/networks/models/Block");
 jest.mock("../../../src/services/FeedService", () => ({

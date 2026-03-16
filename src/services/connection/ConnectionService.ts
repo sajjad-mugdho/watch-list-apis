@@ -134,6 +134,25 @@ export class ConnectionService {
       throw new Error("Only the target user can accept this request");
     }
 
+    // Re-check block state before accepting (blocks could be added after request creation)
+    const Block = require("../../networks/models/Block").Block;
+    const blocked = await Block.findOne({
+      $or: [
+        {
+          blocker_id: connection.follower_id,
+          blocked_id: connection.following_id,
+        },
+        {
+          blocker_id: connection.following_id,
+          blocked_id: connection.follower_id,
+        },
+      ],
+    });
+
+    if (blocked) {
+      throw new Error("Cannot accept due to block relationship");
+    }
+
     if (connection.status !== "pending") {
       throw new Error(`Cannot accept: request is ${connection.status}`);
     }

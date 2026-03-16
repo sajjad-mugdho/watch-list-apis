@@ -59,7 +59,7 @@ router.get(
       res.json({
         platform: "networks",
         data: notifications,
-        total: notifications.length,
+        total: notifications.length, // TEMPORARY: should be actual total count from service
         unread_count: unreadCount,
         limit,
         offset,

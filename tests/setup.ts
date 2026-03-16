@@ -30,7 +30,6 @@ import "../src/models/RecentSearch";
 import "../src/models/ReferenceCheck";
 import "../src/marketplace/models/RefundRequest";
 import "../src/networks/models/Report";
-import "../src/models/ReservationTerms";
 import "../src/models/Review";
 import "../src/networks/models/SocialGroup";
 import "../src/networks/models/SocialGroupMember";

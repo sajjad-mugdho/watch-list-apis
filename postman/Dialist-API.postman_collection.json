@@ -1269,7 +1269,6 @@
     {
       "name": "🔗 Networks — Connections",
       "item": [
-
         {
           "name": "Get My Incoming Connections",
           "description": "Get pending incoming connection requests (people wanting to connect with me) - includes requester info",
@@ -1279,13 +1278,7 @@
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/connections/my-incoming?limit=20&offset=0",
               "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "connections",
-                "my-incoming"
-              ],
+              "path": ["api", "v1", "networks", "connections", "my-incoming"],
               "query": [
                 {
                   "key": "limit",
@@ -1308,13 +1301,7 @@
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/connections/my-outgoing?limit=20&offset=0",
               "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "connections",
-                "my-outgoing"
-              ],
+              "path": ["api", "v1", "networks", "connections", "my-outgoing"],
               "query": [
                 {
                   "key": "limit",
@@ -1337,13 +1324,7 @@
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/connections/{{userId}}",
               "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "networks",
-                "connections",
-                "{{userId}}"
-              ]
+              "path": ["api", "v1", "networks", "connections", "{{userId}}"]
             }
           }
         },

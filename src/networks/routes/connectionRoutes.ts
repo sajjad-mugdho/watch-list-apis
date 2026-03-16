@@ -137,7 +137,6 @@ router.post(
  */
 router.post(
   "/:id/accept",
-  validateRequest(respondConnectionRequestSchema),
   handlers.networks_connection_request_respond,
 );
 
@@ -164,7 +163,6 @@ router.post(
  */
 router.post(
   "/:id/reject",
-  validateRequest(respondConnectionRequestSchema),
   handlers.networks_connection_request_respond,
 );
 

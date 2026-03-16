@@ -1,7 +1,7 @@
 import request from "supertest";
 import { app } from "../../src/app";
 import { User } from "../../src/models/User";
-import { Connection } from "../../src/models/Connection";
+import { Connection } from "../../src/networks/models/Connection";
 
 describe("Connection Endpoints Integration", () => {
   let userA: any;
