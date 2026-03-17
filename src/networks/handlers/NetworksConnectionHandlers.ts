@@ -189,7 +189,7 @@ export const networks_connection_request_respond = async (
     if (!(req as any).user) throw new MissingUserContextError();
     const userId = String((req as any).user.dialist_id);
     const { id: connectionId } = req.params;
-    
+
     // Determine action from route path, not body
     const route = req.route.path;
     const isAccept = route.includes("/accept");

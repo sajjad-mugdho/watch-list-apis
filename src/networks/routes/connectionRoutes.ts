@@ -135,10 +135,7 @@ router.post(
  *       404:
  *         description: Connection request not found
  */
-router.post(
-  "/:id/accept",
-  handlers.networks_connection_request_respond,
-);
+router.post("/:id/accept", handlers.networks_connection_request_respond);
 
 /**
  * @swagger
@@ -161,10 +158,7 @@ router.post(
  *       404:
  *         description: Connection request not found
  */
-router.post(
-  "/:id/reject",
-  handlers.networks_connection_request_respond,
-);
+router.post("/:id/reject", handlers.networks_connection_request_respond);
 
 // ============================================================
 // DELETE: Remove connection
