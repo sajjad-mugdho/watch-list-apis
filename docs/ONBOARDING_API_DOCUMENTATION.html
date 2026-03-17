@@ -1,2330 +1,2154 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dialist API - User Onboarding Documentation</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
 
-        @media print {
-            html, body {
-                width: 100%;
-                height: 100%;
-                margin: 0;
-                padding: 0;
-            }
-            .page-break {
-                page-break-after: always;
-            }
-            .no-print {
-                display: none !important;
-            }
-        }
-
+      @media print {
+        html,
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-            line-height: 1.6;
-            color: #2c3e50;
-            background: #f5f7fa;
-            padding: 20px;
+          width: 100%;
+          height: 100%;
+          margin: 0;
+          padding: 0;
         }
-
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            background: white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        .page-break {
+          page-break-after: always;
         }
+        .no-print {
+          display: none !important;
+        }
+      }
 
-        /* ===== COVER PAGE ===== */
-        .cover {
-            padding: 60px 40px;
-            text-align: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            page-break-after: always;
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          "Helvetica Neue", Arial, sans-serif;
+        line-height: 1.6;
+        color: #2c3e50;
+        background: #f5f7fa;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+
+      /* ===== COVER PAGE ===== */
+      .cover {
+        padding: 60px 40px;
+        text-align: center;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        page-break-after: always;
+      }
+
+      .cover h1 {
+        font-size: 48px;
+        margin-bottom: 10px;
+      }
+
+      .cover .subtitle {
+        font-size: 24px;
+        opacity: 0.9;
+        margin-bottom: 40px;
+      }
+
+      .cover .meta {
+        margin-top: 60px;
+        font-size: 14px;
+        opacity: 0.8;
+      }
+
+      .cover .meta p {
+        margin: 8px 0;
+      }
+
+      /* ===== HEADER & FOOTER ===== */
+      .header {
+        padding: 30px 40px;
+        background: #f8f9fa;
+        border-bottom: 2px solid #667eea;
+      }
+
+      .header h1 {
+        font-size: 32px;
+        color: #2c3e50;
+        margin-bottom: 5px;
+      }
+
+      .header .version {
+        color: #7f8c8d;
+        font-size: 13px;
+      }
+
+      /* ===== TABLE OF CONTENTS ===== */
+      .toc {
+        padding: 40px;
+        page-break-after: always;
+      }
+
+      .toc h2 {
+        color: #667eea;
+        margin-bottom: 30px;
+        font-size: 28px;
+      }
+
+      .toc ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+      }
+
+      .toc li {
+        padding: 10px 0;
+        border-bottom: 1px solid #ecf0f1;
+        font-size: 15px;
+      }
+
+      .toc li a {
+        color: #667eea;
+        text-decoration: none;
+        transition: all 0.3s;
+      }
+
+      .toc li a:hover {
+        color: #764ba2;
+      }
+
+      .toc li.level-2 {
+        padding-left: 30px;
+        font-size: 14px;
+        color: #7f8c8d;
+      }
+
+      /* ===== SECTIONS ===== */
+      .section {
+        padding: 40px;
+        page-break-inside: avoid;
+      }
+
+      .section h2 {
+        color: #667eea;
+        font-size: 28px;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 3px solid #667eea;
+      }
+
+      .section h3 {
+        color: #2c3e50;
+        font-size: 20px;
+        margin-top: 25px;
+        margin-bottom: 15px;
+      }
+
+      .section h4 {
+        color: #34495e;
+        font-size: 16px;
+        margin-top: 15px;
+        margin-bottom: 10px;
+      }
+
+      .section p {
+        margin-bottom: 15px;
+        color: #2c3e50;
+      }
+
+      /* ===== FLOW DIAGRAMS ===== */
+      .flow-diagram {
+        background: #f8f9fa;
+        border-left: 4px solid #667eea;
+        padding: 20px;
+        margin: 20px 0;
+        font-family: "Courier New", monospace;
+        font-size: 13px;
+        line-height: 1.8;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      /* ===== API ENDPOINT REFERENCE ===== */
+      .endpoint {
+        background: #f8f9fa;
+        border: 1px solid #ecf0f1;
+        border-radius: 6px;
+        padding: 20px;
+        margin: 20px 0;
+        page-break-inside: avoid;
+      }
+
+      .endpoint-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .method {
+        display: inline-block;
+        padding: 5px 12px;
+        border-radius: 4px;
+        font-weight: bold;
+        font-size: 12px;
+        color: white;
+      }
+
+      .method.get {
+        background: #3498db;
+      }
+
+      .method.post {
+        background: #27ae60;
+      }
+
+      .method.patch {
+        background: #f39c12;
+      }
+
+      .method.delete {
+        background: #e74c3c;
+      }
+
+      .endpoint-path {
+        font-family: "Courier New", monospace;
+        font-weight: bold;
+        color: #2c3e50;
+        font-size: 14px;
+      }
+
+      .endpoint-description {
+        color: #7f8c8d;
+        margin-top: 10px;
+        font-size: 14px;
+      }
+
+      .endpoint-section {
+        margin-top: 15px;
+      }
+
+      .endpoint-section-title {
+        color: #2c3e50;
+        font-weight: bold;
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      /* ===== CODE BLOCKS ===== */
+      .code-block {
+        background: #2c3e50;
+        color: #ecf0f1;
+        padding: 15px;
+        border-radius: 6px;
+        font-family: "Courier New", monospace;
+        font-size: 12px;
+        overflow-x: auto;
+        margin: 15px 0;
+        line-height: 1.5;
+      }
+
+      .json-key {
+        color: #3498db;
+      }
+
+      .json-string {
+        color: #2ecc71;
+      }
+
+      .json-number {
+        color: #e74c3c;
+      }
+
+      .json-boolean {
+        color: #f39c12;
+      }
+
+      /* ===== FIGMA REFERENCE ===== */
+      .figma-ref {
+        background: #ecf8ff;
+        border-left: 4px solid #3498db;
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 4px;
+      }
+
+      .figma-ref strong {
+        color: #2980b9;
+      }
+
+      .figma-ref .screen-name {
+        font-family: "Courier New", monospace;
+        color: #2980b9;
+        font-weight: bold;
+      }
+
+      /* ===== STEP TRACKER ===== */
+      .step-tracker {
+        display: flex;
+        align-items: center;
+        margin: 20px 0;
+        gap: 15px;
+      }
+
+      .step-number {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #667eea;
+        color: white;
+        font-weight: bold;
+        font-size: 18px;
+        flex-shrink: 0;
+      }
+
+      .step-content {
+        flex: 1;
+      }
+
+      /* ===== ERROR/WARNING BLOCKS ===== */
+      .info-box {
+        padding: 15px;
+        margin: 20px 0;
+        border-radius: 6px;
+        border-left: 4px solid;
+      }
+
+      .info-box.info {
+        background: #d6eaf8;
+        border-color: #3498db;
+      }
+
+      .info-box.warning {
+        background: #fff3cd;
+        border-color: #f39c12;
+      }
+
+      .info-box.error {
+        background: #fadbd8;
+        border-color: #e74c3c;
+      }
+
+      .info-box.success {
+        background: #d5f4e6;
+        border-color: #27ae60;
+      }
+
+      /* ===== TABLE ===== */
+      .table-responsive {
+        overflow-x: auto;
+        margin: 20px 0;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+
+      table thead {
+        background: #667eea;
+        color: white;
+      }
+
+      table th {
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+        font-size: 13px;
+      }
+
+      table td {
+        padding: 12px;
+        border-bottom: 1px solid #ecf0f1;
+        font-size: 13px;
+      }
+
+      table tbody tr:hover {
+        background: #f8f9fa;
+      }
+
+      /* ===== PAGE BREAK ===== */
+      .page-break {
+        page-break-after: always;
+      }
+
+      /* ===== RESPONSE EXAMPLE ===== */
+      .response-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .response-item {
+        background: #f8f9fa;
+        border: 1px solid #ecf0f1;
+        border-radius: 6px;
+        padding: 15px;
+      }
+
+      .response-label {
+        font-weight: bold;
+        color: #667eea;
+        margin-bottom: 10px;
+        font-size: 13px;
+      }
+
+      /* ===== HIGHLIGHT ===== */
+      .highlight {
+        background: #fff9e6;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-family: "Courier New", monospace;
+        color: #d68910;
+      }
+
+      /* ===== FOOTER ===== */
+      .footer {
+        padding: 20px 40px;
+        background: #2c3e50;
+        color: #ecf0f1;
+        text-align: center;
+        font-size: 12px;
+        page-break-inside: avoid;
+      }
+
+      @media (max-width: 768px) {
+        .response-grid {
+          grid-template-columns: 1fr;
         }
 
         .cover h1 {
-            font-size: 48px;
-            margin-bottom: 10px;
+          font-size: 32px;
         }
 
-        .cover .subtitle {
-            font-size: 24px;
-            opacity: 0.9;
-            margin-bottom: 40px;
-        }
-
-        .cover .meta {
-            margin-top: 60px;
-            font-size: 14px;
-            opacity: 0.8;
-        }
-
-        .cover .meta p {
-            margin: 8px 0;
-        }
-
-        /* ===== HEADER & FOOTER ===== */
-        .header {
-            padding: 30px 40px;
-            background: #f8f9fa;
-            border-bottom: 2px solid #667eea;
-        }
-
-        .header h1 {
-            font-size: 32px;
-            color: #2c3e50;
-            margin-bottom: 5px;
-        }
-
-        .header .version {
-            color: #7f8c8d;
-            font-size: 13px;
-        }
-
-        /* ===== TABLE OF CONTENTS ===== */
-        .toc {
-            padding: 40px;
-            page-break-after: always;
-        }
-
-        .toc h2 {
-            color: #667eea;
-            margin-bottom: 30px;
-            font-size: 28px;
-        }
-
-        .toc ul {
-            list-style: none;
-            margin: 0;
-            padding: 0;
-        }
-
-        .toc li {
-            padding: 10px 0;
-            border-bottom: 1px solid #ecf0f1;
-            font-size: 15px;
-        }
-
-        .toc li a {
-            color: #667eea;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-
-        .toc li a:hover {
-            color: #764ba2;
-        }
-
-        .toc li.level-2 {
-            padding-left: 30px;
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-
-        /* ===== SECTIONS ===== */
         .section {
-            padding: 40px;
-            page-break-inside: avoid;
+          padding: 25px;
         }
-
-        .section h2 {
-            color: #667eea;
-            font-size: 28px;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 3px solid #667eea;
-        }
-
-        .section h3 {
-            color: #2c3e50;
-            font-size: 20px;
-            margin-top: 25px;
-            margin-bottom: 15px;
-        }
-
-        .section h4 {
-            color: #34495e;
-            font-size: 16px;
-            margin-top: 15px;
-            margin-bottom: 10px;
-        }
-
-        .section p {
-            margin-bottom: 15px;
-            color: #2c3e50;
-        }
-
-        /* ===== FLOW DIAGRAMS ===== */
-        .flow-diagram {
-            background: #f8f9fa;
-            border-left: 4px solid #667eea;
-            padding: 20px;
-            margin: 20px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            line-height: 1.8;
-            overflow-x: auto;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-        }
-
-        /* ===== API ENDPOINT REFERENCE ===== */
-        .endpoint {
-            background: #f8f9fa;
-            border: 1px solid #ecf0f1;
-            border-radius: 6px;
-            padding: 20px;
-            margin: 20px 0;
-            page-break-inside: avoid;
-        }
-
-        .endpoint-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .method {
-            display: inline-block;
-            padding: 5px 12px;
-            border-radius: 4px;
-            font-weight: bold;
-            font-size: 12px;
-            color: white;
-        }
-
-        .method.get {
-            background: #3498db;
-        }
-
-        .method.post {
-            background: #27ae60;
-        }
-
-        .method.patch {
-            background: #f39c12;
-        }
-
-        .method.delete {
-            background: #e74c3c;
-        }
-
-        .endpoint-path {
-            font-family: 'Courier New', monospace;
-            font-weight: bold;
-            color: #2c3e50;
-            font-size: 14px;
-        }
-
-        .endpoint-description {
-            color: #7f8c8d;
-            margin-top: 10px;
-            font-size: 14px;
-        }
-
-        .endpoint-section {
-            margin-top: 15px;
-        }
-
-        .endpoint-section-title {
-            color: #2c3e50;
-            font-weight: bold;
-            font-size: 13px;
-            margin-bottom: 8px;
-        }
-
-        /* ===== CODE BLOCKS ===== */
-        .code-block {
-            background: #2c3e50;
-            color: #ecf0f1;
-            padding: 15px;
-            border-radius: 6px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            overflow-x: auto;
-            margin: 15px 0;
-            line-height: 1.5;
-        }
-
-        .json-key {
-            color: #3498db;
-        }
-
-        .json-string {
-            color: #2ecc71;
-        }
-
-        .json-number {
-            color: #e74c3c;
-        }
-
-        .json-boolean {
-            color: #f39c12;
-        }
-
-        /* ===== FIGMA REFERENCE ===== */
-        .figma-ref {
-            background: #ecf8ff;
-            border-left: 4px solid #3498db;
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 4px;
-        }
-
-        .figma-ref strong {
-            color: #2980b9;
-        }
-
-        .figma-ref .screen-name {
-            font-family: 'Courier New', monospace;
-            color: #2980b9;
-            font-weight: bold;
-        }
-
-        /* ===== STEP TRACKER ===== */
-        .step-tracker {
-            display: flex;
-            align-items: center;
-            margin: 20px 0;
-            gap: 15px;
-        }
-
-        .step-number {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: #667eea;
-            color: white;
-            font-weight: bold;
-            font-size: 18px;
-            flex-shrink: 0;
-        }
-
-        .step-content {
-            flex: 1;
-        }
-
-        /* ===== ERROR/WARNING BLOCKS ===== */
-        .info-box {
-            padding: 15px;
-            margin: 20px 0;
-            border-radius: 6px;
-            border-left: 4px solid;
-        }
-
-        .info-box.info {
-            background: #d6eaf8;
-            border-color: #3498db;
-        }
-
-        .info-box.warning {
-            background: #fff3cd;
-            border-color: #f39c12;
-        }
-
-        .info-box.error {
-            background: #fadbd8;
-            border-color: #e74c3c;
-        }
-
-        .info-box.success {
-            background: #d5f4e6;
-            border-color: #27ae60;
-        }
-
-        /* ===== TABLE ===== */
-        .table-responsive {
-            overflow-x: auto;
-            margin: 20px 0;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        table thead {
-            background: #667eea;
-            color: white;
-        }
-
-        table th {
-            padding: 12px;
-            text-align: left;
-            font-weight: bold;
-            font-size: 13px;
-        }
-
-        table td {
-            padding: 12px;
-            border-bottom: 1px solid #ecf0f1;
-            font-size: 13px;
-        }
-
-        table tbody tr:hover {
-            background: #f8f9fa;
-        }
-
-        /* ===== PAGE BREAK ===== */
-        .page-break {
-            page-break-after: always;
-        }
-
-        /* ===== RESPONSE EXAMPLE ===== */
-        .response-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin: 20px 0;
-        }
-
-        .response-item {
-            background: #f8f9fa;
-            border: 1px solid #ecf0f1;
-            border-radius: 6px;
-            padding: 15px;
-        }
-
-        .response-label {
-            font-weight: bold;
-            color: #667eea;
-            margin-bottom: 10px;
-            font-size: 13px;
-        }
-
-        /* ===== HIGHLIGHT ===== */
-        .highlight {
-            background: #fff9e6;
-            padding: 2px 6px;
-            border-radius: 3px;
-            font-family: 'Courier New', monospace;
-            color: #d68910;
-        }
-
-        /* ===== FOOTER ===== */
-        .footer {
-            padding: 20px 40px;
-            background: #2c3e50;
-            color: #ecf0f1;
-            text-align: center;
-            font-size: 12px;
-            page-break-inside: avoid;
-        }
-
-        @media (max-width: 768px) {
-            .response-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .cover h1 {
-                font-size: 32px;
-            }
-
-            .section {
-                padding: 25px;
-            }
-        }
+      }
     </style>
-</head>
-<body>
-
-<!-- ===== COVER PAGE ===== -->
-<div class="cover">
-    <h1>🚀 Dialist API</h1>
-    <p class="subtitle">User Onboarding Documentation</p>
-    <p style="font-size: 16px; margin-top: 30px;">Complete Step-by-Step Guide with API Specifications & Figma Screen References</p>
-    <div class="meta">
+  </head>
+  <body>
+    <!-- ===== COVER PAGE ===== -->
+    <div class="cover">
+      <h1>🚀 Dialist API</h1>
+      <p class="subtitle">User Onboarding Documentation</p>
+      <p style="font-size: 16px; margin-top: 30px">
+        Complete Step-by-Step Guide with API Specifications & Figma Screen
+        References
+      </p>
+      <div class="meta">
         <p><strong>Version:</strong> 1.0.0</p>
         <p><strong>Date:</strong> March 17, 2026</p>
         <p><strong>Status:</strong> Production Ready</p>
-        <p><strong>Scope:</strong> Platform Onboarding + Merchant Onboarding (Full Journey)</p>
+        <p>
+          <strong>Scope:</strong> Platform Onboarding + Merchant Onboarding
+          (Full Journey)
+        </p>
+      </div>
     </div>
-</div>
 
-<!-- ===== TABLE OF CONTENTS ===== -->
-<div class="toc">
-    <h2>📑 Table of Contents</h2>
-    <ul>
+    <!-- ===== TABLE OF CONTENTS ===== -->
+    <div class="toc">
+      <h2>📑 Table of Contents</h2>
+      <ul>
         <li><a href="#exec-summary">1. Executive Summary</a></li>
         <li><a href="#architecture">2. Architecture Overview</a></li>
         <li class="level-2"><a href="#arch-components">Components</a></li>
         <li class="level-2"><a href="#arch-datamodel">Data Model</a></li>
         <li><a href="#journeys">3. Complete User Journeys</a></li>
-        <li class="level-2"><a href="#journey1">Journey 1: Sign-Up & Platform Onboarding</a></li>
-        <li class="level-2"><a href="#journey2">Journey 2: Merchant Onboarding (Finix KYC)</a></li>
-        <li class="level-2"><a href="#journey3">Journey 3: End-to-End Complete</a></li>
+        <li class="level-2">
+          <a href="#journey1">Journey 1: Sign-Up & Platform Onboarding</a>
+        </li>
+        <li class="level-2">
+          <a href="#journey2">Journey 2: Merchant Onboarding (Finix KYC)</a>
+        </li>
+        <li class="level-2">
+          <a href="#journey3">Journey 3: End-to-End Complete</a>
+        </li>
         <li><a href="#api-reference">4. API Endpoint Reference</a></li>
         <li class="level-2"><a href="#auth-endpoints">Authentication</a></li>
-        <li class="level-2"><a href="#onboard-endpoints">Platform Onboarding</a></li>
-        <li class="level-2"><a href="#merchant-endpoints">Merchant Onboarding</a></li>
+        <li class="level-2">
+          <a href="#onboard-endpoints">Platform Onboarding</a>
+        </li>
+        <li class="level-2">
+          <a href="#merchant-endpoints">Merchant Onboarding</a>
+        </li>
         <li><a href="#examples">5. Request/Response Examples</a></li>
         <li><a href="#errors">6. Error Handling Guide</a></li>
         <li><a href="#testing">7. Testing & Debugging</a></li>
         <li><a href="#appendix">8. Appendix - Mock Users & Schemas</a></li>
-    </ul>
-</div>
-
-<!-- ===== EXECUTIVE SUMMARY ===== -->
-<div class="section" id="exec-summary">
-    <h2>1. Executive Summary</h2>
-    
-    <p>This documentation provides a <strong>complete technical guide</strong> for implementing the Dialist user onboarding system. It covers three integrated flows:</p>
-    
-    <div class="info-box info">
-        <strong>📌 Three Onboarding Flows:</strong><br>
-        <strong>1) Authentication</strong> - Clerk sign-up/sign-in<br>
-        <strong>2) Platform Onboarding</strong> - 4-step profile wizard (all users)<br>
-        <strong>3) Merchant Onboarding</strong> - Finix KYC form (sellers only)
+      </ul>
     </div>
 
-    <h3>Key Features</h3>
-    <ul style="margin: 15px 0;">
-        <li>✅ <strong>Single Source of Truth:</strong> MongoDB (Clerk is JWT token cache)</li>
-        <li>✅ <strong>Real-time Sync:</strong> Clerk ↔ Database via webhooks</li>
-        <li>✅ <strong>Step-by-Step Progress:</strong> Users can pause/resume onboarding</li>
-        <li>✅ <strong>Merchant KYC:</strong> Finix integration for payment approval</li>
-        <li>✅ <strong>Error Recovery:</strong> Retry logic with exponential backoff</li>
-        <li>✅ <strong>Session Management:</strong> JWT claims auto-refresh</li>
-    </ul>
+    <!-- ===== EXECUTIVE SUMMARY ===== -->
+    <div class="section" id="exec-summary">
+      <h2>1. Executive Summary</h2>
 
-    <h3>Platform Support</h3>
-    <p>All endpoints are available for:</p>
-    <table class="table-responsive">
+      <p>
+        This documentation provides a
+        <strong>complete technical guide</strong> for implementing the Dialist
+        user onboarding system. It covers three integrated flows:
+      </p>
+
+      <div class="info-box info">
+        <strong>📌 Three Onboarding Flows:</strong><br />
+        <strong>1) Authentication</strong> - Clerk sign-up/sign-in<br />
+        <strong>2) Platform Onboarding</strong> - 4-step profile wizard (all
+        users)<br />
+        <strong>3) Merchant Onboarding</strong> - Finix KYC form (sellers only)
+      </div>
+
+      <h3>Key Features</h3>
+      <ul style="margin: 15px 0">
+        <li>
+          ✅ <strong>Single Source of Truth:</strong> MongoDB (Clerk is JWT
+          token cache)
+        </li>
+        <li>
+          ✅ <strong>Real-time Sync:</strong> Clerk ↔ Database via webhooks
+        </li>
+        <li>
+          ✅ <strong>Step-by-Step Progress:</strong> Users can pause/resume
+          onboarding
+        </li>
+        <li>
+          ✅ <strong>Merchant KYC:</strong> Finix integration for payment
+          approval
+        </li>
+        <li>
+          ✅ <strong>Error Recovery:</strong> Retry logic with exponential
+          backoff
+        </li>
+        <li>✅ <strong>Session Management:</strong> JWT claims auto-refresh</li>
+      </ul>
+
+      <h3>Platform Support</h3>
+      <p>All endpoints are available for:</p>
+      <table class="table-responsive">
         <thead>
-            <tr>
-                <th>Client Type</th>
-                <th>Authentication</th>
-                <th>Supported</th>
-            </tr>
+          <tr>
+            <th>Client Type</th>
+            <th>Authentication</th>
+            <th>Supported</th>
+          </tr>
         </thead>
         <tbody>
-            <tr>
-                <td>Web Application</td>
-                <td>Clerk JWT + Header</td>
-                <td>✅ Yes</td>
-            </tr>
-            <tr>
-                <td>Mobile App (iOS/Android)</td>
-                <td>Clerk JWT + Header</td>
-                <td>✅ Yes</td>
-            </tr>
-            <tr>
-                <td>Desktop Dashboard</td>
-                <td>Clerk JWT + Header</td>
-                <td>✅ Yes</td>
-            </tr>
-            <tr>
-                <td>API Testing (Dev)</td>
-                <td>x-test-user header</td>
-                <td>✅ Yes</td>
-            </tr>
+          <tr>
+            <td>Web Application</td>
+            <td>Clerk JWT + Header</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Mobile App (iOS/Android)</td>
+            <td>Clerk JWT + Header</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>Desktop Dashboard</td>
+            <td>Clerk JWT + Header</td>
+            <td>✅ Yes</td>
+          </tr>
+          <tr>
+            <td>API Testing (Dev)</td>
+            <td>x-test-user header</td>
+            <td>✅ Yes</td>
+          </tr>
         </tbody>
-    </table>
-</div>
-
-<div class="page-break"></div>
-
-<!-- ===== ARCHITECTURE OVERVIEW ===== -->
-<div class="section" id="architecture">
-    <h2>2. Architecture Overview</h2>
-
-    <h3 id="arch-components">Components</h3>
-
-    <div class="flow-diagram">┌─────────────────────────────────────────────────────┐
-│         CLIENT APPLICATION                           │
-│    (Web / Mobile / Dashboard)                         │
-└────────────┬──────────────────────────────────┬──────┘
-             │                                  │
-             ▼                                  ▼
-       ┌──────────┐                    ┌──────────────────┐
-       │   Clerk  │                    │  Dialist API     │
-       │   SDK    │◄─── JWT Token ────►│                  │
-       │          │    + metadata       │ • Express.js    │
-       └──────────┘                    │ • MongoDB        │
-             │                          │ • Finix SDK      │
-             │                          │ • Queue (Bull)   │
-             └──────────┬───────────────┘
-                        │
-             ┌──────────┴──────────┬────────────┐
-             │                     │            │
-             ▼                     ▼            ▼
-       ┌──────────┐          ┌──────────┐  ┌────────┐
-       │ MongoDB  │          │  Finix   │  │ Queue  │
-       │(Source   │          │   API    │  │Workers │
-       │of Truth) │          │          │  │        │
-       └──────────┘          └──────────┘  └────────┘</div>
-
-    <div class="info-box info">
-        <strong>💡 Key Architecture Decision:</strong><br>
-        MongoDB is the <strong>source of truth</strong>. Clerk's publicMetadata is a <strong>cache</strong> only.
-        After any onboarding step, we sync user state to both Clerk (fast) and MongoDB (persistent).
+      </table>
     </div>
 
-    <h3 id="arch-datamodel">Data Model</h3>
+    <div class="page-break"></div>
 
-    <h4>User Collection (Core Profile)</h4>
-    <div class="code-block">{
-  _id: ObjectId,
-  external_id: "user_36OKpyLZ...",  // Clerk ID
-  email: "user@example.com",
-  first_name: "John",
-  last_name: "Doe",
-  
-  // Platform onboarding fields (promoted from steps)
-  display_name: "John's Watches" | null,
-  avatar: "https://..." | null,
-  location: {
-    country: "US",
-    region: "CA",
-    postal_code: "90210"
-  },
-  
-  // Onboarding state machine
-  onboarding: {
-    status: "incomplete" | "completed",
-    version: "1.0",
-    completed_at: Date | null,
-    steps: {
-      location: { country, region, postal_code },
-      display_name: { value, mode, confirmed, updated_at },
-      avatar: { url, confirmed, user_provided, updated_at },
-      acknowledgements: { tos, privacy, rules }
-    }
-  },
-  
-  // Timestamps
-  created_at: Date,
-  updated_at: Date
-}</div>
+    <!-- ===== ARCHITECTURE OVERVIEW ===== -->
+    <div class="section" id="architecture">
+      <h2>2. Architecture Overview</h2>
 
-    <h4>MerchantOnboarding Collection (Finix Integration)</h4>
-    <div class="code-block">{
-  _id: ObjectId,
-  dialist_user_id: ObjectId,        // Ref to User._id
-  clerk_id: "user_36OKpyLZ...",
-  
-  // Finix Integration
-  form_id: "ONF_xxx",
-  identity_id: "ID_xxx" | null,
-  merchant_id: "MU_xxx" | null,
-  verification_id: "VD_xxx" | null,
-  
-  // Status from Finix
-  onboarding_state: "PENDING" | "PROVISIONING" | 
-                    "APPROVED" | "REJECTED" | "UPDATE_REQUESTED",
-  verification_state: "PENDING" | "SUCCEEDED" | "FAILED" | null,
-  
-  // Timestamps
-  onboarded_at: Date | null,
-  created_at: Date,
-  updated_at: Date
-}</div>
+      <h3 id="arch-components">Components</h3>
 
-    <h4>Session Claims (Clerk Cache)</h4>
-    <div class="code-block">{
-  "userId": "user_36OKpyLZ...",
-  "dialist_id": "6931d0ad8f88ced1cd48b052",
-  "display_name": "John's Watches",
-  "display_avatar": "https://...",
-  "location_country": "US",
-  "location_region": "CA",
-  "onboarding_status": "completed",
-  "isMerchant": false,
-  "onboarding_state": "PENDING"  // Only if merchant flow started
-}</div>
-</div>
+      <div class="flow-diagram">
+        ┌─────────────────────────────────────────────────────┐ │ CLIENT
+        APPLICATION │ │ (Web / Mobile / Dashboard) │
+        └────────────┬──────────────────────────────────┬──────┘ │ │ ▼ ▼
+        ┌──────────┐ ┌──────────────────┐ │ Clerk │ │ Dialist API │ │ SDK │◄───
+        JWT Token ────►│ │ │ │ + metadata │ • Express.js │ └──────────┘ │ •
+        MongoDB │ │ │ • Finix SDK │ │ │ • Queue (Bull) │
+        └──────────┬───────────────┘ │ ┌──────────┴──────────┬────────────┐ │ │
+        │ ▼ ▼ ▼ ┌──────────┐ ┌──────────┐ ┌────────┐ │ MongoDB │ │ Finix │ │
+        Queue │ │(Source │ │ API │ │Workers │ │of Truth) │ │ │ │ │ └──────────┘
+        └──────────┘ └────────┘
+      </div>
 
-<div class="page-break"></div>
+      <div class="info-box info">
+        <strong>💡 Key Architecture Decision:</strong><br />
+        MongoDB is the <strong>source of truth</strong>. Clerk's publicMetadata
+        is a <strong>cache</strong> only. After any onboarding step, we sync
+        user state to both Clerk (fast) and MongoDB (persistent).
+      </div>
 
-<!-- ===== JOURNEY 1: SIGN-UP & PLATFORM ONBOARDING ===== -->
-<div class="section" id="journeys">
-    <h2>3. Complete User Journeys</h2>
+      <h3 id="arch-datamodel">Data Model</h3>
 
-    <h3 id="journey1">Journey 1: Sign-Up & Platform Onboarding (4 Steps)</h3>
+      <h4>User Collection (Core Profile)</h4>
+      <div class="code-block">
+        { _id: ObjectId, external_id: "user_36OKpyLZ...", // Clerk ID email:
+        "user@example.com", first_name: "John", last_name: "Doe", // Platform
+        onboarding fields (promoted from steps) display_name: "John's Watches" |
+        null, avatar: "https://..." | null, location: { country: "US", region:
+        "CA", postal_code: "90210" }, // Onboarding state machine onboarding: {
+        status: "incomplete" | "completed", version: "1.0", completed_at: Date |
+        null, steps: { location: { country, region, postal_code }, display_name:
+        { value, mode, confirmed, updated_at }, avatar: { url, confirmed,
+        user_provided, updated_at }, acknowledgements: { tos, privacy, rules } }
+        }, // Timestamps created_at: Date, updated_at: Date }
+      </div>
 
-    <p>This is the <strong>most common flow</strong>. Every new user must complete this before accessing the marketplace.</p>
+      <h4>MerchantOnboarding Collection (Finix Integration)</h4>
+      <div class="code-block">
+        { _id: ObjectId, dialist_user_id: ObjectId, // Ref to User._id clerk_id:
+        "user_36OKpyLZ...", // Finix Integration form_id: "ONF_xxx",
+        identity_id: "ID_xxx" | null, merchant_id: "MU_xxx" | null,
+        verification_id: "VD_xxx" | null, // Status from Finix onboarding_state:
+        "PENDING" | "PROVISIONING" | "APPROVED" | "REJECTED" |
+        "UPDATE_REQUESTED", verification_state: "PENDING" | "SUCCEEDED" |
+        "FAILED" | null, // Timestamps onboarded_at: Date | null, created_at:
+        Date, updated_at: Date }
+      </div>
 
-    <div class="flow-diagram">User Clicks "Sign Up"
-        │
-        ├─► Clerk SDK loads sign-up form
-        ├─► User enters: email, password, first_name, last_name
-        └─► Clerk creates account
-        
-        ▼ (Webhook: user.created)
-        
-Backend Creates User Document
-        ├─► _id = ObjectId
-        ├─► external_id = Clerk ID
-        ├─► onboarding.status = "incomplete"
-        └─► onboarding.steps = {} (empty)
-        
-        ▼ Frontend Redirect
-        
-User Sees "Complete Your Profile"
-        │
-        ├─► GET /api/v1/me
-        │   Response: { onboarding_status: "incomplete", next_step: "location" }
-        │
-        ▼ Step 1: Location
-        │
-        ├─► User enters: country, region, postal_code
-        ├─► PATCH /api/v1/onboarding/steps/location
-        ├─► Backend updates: User.location, onboarding.steps.location
-        └─► Response: { progress: { location: true, ... } }
-        
-        ▼ Step 2: Display Name
-        │
-        ├─► User chooses: auto-generated OR custom name
-        ├─► PATCH /api/v1/onboarding/steps/display_name
-        ├─► Backend updates: User.display_name, onboarding.steps.display_name
-        └─► Response: { progress: { display_name: true, ... } }
-        
-        ▼ Step 3: Avatar
-        │
-        ├─► User uploads image OR uses default
-        ├─► PATCH /api/v1/onboarding/steps/avatar
-        ├─► Backend updates: User.avatar, onboarding.steps.avatar
-        └─► Response: { progress: { avatar: true, ... } }
-        
-        ▼ Step 4: Legal Acknowledgements (FINAL)
-        │
-        ├─► User checks: ToS, Privacy Policy, Rules
-        ├─► PATCH /api/v1/onboarding/steps/acknowledgements
-        ├─► Backend:
-        │   1. Updates onboarding.steps.acknowledgements
-        │   2. Sets onboarding.status = "completed"
-        │   3. Syncs to Clerk publicMetadata
-        │   4. Fires event: "user.onboarding_completed"
-        └─► Response: { onboarding_status: "completed", ... }
-        
-        ▼ Frontend Verification
-        
-        ├─► GET /api/v1/me (with x-refresh-session: 1)
-        ├─► Response confirms: onboarding_status = "completed"
-        └─► Redirect to marketplace or home page
-        
-        ✅ FLOW COMPLETE - User can now browse & purchase watches</div>
+      <h4>Session Claims (Clerk Cache)</h4>
+      <div class="code-block">
+        { "userId": "user_36OKpyLZ...", "dialist_id":
+        "6931d0ad8f88ced1cd48b052", "display_name": "John's Watches",
+        "display_avatar": "https://...", "location_country": "US",
+        "location_region": "CA", "onboarding_status": "completed", "isMerchant":
+        false, "onboarding_state": "PENDING" // Only if merchant flow started }
+      </div>
+    </div>
 
-    <div class="figma-ref">
-        <strong>📱 Figma Screen Mappings for Journey 1:</strong><br>
-        <div style="margin-top: 10px;">
-            <div><span class="screen-name">Step 1 - Location</span>: "Onboarding - Location Step" screen with country dropdown, region, postal code inputs</div>
-            <div><span class="screen-name">Step 2 - Display Name</span>: "Onboarding - Display Name Step" screen with radio buttons (Auto/Custom) and text input</div>
-            <div><span class="screen-name">Step 3 - Avatar</span>: "Onboarding - Avatar Step" screen with image upload or avatar selection</div>
-            <div><span class="screen-name">Step 4 - Legal</span>: "Onboarding - Legal Step" screen with ToS/Privacy/Rules checkboxes</div>
-            <div><span class="screen-name">Success State</span>: "Onboarding - Complete" screen with summary and "Go to Marketplace" button</div>
+    <div class="page-break"></div>
+
+    <!-- ===== JOURNEY 1: SIGN-UP & PLATFORM ONBOARDING ===== -->
+    <div class="section" id="journeys">
+      <h2>3. Complete User Journeys</h2>
+
+      <h3 id="journey1">Journey 1: Sign-Up & Platform Onboarding (4 Steps)</h3>
+
+      <p>
+        This is the <strong>most common flow</strong>. Every new user must
+        complete this before accessing the marketplace.
+      </p>
+
+      <div class="flow-diagram">
+        User Clicks "Sign Up" │ ├─► Clerk SDK loads sign-up form ├─► User
+        enters: email, password, first_name, last_name └─► Clerk creates account
+        ▼ (Webhook: user.created) Backend Creates User Document ├─► _id =
+        ObjectId ├─► external_id = Clerk ID ├─► onboarding.status = "incomplete"
+        └─► onboarding.steps = {} (empty) ▼ Frontend Redirect User Sees
+        "Complete Your Profile" │ ├─► GET /api/v1/me │ Response: {
+        onboarding_status: "incomplete", next_step: "location" } │ ▼ Step 1:
+        Location │ ├─► User enters: country, region, postal_code ├─► PATCH
+        /api/v1/onboarding/steps/location ├─► Backend updates: User.location,
+        onboarding.steps.location └─► Response: { progress: { location: true,
+        ... } } ▼ Step 2: Display Name │ ├─► User chooses: auto-generated OR
+        custom name ├─► PATCH /api/v1/onboarding/steps/display_name ├─► Backend
+        updates: User.display_name, onboarding.steps.display_name └─► Response:
+        { progress: { display_name: true, ... } } ▼ Step 3: Avatar │ ├─► User
+        uploads image OR uses default ├─► PATCH /api/v1/onboarding/steps/avatar
+        ├─► Backend updates: User.avatar, onboarding.steps.avatar └─► Response:
+        { progress: { avatar: true, ... } } ▼ Step 4: Legal Acknowledgements
+        (FINAL) │ ├─► User checks: ToS, Privacy Policy, Rules ├─► PATCH
+        /api/v1/onboarding/steps/acknowledgements ├─► Backend: │ 1. Updates
+        onboarding.steps.acknowledgements │ 2. Sets onboarding.status =
+        "completed" │ 3. Syncs to Clerk publicMetadata │ 4. Fires event:
+        "user.onboarding_completed" └─► Response: { onboarding_status:
+        "completed", ... } ▼ Frontend Verification ├─► GET /api/v1/me (with
+        x-refresh-session: 1) ├─► Response confirms: onboarding_status =
+        "completed" └─► Redirect to marketplace or home page ✅ FLOW COMPLETE -
+        User can now browse & purchase watches
+      </div>
+
+      <div class="figma-ref">
+        <strong>📱 Figma Screen Mappings for Journey 1:</strong><br />
+        <div style="margin-top: 10px">
+          <div>
+            <span class="screen-name">Step 1 - Location</span>: "Onboarding -
+            Location Step" screen with country dropdown, region, postal code
+            inputs
+          </div>
+          <div>
+            <span class="screen-name">Step 2 - Display Name</span>: "Onboarding
+            - Display Name Step" screen with radio buttons (Auto/Custom) and
+            text input
+          </div>
+          <div>
+            <span class="screen-name">Step 3 - Avatar</span>: "Onboarding -
+            Avatar Step" screen with image upload or avatar selection
+          </div>
+          <div>
+            <span class="screen-name">Step 4 - Legal</span>: "Onboarding - Legal
+            Step" screen with ToS/Privacy/Rules checkboxes
+          </div>
+          <div>
+            <span class="screen-name">Success State</span>: "Onboarding -
+            Complete" screen with summary and "Go to Marketplace" button
+          </div>
         </div>
-    </div>
+      </div>
 
-    <h4>API Calls for Journey 1</h4>
+      <h4>API Calls for Journey 1</h4>
 
-    <div class="step-tracker">
+      <div class="step-tracker">
         <div class="step-number">1</div>
         <div class="step-content">
-            <strong>Bootstrap: Get Current Status</strong><br>
-            <span class="highlight">GET /api/v1/me</span>
+          <strong>Bootstrap: Get Current Status</strong><br />
+          <span class="highlight">GET /api/v1/me</span>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/v1/me</span>
-            </div>
+          <div>
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/v1/me</span>
+          </div>
         </div>
-        <div class="endpoint-description">Get current user state from database (always fresh)</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">Headers</div>
-            <div class="code-block">Authorization: Bearer {clerk_token}
-x-refresh-session: 1  (optional - force DB lookup)</div>
+        <div class="endpoint-description">
+          Get current user state from database (always fresh)
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "userId": "user_36OKpyLZ...",
-    "dialist_id": "677a1111...",
-    "onboarding_status": "incomplete",
-    "display_name": null,
-    "location_country": null,
-    "isMerchant": false,
-    "next_step": "location"
-  },
-  "requestId": "req_123..."
-}</div>
+          <div class="endpoint-section-title">Headers</div>
+          <div class="code-block">
+            Authorization: Bearer {clerk_token} x-refresh-session: 1 (optional -
+            force DB lookup)
+          </div>
         </div>
-    </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "userId": "user_36OKpyLZ...", "dialist_id":
+            "677a1111...", "onboarding_status": "incomplete", "display_name":
+            null, "location_country": null, "isMerchant": false, "next_step":
+            "location" }, "requestId": "req_123..." }
+          </div>
+        </div>
+      </div>
 
-    <div class="step-tracker">
+      <div class="step-tracker">
         <div class="step-number">2</div>
         <div class="step-content">
-            <strong>Step 1: Submit Location</strong><br>
-            <span class="highlight">PATCH /api/v1/onboarding/steps/location</span>
+          <strong>Step 1: Submit Location</strong><br />
+          <span class="highlight">PATCH /api/v1/onboarding/steps/location</span>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/v1/onboarding/steps/location</span>
-            </div>
+          <div>
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/v1/onboarding/steps/location</span>
+          </div>
         </div>
-        <div class="endpoint-description">Update location information (Step 1)</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">Request Body</div>
-            <div class="code-block">{
-  "country": "US",
-  "region": "California",
-  "postal_code": "90210"
-}</div>
+        <div class="endpoint-description">
+          Update location information (Step 1)
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Validation Rules</div>
-            <ul style="margin-left: 15px; margin-top: 10px;">
-                <li><span class="highlight">country</span>: Required, 2-char code (US, CA, etc.)</li>
-                <li><span class="highlight">region</span>: Required, 2+ chars (CA, NY, ON)</li>
-                <li><span class="highlight">postal_code</span>: Required, 5+ chars</li>
-            </ul>
+          <div class="endpoint-section-title">Request Body</div>
+          <div class="code-block">
+            { "country": "US", "region": "California", "postal_code": "90210" }
+          </div>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "status": "incomplete",
-    "progress": {
-      "location": true,
-      "display_name": false,
-      "avatar": false,
-      "acknowledgements": false,
-      "is_finished": false,
-      "next_step": "display_name"
-    }
-  }
-}</div>
+          <div class="endpoint-section-title">Validation Rules</div>
+          <ul style="margin-left: 15px; margin-top: 10px">
+            <li>
+              <span class="highlight">country</span>: Required, 2-char code (US,
+              CA, etc.)
+            </li>
+            <li>
+              <span class="highlight">region</span>: Required, 2+ chars (CA, NY,
+              ON)
+            </li>
+            <li>
+              <span class="highlight">postal_code</span>: Required, 5+ chars
+            </li>
+          </ul>
         </div>
-    </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "status": "incomplete", "progress": { "location": true,
+            "display_name": false, "avatar": false, "acknowledgements": false,
+            "is_finished": false, "next_step": "display_name" } } }
+          </div>
+        </div>
+      </div>
 
-    <div class="step-tracker">
+      <div class="step-tracker">
         <div class="step-number">3</div>
         <div class="step-content">
-            <strong>Step 2: Submit Display Name</strong><br>
-            <span class="highlight">PATCH /api/v1/onboarding/steps/display_name</span>
+          <strong>Step 2: Submit Display Name</strong><br />
+          <span class="highlight"
+            >PATCH /api/v1/onboarding/steps/display_name</span
+          >
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/v1/onboarding/steps/display_name</span>
-            </div>
+          <div>
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path"
+              >/api/v1/onboarding/steps/display_name</span
+            >
+          </div>
         </div>
-        <div class="endpoint-description">Set display name (Step 2) - auto-generated or custom</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">Option A: Auto-Generated (Recommended)</div>
-            <div class="code-block">{
-  "mode": "default"
-}</div>
-            <div style="margin-top: 10px; font-size: 13px; color: #7f8c8d;">Backend generates name from first_name + last_name (e.g., "John D.")</div>
+        <div class="endpoint-description">
+          Set display name (Step 2) - auto-generated or custom
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Option B: Custom Name</div>
-            <div class="code-block">{
-  "mode": "custom",
-  "value": "John's Watch Shop"
-}</div>
-            <div style="margin-top: 10px; font-size: 13px; color: #7f8c8d;">Requirements: 7-60 chars, whitespace trimmed, unique not enforced</div>
+          <div class="endpoint-section-title">
+            Option A: Auto-Generated (Recommended)
+          </div>
+          <div class="code-block">{ "mode": "default" }</div>
+          <div style="margin-top: 10px; font-size: 13px; color: #7f8c8d">
+            Backend generates name from first_name + last_name (e.g., "John D.")
+          </div>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "status": "incomplete",
-    "progress": {
-      "location": true,
-      "display_name": true,
-      "avatar": false,
-      "acknowledgements": false,
-      "next_step": "avatar"
-    }
-  }
-}</div>
+          <div class="endpoint-section-title">Option B: Custom Name</div>
+          <div class="code-block">
+            { "mode": "custom", "value": "John's Watch Shop" }
+          </div>
+          <div style="margin-top: 10px; font-size: 13px; color: #7f8c8d">
+            Requirements: 7-60 chars, whitespace trimmed, unique not enforced
+          </div>
         </div>
-    </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "status": "incomplete", "progress": { "location": true,
+            "display_name": true, "avatar": false, "acknowledgements": false,
+            "next_step": "avatar" } } }
+          </div>
+        </div>
+      </div>
 
-    <div class="step-tracker">
+      <div class="step-tracker">
         <div class="step-number">4</div>
         <div class="step-content">
-            <strong>Step 3: Submit Avatar</strong><br>
-            <span class="highlight">PATCH /api/v1/onboarding/steps/avatar</span>
+          <strong>Step 3: Submit Avatar</strong><br />
+          <span class="highlight">PATCH /api/v1/onboarding/steps/avatar</span>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/v1/onboarding/steps/avatar</span>
-            </div>
+          <div>
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/v1/onboarding/steps/avatar</span>
+          </div>
         </div>
         <div class="endpoint-description">Set avatar image URL (Step 3)</div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Request Body</div>
-            <div class="code-block">{
-  "url": "https://images.dialist.com/avatars/user123.jpg"
-}</div>
+          <div class="endpoint-section-title">Request Body</div>
+          <div class="code-block">
+            { "url": "https://images.dialist.com/avatars/user123.jpg" }
+          </div>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "status": "incomplete",
-    "progress": {
-      "location": true,
-      "display_name": true,
-      "avatar": true,
-      "acknowledgements": false,
-      "next_step": "acknowledgements"
-    }
-  }
-}</div>
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "status": "incomplete", "progress": { "location": true,
+            "display_name": true, "avatar": true, "acknowledgements": false,
+            "next_step": "acknowledgements" } } }
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="step-tracker">
+      <div class="step-tracker">
         <div class="step-number">5</div>
         <div class="step-content">
-            <strong>Step 4: Accept Legal Terms (FINAL)</strong><br>
-            <span class="highlight">PATCH /api/v1/onboarding/steps/acknowledgements</span>
+          <strong>Step 4: Accept Legal Terms (FINAL)</strong><br />
+          <span class="highlight"
+            >PATCH /api/v1/onboarding/steps/acknowledgements</span
+          >
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/v1/onboarding/steps/acknowledgements</span>
-            </div>
+          <div>
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path"
+              >/api/v1/onboarding/steps/acknowledgements</span
+            >
+          </div>
         </div>
-        <div class="endpoint-description">Accept legal terms and COMPLETE onboarding (Step 4 - FINAL)</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">Request Body</div>
-            <div class="code-block">{
-  "terms_of_service": true,
-  "privacy_policy": true,
-  "marketplace_rules": true
-}</div>
-            <div style="margin-top: 10px; font-size: 13px; color: #7f8c8d;">All three fields must be <span class="highlight">true</span> to complete</div>
+        <div class="endpoint-description">
+          Accept legal terms and COMPLETE onboarding (Step 4 - FINAL)
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200) - ONBOARDING COMPLETE!</div>
-            <div class="code-block">{
-  "data": {
-    "status": "completed",
-    "completed_at": "2026-03-17T10:30:00Z",
-    "progress": {
-      "location": true,
-      "display_name": true,
-      "avatar": true,
-      "acknowledgements": true,
-      "is_finished": true
-    }
-  }
-}</div>
+          <div class="endpoint-section-title">Request Body</div>
+          <div class="code-block">
+            { "terms_of_service": true, "privacy_policy": true,
+            "marketplace_rules": true }
+          </div>
+          <div style="margin-top: 10px; font-size: 13px; color: #7f8c8d">
+            All three fields must be <span class="highlight">true</span> to
+            complete
+          </div>
         </div>
-    </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">
+            Success Response (200) - ONBOARDING COMPLETE!
+          </div>
+          <div class="code-block">
+            { "data": { "status": "completed", "completed_at":
+            "2026-03-17T10:30:00Z", "progress": { "location": true,
+            "display_name": true, "avatar": true, "acknowledgements": true,
+            "is_finished": true } } }
+          </div>
+        </div>
+      </div>
 
-    <div class="info-box success" style="margin-top: 30px;">
-        <strong>✅ Platform Onboarding Complete!</strong><br>
+      <div class="info-box success" style="margin-top: 30px">
+        <strong>✅ Platform Onboarding Complete!</strong><br />
         User can now:
-        <ul style="margin-left: 15px; margin-top: 10px;">
-            <li>Browse marketplace listings</li>
-            <li>Reserve watches</li>
-            <li>Make purchases</li>
-            <li>View their profile</li>
-            <li>(Optional) Complete merchant onboarding to become a seller</li>
+        <ul style="margin-left: 15px; margin-top: 10px">
+          <li>Browse marketplace listings</li>
+          <li>Reserve watches</li>
+          <li>Make purchases</li>
+          <li>View their profile</li>
+          <li>(Optional) Complete merchant onboarding to become a seller</li>
         </ul>
+      </div>
     </div>
-</div>
 
-<div class="page-break"></div>
+    <div class="page-break"></div>
 
-<!-- ===== JOURNEY 2: MERCHANT ONBOARDING ===== -->
-<div class="section" id="journey2">
-    <h3>Journey 2: Merchant Onboarding (Finix KYC)</h3>
+    <!-- ===== JOURNEY 2: MERCHANT ONBOARDING ===== -->
+    <div class="section" id="journey2">
+      <h3>Journey 2: Merchant Onboarding (Finix KYC)</h3>
 
-    <p>This flow is <strong>optional</strong> but <strong>required to sell</strong> on the marketplace. Users must complete Journey 1 first.</p>
+      <p>
+        This flow is <strong>optional</strong> but
+        <strong>required to sell</strong> on the marketplace. Users must
+        complete Journey 1 first.
+      </p>
 
-    <div class="flow-diagram">User Clicks "Become a Seller"
-        │
-        ├─► Check: Has onboarding_status = "completed" ? (REQUIRED)
-        │   If NO → Error: "Complete platform onboarding first"
-        │
-        └─► POST /api/v1/marketplace/merchant/onboard
-        
-        ▼ Backend Calls Finix API
-        
-        Backend: createOnboardingForm()
-        ├─► Call: Finix.createOnboardingForm()
-        ├─► Finix returns: { form_id, form_link, expires_at }
-        ├─► Create MerchantOnboarding document
-        └─► Return onboarding_url to client
-        
-        ▼ Frontend Redirect
-        
-        Browser: window.location.href = onboarding_url
-        ├─► Redirect to: https://onboarding.finix.com/form/ONF_xxx
-        │
-        ▼ User Completes Finix Form
-        │
-        ├─► Enters business details:
-        │   - Business name
-        │   - Business type (sole proprietor, LLC, etc.)
-        │   - Tax ID / EIN
-        │   - Business address
-        │   - Business phone
-        │
-        ├─► Enters personal details:
-        │   - Full name
-        │   - Date of birth
-        │   - Social security number
-        │   - Address
-        │
-        ├─► Enters bank account:
-        │   - Routing number
-        │   - Account number
-        │   - Account holder name
-        │
-        └─► Submits form
-        
-        ▼ Finix Processes & Sends Webhooks
-        
-        Webhook 1: onboarding_form.updated (status: COMPLETED)
-        ├─► form_id matches
-        ├─► Backend: Calls Finix to provision merchant
-        └─► Sets: identity_id
-        
-        Webhook 2: merchant.created
-        ├─► merchant_id assigned
-        ├─► onboarding_state = "PROVISIONING"
-        ├─► Backend syncs to Clerk
-        └─► isMerchant = false (NOT APPROVED YET)
-        
-        ▼ Finix Performs KYC Verification
-        │
-        ├─► Business verification
-        ├─► Personal identity verification
-        ├─► Bank account verification
-        │
-        ▼ Finix Verification Complete
-        
-        Webhook 3: merchant.updated (onboarding_state: APPROVED)
-        ├─► Finix sets merchant verification status
-        ├─► Backend updates MerchantOnboarding
-        ├─► Sets: isMerchant = true
-        ├─► Sets: verification_state = "SUCCEEDED"
-        ├─► Syncs to Clerk
-        └─► Backend: fires event "merchant.approved"
-        
-        ▼ Frontend Verification
-        
-        └─► Polls GET /api/v1/marketplace/merchant/status
-            Check: onboarding_state = "APPROVED" ?
-            If YES → ✅ User can now create listings
-            If NO → Show status: "PROVISIONING", "REJECTED", etc.
-        
-        ✅ MERCHANT ONBOARDING COMPLETE - User can now SELL watches</div>
+      <div class="flow-diagram">
+        User Clicks "Become a Seller" │ ├─► Check: Has onboarding_status =
+        "completed" ? (REQUIRED) │ If NO → Error: "Complete platform onboarding
+        first" │ └─► POST /api/v1/marketplace/merchant/onboard ▼ Backend Calls
+        Finix API Backend: createOnboardingForm() ├─► Call:
+        Finix.createOnboardingForm() ├─► Finix returns: { form_id, form_link,
+        expires_at } ├─► Create MerchantOnboarding document └─► Return
+        onboarding_url to client ▼ Frontend Redirect Browser:
+        window.location.href = onboarding_url ├─► Redirect to:
+        https://onboarding.finix.com/form/ONF_xxx │ ▼ User Completes Finix Form
+        │ ├─► Enters business details: │ - Business name │ - Business type (sole
+        proprietor, LLC, etc.) │ - Tax ID / EIN │ - Business address │ -
+        Business phone │ ├─► Enters personal details: │ - Full name │ - Date of
+        birth │ - Social security number │ - Address │ ├─► Enters bank account:
+        │ - Routing number │ - Account number │ - Account holder name │ └─►
+        Submits form ▼ Finix Processes & Sends Webhooks Webhook 1:
+        onboarding_form.updated (status: COMPLETED) ├─► form_id matches ├─►
+        Backend: Calls Finix to provision merchant └─► Sets: identity_id Webhook
+        2: merchant.created ├─► merchant_id assigned ├─► onboarding_state =
+        "PROVISIONING" ├─► Backend syncs to Clerk └─► isMerchant = false (NOT
+        APPROVED YET) ▼ Finix Performs KYC Verification │ ├─► Business
+        verification ├─► Personal identity verification ├─► Bank account
+        verification │ ▼ Finix Verification Complete Webhook 3: merchant.updated
+        (onboarding_state: APPROVED) ├─► Finix sets merchant verification status
+        ├─► Backend updates MerchantOnboarding ├─► Sets: isMerchant = true ├─►
+        Sets: verification_state = "SUCCEEDED" ├─► Syncs to Clerk └─► Backend:
+        fires event "merchant.approved" ▼ Frontend Verification └─► Polls GET
+        /api/v1/marketplace/merchant/status Check: onboarding_state = "APPROVED"
+        ? If YES → ✅ User can now create listings If NO → Show status:
+        "PROVISIONING", "REJECTED", etc. ✅ MERCHANT ONBOARDING COMPLETE - User
+        can now SELL watches
+      </div>
 
-    <div class="figma-ref">
-        <strong>📱 Figma Screen Mappings for Journey 2:</strong><br>
-        <div style="margin-top: 10px;">
-            <div><span class="screen-name">Merchant Prompt</span>: Modal or page asking "Ready to sell?" with action button</div>
-            <div><span class="screen-name">Onboarding Redirect</span>: Loading state during redirect to Finix form or iframe embed</div>
-            <div><span class="screen-name">Status Check</span>: "Becoming a Seller" screen showing verification progress (Pending → Approved)</div>
-            <div><span class="screen-name">Merchant Approved</span>: Success screen with "Start Creating Listings" button</div>
-            <div><span class="screen-name">Merchant Rejected</span>: Error screen with rejection reason and contact support CTA</div>
+      <div class="figma-ref">
+        <strong>📱 Figma Screen Mappings for Journey 2:</strong><br />
+        <div style="margin-top: 10px">
+          <div>
+            <span class="screen-name">Merchant Prompt</span>: Modal or page
+            asking "Ready to sell?" with action button
+          </div>
+          <div>
+            <span class="screen-name">Onboarding Redirect</span>: Loading state
+            during redirect to Finix form or iframe embed
+          </div>
+          <div>
+            <span class="screen-name">Status Check</span>: "Becoming a Seller"
+            screen showing verification progress (Pending → Approved)
+          </div>
+          <div>
+            <span class="screen-name">Merchant Approved</span>: Success screen
+            with "Start Creating Listings" button
+          </div>
+          <div>
+            <span class="screen-name">Merchant Rejected</span>: Error screen
+            with rejection reason and contact support CTA
+          </div>
         </div>
-    </div>
+      </div>
 
-    <h4>API Calls for Journey 2</h4>
+      <h4>API Calls for Journey 2</h4>
 
-    <div class="step-tracker">
+      <div class="step-tracker">
         <div class="step-number">1</div>
         <div class="step-content">
-            <strong>Check Merchant Status</strong><br>
-            <span class="highlight">GET /api/v1/marketplace/merchant/status</span>
+          <strong>Check Merchant Status</strong><br />
+          <span class="highlight">GET /api/v1/marketplace/merchant/status</span>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/v1/marketplace/merchant/status</span>
-            </div>
+          <div>
+            <span class="method get">GET</span>
+            <span class="endpoint-path"
+              >/api/v1/marketplace/merchant/status</span
+            >
+          </div>
         </div>
-        <div class="endpoint-description">Get current merchant onboarding status</div>
+        <div class="endpoint-description">
+          Get current merchant onboarding status
+        </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "is_merchant": false,
-    "onboarding_state": null,        // null if not started
-    "merchant_id": null,
-    "form_id": null,
-    "verification_state": null
-  }
-}</div>
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "is_merchant": false, "onboarding_state": null, // null
+            if not started "merchant_id": null, "form_id": null,
+            "verification_state": null } }
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="step-tracker">
+      <div class="step-tracker">
         <div class="step-number">2</div>
         <div class="step-content">
-            <strong>Initiate Merchant Onboarding</strong><br>
-            <span class="highlight">POST /api/v1/marketplace/merchant/onboard</span>
+          <strong>Initiate Merchant Onboarding</strong><br />
+          <span class="highlight"
+            >POST /api/v1/marketplace/merchant/onboard</span
+          >
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/v1/marketplace/merchant/onboard</span>
-            </div>
+          <div>
+            <span class="method post">POST</span>
+            <span class="endpoint-path"
+              >/api/v1/marketplace/merchant/onboard</span
+            >
+          </div>
         </div>
-        <div class="endpoint-description">Create Finix onboarding form and get URL for user to submit KYC</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">Request Body</div>
-            <div class="code-block">{
-  "idempotency_id": "onboard-abc123",        // Unique per request
-  "business_name": "John's Watch Shop",
-  "max_transaction_amount": 50000              // USD cents or dollars (verify docs)
-}</div>
+        <div class="endpoint-description">
+          Create Finix onboarding form and get URL for user to submit KYC
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Validation Rules</div>
-            <ul style="margin-left: 15px; margin-top: 10px;">
-                <li><span class="highlight">idempotency_id</span>: Required, unique per merchant, prevents duplicate forms</li>
-                <li><span class="highlight">business_name</span>: Required, 2-255 chars</li>
-                <li><span class="highlight">max_transaction_amount</span>: Required, >= 1000 (or per Finix limits)</li>
-            </ul>
+          <div class="endpoint-section-title">Request Body</div>
+          <div class="code-block">
+            { "idempotency_id": "onboard-abc123", // Unique per request
+            "business_name": "John's Watch Shop", "max_transaction_amount":
+            50000 // USD cents or dollars (verify docs) }
+          </div>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "onboarding_url": "https://onboarding.finix.com/form/ONF_abc123xyz",
-    "form_id": "ONF_abc123xyz",
-    "expires_at": "2026-04-17T10:30:00Z",
-    "existing_form": false
-  }
-}</div>
+          <div class="endpoint-section-title">Validation Rules</div>
+          <ul style="margin-left: 15px; margin-top: 10px">
+            <li>
+              <span class="highlight">idempotency_id</span>: Required, unique
+              per merchant, prevents duplicate forms
+            </li>
+            <li>
+              <span class="highlight">business_name</span>: Required, 2-255
+              chars
+            </li>
+            <li>
+              <span class="highlight">max_transaction_amount</span>: Required,
+              >= 1000 (or per Finix limits)
+            </li>
+          </ul>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Error Response (403)</div>
-            <div class="code-block">{
-  "error": {
-    "code": "PREREQUISITES_NOT_MET",
-    "message": "Complete platform onboarding before merchant onboarding"
-  }
-}</div>
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "onboarding_url":
+            "https://onboarding.finix.com/form/ONF_abc123xyz", "form_id":
+            "ONF_abc123xyz", "expires_at": "2026-04-17T10:30:00Z",
+            "existing_form": false } }
+          </div>
         </div>
-    </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">Error Response (403)</div>
+          <div class="code-block">
+            { "error": { "code": "PREREQUISITES_NOT_MET", "message": "Complete
+            platform onboarding before merchant onboarding" } }
+          </div>
+        </div>
+      </div>
 
-    <div class="info-box warning">
-        <strong>⚠️ Critical: Finix Webhooks</strong><br>
-        The backend MUST listen for Finix webhooks at:<br>
-        <span class="highlight">POST /webhooks/finix</span><br><br>
+      <div class="info-box warning">
+        <strong>⚠️ Critical: Finix Webhooks</strong><br />
+        The backend MUST listen for Finix webhooks at:<br />
+        <span class="highlight">POST /webhooks/finix</span><br /><br />
         Webhook types to handle:
-        <ul style="margin-left: 15px; margin-top: 10px;">
-            <li><span class="highlight">onboarding_form.updated</span> - Form completed by user</li>
-            <li><span class="highlight">merchant.created</span> - Merchant ID assigned by Finix</li>
-            <li><span class="highlight">merchant.updated</span> - KYC verification complete (APPROVED/REJECTED)</li>
-            <li><span class="highlight">verification.updated</span> - Verification status changed</li>
+        <ul style="margin-left: 15px; margin-top: 10px">
+          <li>
+            <span class="highlight">onboarding_form.updated</span> - Form
+            completed by user
+          </li>
+          <li>
+            <span class="highlight">merchant.created</span> - Merchant ID
+            assigned by Finix
+          </li>
+          <li>
+            <span class="highlight">merchant.updated</span> - KYC verification
+            complete (APPROVED/REJECTED)
+          </li>
+          <li>
+            <span class="highlight">verification.updated</span> - Verification
+            status changed
+          </li>
         </ul>
-    </div>
+      </div>
 
-    <div class="step-tracker">
+      <div class="step-tracker">
         <div class="step-number">3</div>
         <div class="step-content">
-            <strong>Check Status After Form Completion</strong><br>
-            <span class="highlight">GET /api/v1/marketplace/merchant/status</span> (poll every 5-10 seconds)
+          <strong>Check Status After Form Completion</strong><br />
+          <span class="highlight">GET /api/v1/marketplace/merchant/status</span>
+          (poll every 5-10 seconds)
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/v1/marketplace/merchant/status</span>
-            </div>
+          <div>
+            <span class="method get">GET</span>
+            <span class="endpoint-path"
+              >/api/v1/marketplace/merchant/status</span
+            >
+          </div>
         </div>
-        <div class="endpoint-description">Check status after merchant completes Finix form</div>
+        <div class="endpoint-description">
+          Check status after merchant completes Finix form
+        </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Possible Status States</div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>onboarding_state</th>
-                            <th>is_merchant</th>
-                            <th>Meaning</th>
-                            <th>User Can Sell?</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><span class="highlight">null</span></td>
-                            <td>false</td>
-                            <td>Not started</td>
-                            <td>❌ No</td>
-                        </tr>
-                        <tr>
-                            <td><span class="highlight">PENDING</span></td>
-                            <td>false</td>
-                            <td>Form created, awaiting user submission</td>
-                            <td>❌ No</td>
-                        </tr>
-                        <tr>
-                            <td><span class="highlight">PROVISIONING</span></td>
-                            <td>false</td>
-                            <td>Form submitted, Finix processing KYC</td>
-                            <td>❌ No (show "Verifying...")</td>
-                        </tr>
-                        <tr>
-                            <td><span class="highlight">APPROVED</span></td>
-                            <td>true</td>
-                            <td>✅ KYC passed, merchant approved</td>
-                            <td>✅ YES</td>
-                        </tr>
-                        <tr>
-                            <td><span class="highlight">REJECTED</span></td>
-                            <td>false</td>
-                            <td>❌ KYC failed</td>
-                            <td>❌ No (show reason)</td>
-                        </tr>
-                        <tr>
-                            <td><span class="highlight">UPDATE_REQUESTED</span></td>
-                            <td>false</td>
-                            <td>Finix needs more information</td>
-                            <td>❌ No (prompt resubmit)</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+          <div class="endpoint-section-title">Possible Status States</div>
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>onboarding_state</th>
+                  <th>is_merchant</th>
+                  <th>Meaning</th>
+                  <th>User Can Sell?</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><span class="highlight">null</span></td>
+                  <td>false</td>
+                  <td>Not started</td>
+                  <td>❌ No</td>
+                </tr>
+                <tr>
+                  <td><span class="highlight">PENDING</span></td>
+                  <td>false</td>
+                  <td>Form created, awaiting user submission</td>
+                  <td>❌ No</td>
+                </tr>
+                <tr>
+                  <td><span class="highlight">PROVISIONING</span></td>
+                  <td>false</td>
+                  <td>Form submitted, Finix processing KYC</td>
+                  <td>❌ No (show "Verifying...")</td>
+                </tr>
+                <tr>
+                  <td><span class="highlight">APPROVED</span></td>
+                  <td>true</td>
+                  <td>✅ KYC passed, merchant approved</td>
+                  <td>✅ YES</td>
+                </tr>
+                <tr>
+                  <td><span class="highlight">REJECTED</span></td>
+                  <td>false</td>
+                  <td>❌ KYC failed</td>
+                  <td>❌ No (show reason)</td>
+                </tr>
+                <tr>
+                  <td><span class="highlight">UPDATE_REQUESTED</span></td>
+                  <td>false</td>
+                  <td>Finix needs more information</td>
+                  <td>❌ No (prompt resubmit)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="info-box success" style="margin-top: 30px;">
-        <strong>✅ Merchant Onboarding Complete!</strong><br>
+      <div class="info-box success" style="margin-top: 30px">
+        <strong>✅ Merchant Onboarding Complete!</strong><br />
         User can now:
-        <ul style="margin-left: 15px; margin-top: 10px;">
-            <li>Create marketplace listings</li>
-            <li>Receive payments for sold watches</li>
-            <li>View seller dashboard</li>
-            <li>Manage inventory</li>
+        <ul style="margin-left: 15px; margin-top: 10px">
+          <li>Create marketplace listings</li>
+          <li>Receive payments for sold watches</li>
+          <li>View seller dashboard</li>
+          <li>Manage inventory</li>
         </ul>
+      </div>
     </div>
-</div>
 
-<div class="page-break"></div>
+    <div class="page-break"></div>
 
-<!-- ===== JOURNEY 3: END-TO-END ===== -->
-<div class="section" id="journey3">
-    <h3>Journey 3: Complete End-to-End (All Flows Combined)</h3>
+    <!-- ===== JOURNEY 3: END-TO-END ===== -->
+    <div class="section" id="journey3">
+      <h3>Journey 3: Complete End-to-End (All Flows Combined)</h3>
 
-    <p>This section shows the <strong>complete timeline</strong> of a user from sign-up to becoming an approved seller.</p>
+      <p>
+        This section shows the <strong>complete timeline</strong> of a user from
+        sign-up to becoming an approved seller.
+      </p>
 
-    <div class="flow-diagram">DAY 1: SIGN-UP
-─────────────────────────────────
-10:00 AM - User clicks "Sign Up"
-         - Completes Clerk form
-         - Account created
-         ├─► Platform onboarding: INCOMPLETE
-         ├─► Merchant onboarding: NOT_STARTED
-         └─► Can access: NONE (must complete platform)
+      <div class="flow-diagram">
+        DAY 1: SIGN-UP ───────────────────────────────── 10:00 AM - User clicks
+        "Sign Up" - Completes Clerk form - Account created ├─► Platform
+        onboarding: INCOMPLETE ├─► Merchant onboarding: NOT_STARTED └─► Can
+        access: NONE (must complete platform) DAY 1: PLATFORM ONBOARDING (1
+        HOUR) ───────────────────────────────── 10:05 AM - PATCH
+        /onboarding/steps/location ├─► Entered: US, California, 90210 └─►
+        Progress: 25% complete 10:15 AM - PATCH /onboarding/steps/display_name
+        ├─► Selected: "John's Watches" (custom) └─► Progress: 50% complete 10:25
+        AM - PATCH /onboarding/steps/avatar ├─► Uploaded: Profile picture └─►
+        Progress: 75% complete 10:30 AM - PATCH
+        /onboarding/steps/acknowledgements (FINAL) ├─► Accepted all legal terms
+        ├─► onboarding.status = "completed" └─► Progress: 100% - DONE! User CAN
+        NOW: ├─► Browse marketplace ├─► Reserve watches ├─► Purchase watches └─►
+        View their profile DAY 5: MERCHANT ONBOARDING (OPTIONAL)
+        ───────────────────────────────── User decides to sell watches... DAY 5,
+        2:00 PM - User clicks "Become a Seller" ├─► Check: Platform onboarded?
+        YES ✓ ├─► POST /marketplace/merchant/onboard │ { │ business_name:
+        "John's Watches Inc", │ max_transaction_amount: 50000 │ } │ ├─► Backend:
+        Create Finix form └─► Return onboarding_url DAY 5, 2:05 PM - Frontend
+        redirects to Finix form ├─► User →
+        https://onboarding.finix.com/form/ONF_xxx └─► (User leaves to fill Finix
+        form) DAY 5, 2:45 PM - User completes Finix form ├─► Finix:
+        onboarding_form.updated webhook ├─► Backend: Sets identity_id ├─► Finix
+        starts KYC verification └─► onboarding_state = "PROVISIONING" DAY 5,
+        3:00 PM - Frontend polls status ├─► GET /marketplace/merchant/status └─►
+        Response: { onboarding_state: "PROVISIONING" } (Shows "Verifying your
+        application...") DAY 6 (NEXT DAY) - Finix completes verification ├─►
+        Finix: merchant.updated webhook (APPROVED) ├─► Backend: Updates
+        MerchantOnboarding ├─► isMerchant = true ├─► onboarding_state =
+        "APPROVED" └─► Clerk metadata synced DAY 6, 8:00 AM - User checks status
+        again ├─► GET /marketplace/merchant/status └─► Response: { is_merchant:
+        true, onboarding_state: "APPROVED" } User CAN NOW: ├─► Create
+        marketplace listings ├─► Upload watch photos ├─► Set prices ├─► Receive
+        payments └─► View seller dashboard
+        ═════════════════════════════════════════════════════════ FINAL STATE
+        (DAY 6+) ═════════════════════════════════════════════════════════ GET
+        /me Response: { "data": { userId: "user_36OKpyLZ...", dialist_id:
+        "677a...", // Platform onboarding: COMPLETE onboarding_status:
+        "completed", display_name: "John's Watches", avatar: "https://...",
+        location_country: "US", // Merchant onboarding: APPROVED isMerchant:
+        true, onboarding_state: "APPROVED", merchant_id: "MU_xxx" } } User is
+        now FULLY ONBOARDED as both: ✅ Buyer (can purchase) ✅ Seller (can list
+        & sell watches)
+      </div>
 
-DAY 1: PLATFORM ONBOARDING (1 HOUR)
-─────────────────────────────────
-10:05 AM - PATCH /onboarding/steps/location
-         ├─► Entered: US, California, 90210
-         └─► Progress: 25% complete
-
-10:15 AM - PATCH /onboarding/steps/display_name
-         ├─► Selected: "John's Watches" (custom)
-         └─► Progress: 50% complete
-
-10:25 AM - PATCH /onboarding/steps/avatar
-         ├─► Uploaded: Profile picture
-         └─► Progress: 75% complete
-
-10:30 AM - PATCH /onboarding/steps/acknowledgements (FINAL)
-         ├─► Accepted all legal terms
-         ├─► onboarding.status = "completed"
-         └─► Progress: 100% - DONE!
-         
-         User CAN NOW:
-         ├─► Browse marketplace
-         ├─► Reserve watches
-         ├─► Purchase watches
-         └─► View their profile
-
-DAY 5: MERCHANT ONBOARDING (OPTIONAL)
-─────────────────────────────────
-User decides to sell watches...
-
-DAY 5, 2:00 PM - User clicks "Become a Seller"
-         ├─► Check: Platform onboarded? YES ✓
-         ├─► POST /marketplace/merchant/onboard
-         │   {
-         │     business_name: "John's Watches Inc",
-         │     max_transaction_amount: 50000
-         │   }
-         │
-         ├─► Backend: Create Finix form
-         └─► Return onboarding_url
-
-DAY 5, 2:05 PM - Frontend redirects to Finix form
-         ├─► User → https://onboarding.finix.com/form/ONF_xxx
-         └─► (User leaves to fill Finix form)
-
-DAY 5, 2:45 PM - User completes Finix form
-         ├─► Finix: onboarding_form.updated webhook
-         ├─► Backend: Sets identity_id
-         ├─► Finix starts KYC verification
-         └─► onboarding_state = "PROVISIONING"
-
-DAY 5, 3:00 PM - Frontend polls status
-         ├─► GET /marketplace/merchant/status
-         └─► Response: { onboarding_state: "PROVISIONING" }
-             (Shows "Verifying your application...")
-
-DAY 6 (NEXT DAY) - Finix completes verification
-         ├─► Finix: merchant.updated webhook (APPROVED)
-         ├─► Backend: Updates MerchantOnboarding
-         ├─► isMerchant = true
-         ├─► onboarding_state = "APPROVED"
-         └─► Clerk metadata synced
-
-DAY 6, 8:00 AM - User checks status again
-         ├─► GET /marketplace/merchant/status
-         └─► Response: { 
-             is_merchant: true,
-             onboarding_state: "APPROVED"
-             }
-         
-         User CAN NOW:
-         ├─► Create marketplace listings
-         ├─► Upload watch photos
-         ├─► Set prices
-         ├─► Receive payments
-         └─► View seller dashboard
-
-═════════════════════════════════════════════════════════
-FINAL STATE (DAY 6+)
-═════════════════════════════════════════════════════════
-GET /me Response:
-{
-  "data": {
-    userId: "user_36OKpyLZ...",
-    dialist_id: "677a...",
-    
-    // Platform onboarding: COMPLETE
-    onboarding_status: "completed",
-    display_name: "John's Watches",
-    avatar: "https://...",
-    location_country: "US",
-    
-    // Merchant onboarding: APPROVED
-    isMerchant: true,
-    onboarding_state: "APPROVED",
-    merchant_id: "MU_xxx"
-  }
-}
-
-User is now FULLY ONBOARDED as both:
-✅ Buyer (can purchase)
-✅ Seller (can list & sell watches)</div>
-
-    <div class="figma-ref">
-        <strong>📱 Complete Figma Screen Flow for End-to-End:</strong><br>
-        <div style="margin-top: 10px;">
-            <strong>Day 1 - Platform Onboarding:</strong><br>
-            Sign Up → Location → Display Name → Avatar → Legal → Success
-            <br><br>
-            <strong>Day 5+ - Merchant Onboarding:</strong><br>
-            "Become Seller" → Finix Form (external) → Verification (polling) → Approved → Create Listing
+      <div class="figma-ref">
+        <strong>📱 Complete Figma Screen Flow for End-to-End:</strong><br />
+        <div style="margin-top: 10px">
+          <strong>Day 1 - Platform Onboarding:</strong><br />
+          Sign Up → Location → Display Name → Avatar → Legal → Success
+          <br /><br />
+          <strong>Day 5+ - Merchant Onboarding:</strong><br />
+          "Become Seller" → Finix Form (external) → Verification (polling) →
+          Approved → Create Listing
         </div>
+      </div>
     </div>
-</div>
 
-<div class="page-break"></div>
+    <div class="page-break"></div>
 
-<!-- ===== API REFERENCE ===== -->
-<div class="section" id="api-reference">
-    <h2>4. API Endpoint Reference</h2>
+    <!-- ===== API REFERENCE ===== -->
+    <div class="section" id="api-reference">
+      <h2>4. API Endpoint Reference</h2>
 
-    <h3 id="auth-endpoints">Authentication Endpoints</h3>
+      <h3 id="auth-endpoints">Authentication Endpoints</h3>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/v1/me</span>
-            </div>
+          <div>
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/v1/me</span>
+          </div>
         </div>
-        <div class="endpoint-description">Bootstrap endpoint - Get current user state from database</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">When to Call</div>
-            <ul style="margin-left: 15px; margin-top: 10px;">
-                <li>Immediately after Clerk authentication</li>
-                <li>Before showing any UI</li>
-                <li>After completing onboarding steps</li>
-                <li>After merchant approval (with x-refresh-session: 1)</li>
-            </ul>
+        <div class="endpoint-description">
+          Bootstrap endpoint - Get current user state from database
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Headers</div>
-            <div class="code-block">Authorization: Bearer {clerk_jwt_token}
-x-refresh-session: 1  (optional - force fresh DB lookup)</div>
+          <div class="endpoint-section-title">When to Call</div>
+          <ul style="margin-left: 15px; margin-top: 10px">
+            <li>Immediately after Clerk authentication</li>
+            <li>Before showing any UI</li>
+            <li>After completing onboarding steps</li>
+            <li>After merchant approval (with x-refresh-session: 1)</li>
+          </ul>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "userId": "user_36OKpyLZ...",
-    "dialist_id": "677a1111111111111111aaa1",
-    "email": "user@example.com",
-    "first_name": "John",
-    "last_name": "Doe",
-    "display_name": "John's Watches",
-    "avatar": "https://...",
-    "location_country": "US",
-    "location_region": "CA",
-    "onboarding_status": "completed",
-    "isMerchant": false,
-    "onboarding_state": null
-  },
-  "requestId": "req_..."
-}</div>
+          <div class="endpoint-section-title">Headers</div>
+          <div class="code-block">
+            Authorization: Bearer {clerk_jwt_token} x-refresh-session: 1
+            (optional - force fresh DB lookup)
+          </div>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Error Response (401)</div>
-            <div class="code-block">{
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid or missing Bearer token"
-  }
-}</div>
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "userId": "user_36OKpyLZ...", "dialist_id":
+            "677a1111111111111111aaa1", "email": "user@example.com",
+            "first_name": "John", "last_name": "Doe", "display_name": "John's
+            Watches", "avatar": "https://...", "location_country": "US",
+            "location_region": "CA", "onboarding_status": "completed",
+            "isMerchant": false, "onboarding_state": null }, "requestId":
+            "req_..." }
+          </div>
         </div>
-    </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">Error Response (401)</div>
+          <div class="code-block">
+            { "error": { "code": "UNAUTHORIZED", "message": "Invalid or missing
+            Bearer token" } }
+          </div>
+        </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/v1/auth/refresh</span>
-            </div>
+          <div>
+            <span class="method post">POST</span>
+            <span class="endpoint-path">/api/v1/auth/refresh</span>
+          </div>
         </div>
-        <div class="endpoint-description">Force database lookup and sync to Clerk JWT claims</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">When to Call</div>
-            <ul style="margin-left: 15px; margin-top: 10px;">
-                <li>After completing platform onboarding</li>
-                <li>After merchant approval (to get fresh isMerchant flag)</li>
-                <li>When detecting stale session data</li>
-            </ul>
+        <div class="endpoint-description">
+          Force database lookup and sync to Clerk JWT claims
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Request</div>
-            <div class="code-block">POST /api/v1/auth/refresh
-Authorization: Bearer {clerk_token}</div>
+          <div class="endpoint-section-title">When to Call</div>
+          <ul style="margin-left: 15px; margin-top: 10px">
+            <li>After completing platform onboarding</li>
+            <li>After merchant approval (to get fresh isMerchant flag)</li>
+            <li>When detecting stale session data</li>
+          </ul>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">Same as GET /me</div>
+          <div class="endpoint-section-title">Request</div>
+          <div class="code-block">
+            POST /api/v1/auth/refresh Authorization: Bearer {clerk_token}
+          </div>
         </div>
-    </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">Same as GET /me</div>
+        </div>
+      </div>
 
-    <h3 id="onboard-endpoints">Platform Onboarding Endpoints</h3>
+      <h3 id="onboard-endpoints">Platform Onboarding Endpoints</h3>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/v1/onboarding/status</span>
-            </div>
+          <div>
+            <span class="method get">GET</span>
+            <span class="endpoint-path">/api/v1/onboarding/status</span>
+          </div>
         </div>
-        <div class="endpoint-description">Get detailed onboarding progress for all 4 steps</div>
+        <div class="endpoint-description">
+          Get detailed onboarding progress for all 4 steps
+        </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "status": "incomplete",
-    "progress": {
-      "complete": {
-        "location": true,
-        "display_name": false,
-        "avatar": false,
-        "acknowledgements": false
-      },
-      "is_finished": false,
-      "next_step": "display_name"
-    }
-  }
-}</div>
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "status": "incomplete", "progress": { "complete": {
+            "location": true, "display_name": false, "avatar": false,
+            "acknowledgements": false }, "is_finished": false, "next_step":
+            "display_name" } } }
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/v1/onboarding/steps/location</span>
-            </div>
+          <div>
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/v1/onboarding/steps/location</span>
+          </div>
         </div>
         <div class="endpoint-description">Update location (Step 1)</div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Request</div>
-            <div class="code-block">{
-  "country": "US",
-  "region": "CA",
-  "postal_code": "90210"
-}</div>
+          <div class="endpoint-section-title">Request</div>
+          <div class="code-block">
+            { "country": "US", "region": "CA", "postal_code": "90210" }
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/v1/onboarding/steps/display_name</span>
-            </div>
+          <div>
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path"
+              >/api/v1/onboarding/steps/display_name</span
+            >
+          </div>
         </div>
         <div class="endpoint-description">Update display name (Step 2)</div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Auto-Generated Option</div>
-            <div class="code-block">{ "mode": "default" }</div>
+          <div class="endpoint-section-title">Auto-Generated Option</div>
+          <div class="code-block">{ "mode": "default" }</div>
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Custom Option</div>
-            <div class="code-block">{
-  "mode": "custom",
-  "value": "John's Watch Shop"
-}</div>
+          <div class="endpoint-section-title">Custom Option</div>
+          <div class="code-block">
+            { "mode": "custom", "value": "John's Watch Shop" }
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/v1/onboarding/steps/avatar</span>
-            </div>
+          <div>
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path">/api/v1/onboarding/steps/avatar</span>
+          </div>
         </div>
         <div class="endpoint-description">Update avatar URL (Step 3)</div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Request</div>
-            <div class="code-block">{
-  "url": "https://images.dialist.com/avatars/user.jpg"
-}</div>
+          <div class="endpoint-section-title">Request</div>
+          <div class="code-block">
+            { "url": "https://images.dialist.com/avatars/user.jpg" }
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method patch">PATCH</span>
-                <span class="endpoint-path">/api/v1/onboarding/steps/acknowledgements</span>
-            </div>
+          <div>
+            <span class="method patch">PATCH</span>
+            <span class="endpoint-path"
+              >/api/v1/onboarding/steps/acknowledgements</span
+            >
+          </div>
         </div>
-        <div class="endpoint-description">Accept legal terms and COMPLETE onboarding (Step 4 - FINAL)</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">Request</div>
-            <div class="code-block">{
-  "terms_of_service": true,
-  "privacy_policy": true,
-  "marketplace_rules": true
-}</div>
+        <div class="endpoint-description">
+          Accept legal terms and COMPLETE onboarding (Step 4 - FINAL)
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200) - COMPLETE!</div>
-            <div class="code-block">{
-  "data": {
-    "status": "completed",
-    "completed_at": "2026-03-17T10:30:00Z"
-  }
-}</div>
+          <div class="endpoint-section-title">Request</div>
+          <div class="code-block">
+            { "terms_of_service": true, "privacy_policy": true,
+            "marketplace_rules": true }
+          </div>
         </div>
-    </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">
+            Success Response (200) - COMPLETE!
+          </div>
+          <div class="code-block">
+            { "data": { "status": "completed", "completed_at":
+            "2026-03-17T10:30:00Z" } }
+          </div>
+        </div>
+      </div>
 
-    <h3 id="merchant-endpoints">Merchant Onboarding Endpoints</h3>
+      <h3 id="merchant-endpoints">Merchant Onboarding Endpoints</h3>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method get">GET</span>
-                <span class="endpoint-path">/api/v1/marketplace/merchant/status</span>
-            </div>
+          <div>
+            <span class="method get">GET</span>
+            <span class="endpoint-path"
+              >/api/v1/marketplace/merchant/status</span
+            >
+          </div>
         </div>
         <div class="endpoint-description">Get merchant onboarding status</div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "is_merchant": false,
-    "onboarding_state": null,
-    "merchant_id": null,
-    "form_id": null,
-    "verification_state": null
-  }
-}</div>
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "is_merchant": false, "onboarding_state": null,
+            "merchant_id": null, "form_id": null, "verification_state": null } }
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div>
-                <span class="method post">POST</span>
-                <span class="endpoint-path">/api/v1/marketplace/merchant/onboard</span>
-            </div>
+          <div>
+            <span class="method post">POST</span>
+            <span class="endpoint-path"
+              >/api/v1/marketplace/merchant/onboard</span
+            >
+          </div>
         </div>
-        <div class="endpoint-description">Create Finix onboarding form (REQUIRES platform onboarding complete)</div>
-        <div class="endpoint-section">
-            <div class="endpoint-section-title">Request</div>
-            <div class="code-block">{
-  "idempotency_id": "onboard-abc123",
-  "business_name": "John's Watches Inc",
-  "max_transaction_amount": 50000
-}</div>
+        <div class="endpoint-description">
+          Create Finix onboarding form (REQUIRES platform onboarding complete)
         </div>
         <div class="endpoint-section">
-            <div class="endpoint-section-title">Success Response (200)</div>
-            <div class="code-block">{
-  "data": {
-    "onboarding_url": "https://...",
-    "form_id": "ONF_xxx",
-    "expires_at": "2026-04-17..."
-  }
-}</div>
+          <div class="endpoint-section-title">Request</div>
+          <div class="code-block">
+            { "idempotency_id": "onboard-abc123", "business_name": "John's
+            Watches Inc", "max_transaction_amount": 50000 }
+          </div>
         </div>
+        <div class="endpoint-section">
+          <div class="endpoint-section-title">Success Response (200)</div>
+          <div class="code-block">
+            { "data": { "onboarding_url": "https://...", "form_id": "ONF_xxx",
+            "expires_at": "2026-04-17..." } }
+          </div>
+        </div>
+      </div>
     </div>
-</div>
 
-<div class="page-break"></div>
+    <div class="page-break"></div>
 
-<!-- ===== ERROR HANDLING ===== -->
-<div class="section" id="errors">
-    <h2>5. Error Handling Guide</h2>
+    <!-- ===== ERROR HANDLING ===== -->
+    <div class="section" id="errors">
+      <h2>5. Error Handling Guide</h2>
 
-    <h3>HTTP Status Codes</h3>
+      <h3>HTTP Status Codes</h3>
 
-    <div class="table-responsive">
+      <div class="table-responsive">
         <table>
-            <thead>
-                <tr>
-                    <th>Code</th>
-                    <th>Meaning</th>
-                    <th>Example Scenario</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="highlight">200</span></td>
-                    <td>✅ Success</td>
-                    <td>Onboarding step completed</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">400</span></td>
-                    <td>❌ Bad Request</td>
-                    <td>Invalid location data (missing postal_code)</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">401</span></td>
-                    <td>❌ Unauthorized</td>
-                    <td>Missing or invalid Bearer token</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">403</span></td>
-                    <td>❌ Forbidden</td>
-                    <td>Trying merchant onboarding without completing platform onboarding</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">409</span></td>
-                    <td>❌ Conflict</td>
-                    <td>Already in "accepted" connection state</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">500</span></td>
-                    <td>❌ Server Error</td>
-                    <td>Backend failure (retry with exponential backoff)</td>
-                </tr>
-            </tbody>
+          <thead>
+            <tr>
+              <th>Code</th>
+              <th>Meaning</th>
+              <th>Example Scenario</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="highlight">200</span></td>
+              <td>✅ Success</td>
+              <td>Onboarding step completed</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">400</span></td>
+              <td>❌ Bad Request</td>
+              <td>Invalid location data (missing postal_code)</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">401</span></td>
+              <td>❌ Unauthorized</td>
+              <td>Missing or invalid Bearer token</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">403</span></td>
+              <td>❌ Forbidden</td>
+              <td>
+                Trying merchant onboarding without completing platform
+                onboarding
+              </td>
+            </tr>
+            <tr>
+              <td><span class="highlight">409</span></td>
+              <td>❌ Conflict</td>
+              <td>Already in "accepted" connection state</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">500</span></td>
+              <td>❌ Server Error</td>
+              <td>Backend failure (retry with exponential backoff)</td>
+            </tr>
+          </tbody>
         </table>
-    </div>
+      </div>
 
-    <h3>Common Error Responses</h3>
+      <h3>Common Error Responses</h3>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div style="flex: 1;">
-                <strong>❌ Invalid Location Data</strong>
-            </div>
+          <div style="flex: 1">
+            <strong>❌ Invalid Location Data</strong>
+          </div>
         </div>
-        <div class="code-block">{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Validation failed",
-    "details": [
-      {
-        "field": "postal_code",
-        "message": "postal_code must be at least 5 characters"
-      }
-    ]
-  }
-}</div>
-    </div>
+        <div class="code-block">
+          { "error": { "code": "VALIDATION_ERROR", "message": "Validation
+          failed", "details": [ { "field": "postal_code", "message":
+          "postal_code must be at least 5 characters" } ] } }
+        </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div style="flex: 1;">
-                <strong>❌ Platform Onboarding Required</strong>
-            </div>
+          <div style="flex: 1">
+            <strong>❌ Platform Onboarding Required</strong>
+          </div>
         </div>
-        <div class="code-block">{
-  "error": {
-    "code": "PREREQUISITES_NOT_MET",
-    "message": "Complete platform onboarding before merchant onboarding",
-    "currentStatus": "incomplete"
-  }
-}</div>
-    </div>
+        <div class="code-block">
+          { "error": { "code": "PREREQUISITES_NOT_MET", "message": "Complete
+          platform onboarding before merchant onboarding", "currentStatus":
+          "incomplete" } }
+        </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div style="flex: 1;">
-                <strong>❌ Unauthorized</strong>
-            </div>
+          <div style="flex: 1">
+            <strong>❌ Unauthorized</strong>
+          </div>
         </div>
-        <div class="code-block">{
-  "error": {
-    "code": "UNAUTHORIZED",
-    "message": "Invalid or missing Authorization header"
-  }
-}</div>
-    </div>
+        <div class="code-block">
+          { "error": { "code": "UNAUTHORIZED", "message": "Invalid or missing
+          Authorization header" } }
+        </div>
+      </div>
 
-    <h3>Retry Strategy</h3>
+      <h3>Retry Strategy</h3>
 
-    <div class="info-box info">
-        <strong>🔄 Recommended Retry Logic:</strong><br>
-        <ul style="margin-left: 15px; margin-top: 10px;">
-            <li><strong>Transient Errors (5xx):</strong> Retry 3 times with exponential backoff (300ms, 600ms, 1200ms)</li>
-            <li><strong>Rate Limit (429):</strong> Retry after Retry-After header</li>
-            <li><strong>Client Errors (4xx):</strong> Do NOT retry, show error to user</li>
-            <li><strong>Idempotency:</strong> Use idempotency_id in POST requests to safely retry</li>
+      <div class="info-box info">
+        <strong>🔄 Recommended Retry Logic:</strong><br />
+        <ul style="margin-left: 15px; margin-top: 10px">
+          <li>
+            <strong>Transient Errors (5xx):</strong> Retry 3 times with
+            exponential backoff (300ms, 600ms, 1200ms)
+          </li>
+          <li>
+            <strong>Rate Limit (429):</strong> Retry after Retry-After header
+          </li>
+          <li>
+            <strong>Client Errors (4xx):</strong> Do NOT retry, show error to
+            user
+          </li>
+          <li>
+            <strong>Idempotency:</strong> Use idempotency_id in POST requests to
+            safely retry
+          </li>
         </ul>
+      </div>
+
+      <div class="code-block">
+        // Retry with exponential backoff async function withRetry(fn,
+        maxAttempts = 3) { for (let attempt = 1; attempt <= maxAttempts;
+        attempt++) { try { return await fn(); } catch (error) { if (attempt ===
+        maxAttempts || error.status < 500) { throw error; } const delay = 300 *
+        Math.pow(2, attempt - 1); await new Promise(resolve =>
+        setTimeout(resolve, delay)); } } }
+      </div>
     </div>
 
-    <div class="code-block">// Retry with exponential backoff
-async function withRetry(fn, maxAttempts = 3) {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      if (attempt === maxAttempts || error.status < 500) {
-        throw error;
-      }
-      const delay = 300 * Math.pow(2, attempt - 1);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-}</div>
-</div>
+    <div class="page-break"></div>
 
-<div class="page-break"></div>
+    <!-- ===== TESTING ===== -->
+    <div class="section" id="testing">
+      <h2>6. Testing & Debugging</h2>
 
-<!-- ===== TESTING ===== -->
-<div class="section" id="testing">
-    <h2>6. Testing & Debugging</h2>
+      <h3>Mock User System</h3>
 
-    <h3>Mock User System</h3>
+      <p>
+        For development and testing, use these mock users by passing the
+        <span class="highlight">x-test-user</span> header:
+      </p>
 
-    <p>For development and testing, use these mock users by passing the <span class="highlight">x-test-user</span> header:</p>
-
-    <div class="table-responsive">
+      <div class="table-responsive">
         <table>
-            <thead>
-                <tr>
-                    <th>User ID</th>
-                    <th>Onboarding Status</th>
-                    <th>Merchant Status</th>
-                    <th>Use Case</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="highlight">new_user_us</span></td>
-                    <td>incomplete</td>
-                    <td>None</td>
-                    <td>Test platform onboarding flow</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">onboarding_step1_location</span></td>
-                    <td>incomplete (step 1)</td>
-                    <td>None</td>
-                    <td>Test location step</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">onboarding_step2_displayname</span></td>
-                    <td>incomplete (step 2)</td>
-                    <td>None</td>
-                    <td>Test display name step</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">onboarding_step3_avatar</span></td>
-                    <td>incomplete (step 3)</td>
-                    <td>None</td>
-                    <td>Test avatar step</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">onboarding_step4_acks</span></td>
-                    <td>incomplete (step 4)</td>
-                    <td>None</td>
-                    <td>Test legal acknowledgements</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">buyer_us_complete</span></td>
-                    <td>completed ✓</td>
-                    <td>None</td>
-                    <td>Test as fully onboarded buyer</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">merchant_provisioning</span></td>
-                    <td>completed ✓</td>
-                    <td>PROVISIONING</td>
-                    <td>Test merchant verification in progress</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">merchant_approved</span></td>
-                    <td>completed ✓</td>
-                    <td>APPROVED</td>
-                    <td>Test full merchant access</td>
-                </tr>
-            </tbody>
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Onboarding Status</th>
+              <th>Merchant Status</th>
+              <th>Use Case</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="highlight">new_user_us</span></td>
+              <td>incomplete</td>
+              <td>None</td>
+              <td>Test platform onboarding flow</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">onboarding_step1_location</span></td>
+              <td>incomplete (step 1)</td>
+              <td>None</td>
+              <td>Test location step</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="highlight">onboarding_step2_displayname</span>
+              </td>
+              <td>incomplete (step 2)</td>
+              <td>None</td>
+              <td>Test display name step</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">onboarding_step3_avatar</span></td>
+              <td>incomplete (step 3)</td>
+              <td>None</td>
+              <td>Test avatar step</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">onboarding_step4_acks</span></td>
+              <td>incomplete (step 4)</td>
+              <td>None</td>
+              <td>Test legal acknowledgements</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">buyer_us_complete</span></td>
+              <td>completed ✓</td>
+              <td>None</td>
+              <td>Test as fully onboarded buyer</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">merchant_provisioning</span></td>
+              <td>completed ✓</td>
+              <td>PROVISIONING</td>
+              <td>Test merchant verification in progress</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">merchant_approved</span></td>
+              <td>completed ✓</td>
+              <td>APPROVED</td>
+              <td>Test full merchant access</td>
+            </tr>
+          </tbody>
         </table>
-    </div>
+      </div>
 
-    <h3>Testing Complete Platform Onboarding</h3>
+      <h3>Testing Complete Platform Onboarding</h3>
 
-    <div class="code-block">// Step 1: Check initial status
-GET /api/v1/me
-Header: x-test-user: new_user_us
+      <div class="code-block">
+        // Step 1: Check initial status GET /api/v1/me Header: x-test-user:
+        new_user_us Response: { onboarding_status: "incomplete", next_step:
+        "location" } // Step 2: Submit location PATCH
+        /api/v1/onboarding/steps/location Header: x-test-user: new_user_us Body:
+        { country: "US", region: "CA", postal_code: "90210" } // Step 3: Submit
+        display name PATCH /api/v1/onboarding/steps/display_name Header:
+        x-test-user: new_user_us Body: { mode: "default" } // Step 4: Submit
+        avatar PATCH /api/v1/onboarding/steps/avatar Header: x-test-user:
+        new_user_us Body: { url: "https://..." } // Step 5: Accept legal terms
+        PATCH /api/v1/onboarding/steps/acknowledgements Header: x-test-user:
+        new_user_us Body: { terms_of_service: true, privacy_policy: true,
+        marketplace_rules: true } // Step 6: Verify completion GET /api/v1/me
+        Header: x-test-user: new_user_us Response: { onboarding_status:
+        "completed" }
+      </div>
 
-Response: { onboarding_status: "incomplete", next_step: "location" }
+      <h3>Testing Merchant Onboarding</h3>
 
-// Step 2: Submit location
-PATCH /api/v1/onboarding/steps/location
-Header: x-test-user: new_user_us
-Body: {
-  country: "US",
-  region: "CA",
-  postal_code: "90210"
-}
+      <div class="code-block">
+        // Start as buyer (already onboarded) GET /api/v1/me Header:
+        x-test-user: buyer_us_complete // Check merchant status (null/none) GET
+        /api/v1/marketplace/merchant/status Header: x-test-user:
+        buyer_us_complete // Initiate merchant onboarding POST
+        /api/v1/marketplace/merchant/onboard Header: x-test-user:
+        buyer_us_complete Body: { idempotency_id: "test-123", business_name:
+        "Test Shop", max_transaction_amount: 50000 } Response: { onboarding_url:
+        "https://...", form_id: "ONF_..." } // Check status while provisioning
+        GET /api/v1/marketplace/merchant/status Header: x-test-user:
+        merchant_provisioning Response: { is_merchant: false, onboarding_state:
+        "PROVISIONING" } // Check status after approval GET
+        /api/v1/marketplace/merchant/status Header: x-test-user:
+        merchant_approved Response: { is_merchant: true, onboarding_state:
+        "APPROVED" }
+      </div>
 
-// Step 3: Submit display name
-PATCH /api/v1/onboarding/steps/display_name
-Header: x-test-user: new_user_us
-Body: { mode: "default" }
+      <h3>Common Test Scenarios</h3>
 
-// Step 4: Submit avatar
-PATCH /api/v1/onboarding/steps/avatar
-Header: x-test-user: new_user_us
-Body: { url: "https://..." }
-
-// Step 5: Accept legal terms
-PATCH /api/v1/onboarding/steps/acknowledgements
-Header: x-test-user: new_user_us
-Body: {
-  terms_of_service: true,
-  privacy_policy: true,
-  marketplace_rules: true
-}
-
-// Step 6: Verify completion
-GET /api/v1/me
-Header: x-test-user: new_user_us
-Response: { onboarding_status: "completed" }</div>
-
-    <h3>Testing Merchant Onboarding</h3>
-
-    <div class="code-block">// Start as buyer (already onboarded)
-GET /api/v1/me
-Header: x-test-user: buyer_us_complete
-
-// Check merchant status (null/none)
-GET /api/v1/marketplace/merchant/status
-Header: x-test-user: buyer_us_complete
-
-// Initiate merchant onboarding
-POST /api/v1/marketplace/merchant/onboard
-Header: x-test-user: buyer_us_complete
-Body: {
-  idempotency_id: "test-123",
-  business_name: "Test Shop",
-  max_transaction_amount: 50000
-}
-
-Response: { onboarding_url: "https://...", form_id: "ONF_..." }
-
-// Check status while provisioning
-GET /api/v1/marketplace/merchant/status
-Header: x-test-user: merchant_provisioning
-Response: { is_merchant: false, onboarding_state: "PROVISIONING" }
-
-// Check status after approval
-GET /api/v1/marketplace/merchant/status
-Header: x-test-user: merchant_approved
-Response: { is_merchant: true, onboarding_state: "APPROVED" }</div>
-
-    <h3>Common Test Scenarios</h3>
-
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div style="flex: 1;">
-                <strong>Scenario 1: Pause & Resume Onboarding</strong>
-            </div>
+          <div style="flex: 1">
+            <strong>Scenario 1: Pause & Resume Onboarding</strong>
+          </div>
         </div>
-        <div style="padding: 15px; background: #f8f9fa;">
-            <div style="margin-bottom: 10px;"><strong>Setup:</strong> User at step 2 (display name)</div>
-            <div style="margin-bottom: 10px;"><strong>Action:</strong> Close app, come back after 2 days</div>
-            <div style="margin-bottom: 10px;"><strong>Expected:</strong> GET /me shows next_step: "display_name" (not reset)</div>
-            <div><strong>Verify:</strong> User can continue from step 2 without re-entering location</div>
+        <div style="padding: 15px; background: #f8f9fa">
+          <div style="margin-bottom: 10px">
+            <strong>Setup:</strong> User at step 2 (display name)
+          </div>
+          <div style="margin-bottom: 10px">
+            <strong>Action:</strong> Close app, come back after 2 days
+          </div>
+          <div style="margin-bottom: 10px">
+            <strong>Expected:</strong> GET /me shows next_step: "display_name"
+            (not reset)
+          </div>
+          <div>
+            <strong>Verify:</strong> User can continue from step 2 without
+            re-entering location
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div style="flex: 1;">
-                <strong>Scenario 2: Idempotence - Re-submit Same Steps</strong>
-            </div>
+          <div style="flex: 1">
+            <strong>Scenario 2: Idempotence - Re-submit Same Steps</strong>
+          </div>
         </div>
-        <div style="padding: 15px; background: #f8f9fa;">
-            <div style="margin-bottom: 10px;"><strong>Setup:</strong> User submits location successfully</div>
-            <div style="margin-bottom: 10px;"><strong>Action:</strong> Network error, app retries PATCH /location with same data</div>
-            <div style="margin-bottom: 10px;"><strong>Expected:</strong> Should succeed (idempotent), not error</div>
-            <div><strong>Verify:</strong> Progress unchanged, user can continue</div>
+        <div style="padding: 15px; background: #f8f9fa">
+          <div style="margin-bottom: 10px">
+            <strong>Setup:</strong> User submits location successfully
+          </div>
+          <div style="margin-bottom: 10px">
+            <strong>Action:</strong> Network error, app retries PATCH /location
+            with same data
+          </div>
+          <div style="margin-bottom: 10px">
+            <strong>Expected:</strong> Should succeed (idempotent), not error
+          </div>
+          <div>
+            <strong>Verify:</strong> Progress unchanged, user can continue
+          </div>
         </div>
-    </div>
+      </div>
 
-    <div class="endpoint">
+      <div class="endpoint">
         <div class="endpoint-header">
-            <div style="flex: 1;">
-                <strong>Scenario 3: Permission Check - Merchant Before Platform</strong>
-            </div>
+          <div style="flex: 1">
+            <strong
+              >Scenario 3: Permission Check - Merchant Before Platform</strong
+            >
+          </div>
         </div>
-        <div style="padding: 15px; background: #f8f9fa;">
-            <div style="margin-bottom: 10px;"><strong>Setup:</strong> User platform onboarding incomplete</div>
-            <div style="margin-bottom: 10px;"><strong>Action:</strong> Try POST /marketplace/merchant/onboard</div>
-            <div style="margin-bottom: 10px;"><strong>Expected:</strong> 403 Forbidden error</div>
-            <div><strong>Verify:</strong> Error message: "Complete platform onboarding first"</div>
+        <div style="padding: 15px; background: #f8f9fa">
+          <div style="margin-bottom: 10px">
+            <strong>Setup:</strong> User platform onboarding incomplete
+          </div>
+          <div style="margin-bottom: 10px">
+            <strong>Action:</strong> Try POST /marketplace/merchant/onboard
+          </div>
+          <div style="margin-bottom: 10px">
+            <strong>Expected:</strong> 403 Forbidden error
+          </div>
+          <div>
+            <strong>Verify:</strong> Error message: "Complete platform
+            onboarding first"
+          </div>
         </div>
+      </div>
     </div>
-</div>
 
-<div class="page-break"></div>
+    <div class="page-break"></div>
 
-<!-- ===== APPENDIX ===== -->
-<div class="section" id="appendix">
-    <h2>7. Appendix - Reference & Schemas</h2>
+    <!-- ===== APPENDIX ===== -->
+    <div class="section" id="appendix">
+      <h2>7. Appendix - Reference & Schemas</h2>
 
-    <h3>Full Mock User List</h3>
+      <h3>Full Mock User List</h3>
 
-    <div class="table-responsive">
+      <div class="table-responsive">
         <table>
-            <thead>
-                <tr>
-                    <th>User ID</th>
-                    <th>Status</th>
-                    <th>Country</th>
-                    <th>Purpose</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="highlight">new_user_us</span></td>
-                    <td>Incomplete (0%)</td>
-                    <td>US</td>
-                    <td>Start onboarding from beginning</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">new_user_ca</span></td>
-                    <td>Incomplete (0%)</td>
-                    <td>CA</td>
-                    <td>Test Canada location option</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">onboarding_step1_location</span></td>
-                    <td>Incomplete (0%)</td>
-                    <td>US</td>
-                    <td>Test location step from clean state</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">onboarding_step2_displayname</span></td>
-                    <td>Incomplete (25%)</td>
-                    <td>US</td>
-                    <td>Location complete, test display name</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">onboarding_step3_avatar</span></td>
-                    <td>Incomplete (50%)</td>
-                    <td>US</td>
-                    <td>Location + name done, test avatar</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">onboarding_step4_acks</span></td>
-                    <td>Incomplete (75%)</td>
-                    <td>US</td>
-                    <td>First 3 steps done, test legal</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">buyer_us_complete</span></td>
-                    <td>Complete ✓</td>
-                    <td>US</td>
-                    <td>Fully onboarded buyer</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">buyer_ca_complete</span></td>
-                    <td>Complete ✓</td>
-                    <td>CA</td>
-                    <td>Fully onboarded buyer (Canada)</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">merchant_new</span></td>
-                    <td>Complete ✓ / Pending</td>
-                    <td>US</td>
-                    <td>Started merchant onboarding (not submitted)</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">merchant_provisioning</span></td>
-                    <td>Complete ✓ / PROVISIONING</td>
-                    <td>US</td>
-                    <td>Merchant form submitted, KYC in progress</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">merchant_approved</span></td>
-                    <td>Complete ✓ / APPROVED ✓</td>
-                    <td>US</td>
-                    <td>Fully approved merchant, can sell</td>
-                </tr>
-                <tr>
-                    <td><span class="highlight">merchant_rejected</span></td>
-                    <td>Complete ✓ / REJECTED</td>
-                    <td>US</td>
-                    <td>Test rejection handling</td>
-                </tr>
-            </tbody>
+          <thead>
+            <tr>
+              <th>User ID</th>
+              <th>Status</th>
+              <th>Country</th>
+              <th>Purpose</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="highlight">new_user_us</span></td>
+              <td>Incomplete (0%)</td>
+              <td>US</td>
+              <td>Start onboarding from beginning</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">new_user_ca</span></td>
+              <td>Incomplete (0%)</td>
+              <td>CA</td>
+              <td>Test Canada location option</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">onboarding_step1_location</span></td>
+              <td>Incomplete (0%)</td>
+              <td>US</td>
+              <td>Test location step from clean state</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="highlight">onboarding_step2_displayname</span>
+              </td>
+              <td>Incomplete (25%)</td>
+              <td>US</td>
+              <td>Location complete, test display name</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">onboarding_step3_avatar</span></td>
+              <td>Incomplete (50%)</td>
+              <td>US</td>
+              <td>Location + name done, test avatar</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">onboarding_step4_acks</span></td>
+              <td>Incomplete (75%)</td>
+              <td>US</td>
+              <td>First 3 steps done, test legal</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">buyer_us_complete</span></td>
+              <td>Complete ✓</td>
+              <td>US</td>
+              <td>Fully onboarded buyer</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">buyer_ca_complete</span></td>
+              <td>Complete ✓</td>
+              <td>CA</td>
+              <td>Fully onboarded buyer (Canada)</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">merchant_new</span></td>
+              <td>Complete ✓ / Pending</td>
+              <td>US</td>
+              <td>Started merchant onboarding (not submitted)</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">merchant_provisioning</span></td>
+              <td>Complete ✓ / PROVISIONING</td>
+              <td>US</td>
+              <td>Merchant form submitted, KYC in progress</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">merchant_approved</span></td>
+              <td>Complete ✓ / APPROVED ✓</td>
+              <td>US</td>
+              <td>Fully approved merchant, can sell</td>
+            </tr>
+            <tr>
+              <td><span class="highlight">merchant_rejected</span></td>
+              <td>Complete ✓ / REJECTED</td>
+              <td>US</td>
+              <td>Test rejection handling</td>
+            </tr>
+          </tbody>
         </table>
-    </div>
+      </div>
 
-    <h3>Key Request/Response Schemas</h3>
+      <h3>Key Request/Response Schemas</h3>
 
-    <h4>Onboarding Location Step</h4>
-    <div class="code-block">// REQUEST
-{
-  country: string,        // ISO 2-letter code: "US", "CA"
-  region: string,         // State/province: "CA", "ON", "NY"
-  postal_code: string     // ZIP/postal: "90210", "M5V3A8"
-}
+      <h4>Onboarding Location Step</h4>
+      <div class="code-block">
+        // REQUEST { country: string, // ISO 2-letter code: "US", "CA" region:
+        string, // State/province: "CA", "ON", "NY" postal_code: string //
+        ZIP/postal: "90210", "M5V3A8" } // RESPONSE ON SUCCESS { data: { status:
+        "incomplete", progress: { complete: { location: true, display_name:
+        false, avatar: false, acknowledgements: false }, is_finished: false,
+        next_step: "display_name" } } }
+      </div>
 
-// RESPONSE ON SUCCESS
-{
-  data: {
-    status: "incomplete",
-    progress: {
-      complete: {
-        location: true,
-        display_name: false,
-        avatar: false,
-        acknowledgements: false
-      },
-      is_finished: false,
-      next_step: "display_name"
-    }
-  }
-}</div>
+      <h4>Onboarding Display Name Step</h4>
+      <div class="code-block">
+        // REQUEST (Auto-generated) { mode: "default" } // REQUEST (Custom) {
+        mode: "custom", value: "John's Watch Shop" // 7-60 chars } // RESPONSE {
+        data: { status: "incomplete", progress: { ... } } }
+      </div>
 
-    <h4>Onboarding Display Name Step</h4>
-    <div class="code-block">// REQUEST (Auto-generated)
-{
-  mode: "default"
-}
+      <h4>Onboarding Avatar Step</h4>
+      <div class="code-block">
+        // REQUEST { url: "https://images.dialist.com/avatars/user123.jpg" } //
+        RESPONSE { data: { status: "incomplete", progress: { ... } } }
+      </div>
 
-// REQUEST (Custom)
-{
-  mode: "custom",
-  value: "John's Watch Shop"    // 7-60 chars
-}
+      <h4>Onboarding Acknowledgements Step (FINAL)</h4>
+      <div class="code-block">
+        // REQUEST { terms_of_service: boolean, privacy_policy: boolean,
+        marketplace_rules: boolean } // RESPONSE ON SUCCESS (COMPLETE!) { data:
+        { status: "completed", completed_at: "2026-03-17T10:30:00.000Z",
+        progress: { complete: { location: true, display_name: true, avatar:
+        true, acknowledgements: true }, is_finished: true } } }
+      </div>
 
-// RESPONSE
-{
-  data: {
-    status: "incomplete",
-    progress: { ... }
-  }
-}</div>
+      <h3>Merchant Onboarding Schemas</h3>
 
-    <h4>Onboarding Avatar Step</h4>
-    <div class="code-block">// REQUEST
-{
-  url: "https://images.dialist.com/avatars/user123.jpg"
-}
+      <h4>Create Merchant Onboarding Form</h4>
+      <div class="code-block">
+        // REQUEST POST /api/v1/marketplace/merchant/onboard { idempotency_id:
+        string, // Unique per form creation business_name: string, // 2-255
+        chars max_transaction_amount: number // USD, >= 1000 } // SUCCESS
+        RESPONSE (200) { data: { onboarding_url:
+        "https://onboarding.finix.com/form/ONF_abc...", form_id: "ONF_abc...",
+        expires_at: "2026-04-17T10:30:00.000Z", existing_form: false } } //
+        ERROR RESPONSE (403 - prereq not met) { error: { code:
+        "PREREQUISITES_NOT_MET", message: "Complete platform onboarding first" }
+        }
+      </div>
 
-// RESPONSE
-{
-  data: {
-    status: "incomplete",
-    progress: { ... }
-  }
-}</div>
+      <h4>Get Merchant Status</h4>
+      <div class="code-block">
+        // REQUEST GET /api/v1/marketplace/merchant/status // RESPONSE (Not
+        started) { data: { is_merchant: false, onboarding_state: null,
+        merchant_id: null, form_id: null, verification_state: null } } //
+        RESPONSE (Provisioning) { data: { is_merchant: false, onboarding_state:
+        "PROVISIONING", merchant_id: "MU_xxx", form_id: "ONF_xxx",
+        verification_state: "PENDING" } } // RESPONSE (Approved) { data: {
+        is_merchant: true, onboarding_state: "APPROVED", merchant_id: "MU_xxx",
+        form_id: "ONF_xxx", verification_state: "SUCCEEDED" } }
+      </div>
 
-    <h4>Onboarding Acknowledgements Step (FINAL)</h4>
-    <div class="code-block">// REQUEST
-{
-  terms_of_service: boolean,
-  privacy_policy: boolean,
-  marketplace_rules: boolean
-}
+      <h3>Important Figma Screen Reference Index</h3>
 
-// RESPONSE ON SUCCESS (COMPLETE!)
-{
-  data: {
-    status: "completed",
-    completed_at: "2026-03-17T10:30:00.000Z",
-    progress: {
-      complete: {
-        location: true,
-        display_name: true,
-        avatar: true,
-        acknowledgements: true
-      },
-      is_finished: true
-    }
-  }
-}</div>
-
-    <h3>Merchant Onboarding Schemas</h3>
-
-    <h4>Create Merchant Onboarding Form</h4>
-    <div class="code-block">// REQUEST
-POST /api/v1/marketplace/merchant/onboard
-{
-  idempotency_id: string,           // Unique per form creation
-  business_name: string,             // 2-255 chars
-  max_transaction_amount: number     // USD, >= 1000
-}
-
-// SUCCESS RESPONSE (200)
-{
-  data: {
-    onboarding_url: "https://onboarding.finix.com/form/ONF_abc...",
-    form_id: "ONF_abc...",
-    expires_at: "2026-04-17T10:30:00.000Z",
-    existing_form: false
-  }
-}
-
-// ERROR RESPONSE (403 - prereq not met)
-{
-  error: {
-    code: "PREREQUISITES_NOT_MET",
-    message: "Complete platform onboarding first"
-  }
-}</div>
-
-    <h4>Get Merchant Status</h4>
-    <div class="code-block">// REQUEST
-GET /api/v1/marketplace/merchant/status
-
-// RESPONSE (Not started)
-{
-  data: {
-    is_merchant: false,
-    onboarding_state: null,
-    merchant_id: null,
-    form_id: null,
-    verification_state: null
-  }
-}
-
-// RESPONSE (Provisioning)
-{
-  data: {
-    is_merchant: false,
-    onboarding_state: "PROVISIONING",
-    merchant_id: "MU_xxx",
-    form_id: "ONF_xxx",
-    verification_state: "PENDING"
-  }
-}
-
-// RESPONSE (Approved)
-{
-  data: {
-    is_merchant: true,
-    onboarding_state: "APPROVED",
-    merchant_id: "MU_xxx",
-    form_id: "ONF_xxx",
-    verification_state: "SUCCEEDED"
-  }
-}</div>
-
-    <h3>Important Figma Screen Reference Index</h3>
-
-    <div class="table-responsive">
+      <div class="table-responsive">
         <table>
-            <thead>
-                <tr>
-                    <th>Screen Name</th>
-                    <th>Purpose</th>
-                    <th>API Called</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td><span class="screen-name">Welcome / Sign-Up</span></td>
-                    <td>Initial user registration with Clerk</td>
-                    <td>Clerk SDK (no API call)</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Onboarding - Location Step</span></td>
-                    <td>User enters country, region, postal code</td>
-                    <td>PATCH /onboarding/steps/location</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Onboarding - Display Name Step</span></td>
-                    <td>User chooses auto or custom name</td>
-                    <td>PATCH /onboarding/steps/display_name</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Onboarding - Avatar Step</span></td>
-                    <td>User uploads or selects avatar</td>
-                    <td>PATCH /onboarding/steps/avatar</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Onboarding - Legal Step</span></td>
-                    <td>User accepts ToS, Privacy, Rules</td>
-                    <td>PATCH /onboarding/steps/acknowledgements</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Onboarding - Complete</span></td>
-                    <td>Success state, summary of profile</td>
-                    <td>GET /me</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Marketplace - Home</span></td>
-                    <td>Main marketplace view (buyer)</td>
-                    <td>GET /marketplace/listings</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Become Seller - Modal</span></td>
-                    <td>User decides to become merchant</td>
-                    <td>GET /marketplace/merchant/status</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Finix Form - Embedded/Redirect</span></td>
-                    <td>Finix KYC form (external)</td>
-                    <td>Redirect to onboarding_url (external)</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Becoming Seller - Verification</span></td>
-                    <td>Show KYC verification in progress</td>
-                    <td>GET /marketplace/merchant/status (polling)</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Seller Approved - Success</span></td>
-                    <td>User approved, can list watches</td>
-                    <td>GET /me with isMerchant=true</td>
-                </tr>
-                <tr>
-                    <td><span class="screen-name">Create Listing</span></td>
-                    <td>Merchant creates first watch listing</td>
-                    <td>POST /marketplace/listings</td>
-                </tr>
-            </tbody>
+          <thead>
+            <tr>
+              <th>Screen Name</th>
+              <th>Purpose</th>
+              <th>API Called</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="screen-name">Welcome / Sign-Up</span></td>
+              <td>Initial user registration with Clerk</td>
+              <td>Clerk SDK (no API call)</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="screen-name">Onboarding - Location Step</span>
+              </td>
+              <td>User enters country, region, postal code</td>
+              <td>PATCH /onboarding/steps/location</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="screen-name">Onboarding - Display Name Step</span>
+              </td>
+              <td>User chooses auto or custom name</td>
+              <td>PATCH /onboarding/steps/display_name</td>
+            </tr>
+            <tr>
+              <td><span class="screen-name">Onboarding - Avatar Step</span></td>
+              <td>User uploads or selects avatar</td>
+              <td>PATCH /onboarding/steps/avatar</td>
+            </tr>
+            <tr>
+              <td><span class="screen-name">Onboarding - Legal Step</span></td>
+              <td>User accepts ToS, Privacy, Rules</td>
+              <td>PATCH /onboarding/steps/acknowledgements</td>
+            </tr>
+            <tr>
+              <td><span class="screen-name">Onboarding - Complete</span></td>
+              <td>Success state, summary of profile</td>
+              <td>GET /me</td>
+            </tr>
+            <tr>
+              <td><span class="screen-name">Marketplace - Home</span></td>
+              <td>Main marketplace view (buyer)</td>
+              <td>GET /marketplace/listings</td>
+            </tr>
+            <tr>
+              <td><span class="screen-name">Become Seller - Modal</span></td>
+              <td>User decides to become merchant</td>
+              <td>GET /marketplace/merchant/status</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="screen-name">Finix Form - Embedded/Redirect</span>
+              </td>
+              <td>Finix KYC form (external)</td>
+              <td>Redirect to onboarding_url (external)</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="screen-name">Becoming Seller - Verification</span>
+              </td>
+              <td>Show KYC verification in progress</td>
+              <td>GET /marketplace/merchant/status (polling)</td>
+            </tr>
+            <tr>
+              <td>
+                <span class="screen-name">Seller Approved - Success</span>
+              </td>
+              <td>User approved, can list watches</td>
+              <td>GET /me with isMerchant=true</td>
+            </tr>
+            <tr>
+              <td><span class="screen-name">Create Listing</span></td>
+              <td>Merchant creates first watch listing</td>
+              <td>POST /marketplace/listings</td>
+            </tr>
+          </tbody>
         </table>
-    </div>
+      </div>
 
-    <h3>Quick Integration Checklist</h3>
+      <h3>Quick Integration Checklist</h3>
 
-    <div class="info-box info">
-        <strong>Frontend Implementation Checklist:</strong><br>
-        <ul style="margin-left: 15px; margin-top: 10px;">
-            <li>☐ Import Clerk SDK and initialize</li>
-            <li>☐ Create authentication wrapper component</li>
-            <li>☐ Call GET /me on app startup</li>
-            <li>☐ Route based on onboarding_status:
-                <ul style="margin-left: 15px;">
-                    <li>☐ "incomplete" → /onboarding</li>
-                    <li>☐ "completed" → /marketplace</li>
-                </ul>
-            </li>
-            <li>☐ Build onboarding flow (4 steps)</li>
-            <li>☐ Add error boundary for API failures</li>
-            <li>☐ Implement retry logic with exponential backoff</li>
-            <li>☐ Show loading states during API calls</li>
-            <li>☐ Add form validation (match backend schemas)</li>
-            <li>☐ Test with mock users</li>
-            <li>☐ Implement merchant onboarding (optional)</li>
-            <li>☐ Add polling for merchant status</li>
-            <li>☐ Handle Finix form redirect (external window)</li>
+      <div class="info-box info">
+        <strong>Frontend Implementation Checklist:</strong><br />
+        <ul style="margin-left: 15px; margin-top: 10px">
+          <li>☐ Import Clerk SDK and initialize</li>
+          <li>☐ Create authentication wrapper component</li>
+          <li>☐ Call GET /me on app startup</li>
+          <li>
+            ☐ Route based on onboarding_status:
+            <ul style="margin-left: 15px">
+              <li>☐ "incomplete" → /onboarding</li>
+              <li>☐ "completed" → /marketplace</li>
+            </ul>
+          </li>
+          <li>☐ Build onboarding flow (4 steps)</li>
+          <li>☐ Add error boundary for API failures</li>
+          <li>☐ Implement retry logic with exponential backoff</li>
+          <li>☐ Show loading states during API calls</li>
+          <li>☐ Add form validation (match backend schemas)</li>
+          <li>☐ Test with mock users</li>
+          <li>☐ Implement merchant onboarding (optional)</li>
+          <li>☐ Add polling for merchant status</li>
+          <li>☐ Handle Finix form redirect (external window)</li>
         </ul>
-    </div>
+      </div>
 
-    <div class="info-box success" style="margin-top: 20px;">
-        <strong>Backend Implementation Checklist:</strong><br>
-        <ul style="margin-left: 15px; margin-top: 10px;">
-            <li>☐ User collection with onboarding schema</li>
-            <li>☐ Webhook handler for Clerk user.created</li>
-            <li>☐ Implement all 5 onboarding endpoints (GET status + 4 PATCH steps)</li>
-            <li>☐ Session sync: After each step, update Clerk publicMetadata</li>
-            <li>☐ Validation schemas for all inputs (Zod or similar)</li>
-            <li>☐ Error handling with proper HTTP codes</li>
-            <li>☐ MerchantOnboarding collection and models</li>
-            <li>☐ Finix SDK integration</li>
-            <li>☐ Webhook endpoint for Finix (secure signature verification)</li>
-            <li>☐ Queue workers for async Finix tasks</li>
-            <li>☐ Retry logic for failed Clerk syncs</li>
-            <li>☐ Monitoring & logging for all flows</li>
+      <div class="info-box success" style="margin-top: 20px">
+        <strong>Backend Implementation Checklist:</strong><br />
+        <ul style="margin-left: 15px; margin-top: 10px">
+          <li>☐ User collection with onboarding schema</li>
+          <li>☐ Webhook handler for Clerk user.created</li>
+          <li>
+            ☐ Implement all 5 onboarding endpoints (GET status + 4 PATCH steps)
+          </li>
+          <li>☐ Session sync: After each step, update Clerk publicMetadata</li>
+          <li>☐ Validation schemas for all inputs (Zod or similar)</li>
+          <li>☐ Error handling with proper HTTP codes</li>
+          <li>☐ MerchantOnboarding collection and models</li>
+          <li>☐ Finix SDK integration</li>
+          <li>☐ Webhook endpoint for Finix (secure signature verification)</li>
+          <li>☐ Queue workers for async Finix tasks</li>
+          <li>☐ Retry logic for failed Clerk syncs</li>
+          <li>☐ Monitoring & logging for all flows</li>
         </ul>
+      </div>
     </div>
-</div>
 
-<!-- ===== FOOTER ===== -->
-<div class="footer">
-    <p>© 2026 Dialist API - User Onboarding Documentation</p>
-    <p style="margin-top: 10px; font-size: 11px;">
+    <!-- ===== FOOTER ===== -->
+    <div class="footer">
+      <p>© 2026 Dialist API - User Onboarding Documentation</p>
+      <p style="margin-top: 10px; font-size: 11px">
         Version 1.0.0 | Last Updated: March 17, 2026 | Status: Production Ready
-    </p>
-    <p style="margin-top: 10px; font-size: 11px;">
+      </p>
+      <p style="margin-top: 10px; font-size: 11px">
         For updates or feedback, please contact: engineering@dialist.com
-    </p>
-</div>
-
-</body>
+      </p>
+    </div>
+  </body>
 </html>
