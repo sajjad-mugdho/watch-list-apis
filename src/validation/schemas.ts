@@ -1376,6 +1376,158 @@ export const searchSocialSchema = z.object({
   }),
 });
 
+/**
+ * Schema for completing onboarding atomically (all fields at once)
+ * Used by both generic and platform-specific onboarding endpoints
+ */
+export const completeOnboardingSchema = z.object({
+  body: z.object({
+    location: z.object({
+      country: z.enum(["CA", "US"], {
+        required_error: "Country is required",
+        invalid_type_error: "Country must be 'CA' or 'US'",
+      }),
+      region: z
+        .string({
+          required_error: "Region is required",
+          invalid_type_error: "Region must be a string",
+        })
+        .trim()
+        .min(1, "Region cannot be empty")
+        .max(100, "Region too long"),
+      postal_code: z
+        .string({
+          required_error: "Postal code is required",
+          invalid_type_error: "Postal code must be a string",
+        })
+        .trim()
+        .min(3, "Postal code too short")
+        .max(12, "Postal code too long")
+        .refine(
+          (val) => /^[A-Za-z0-9\s-]+$/.test(val),
+          "Postal code may only contain letters, numbers, spaces, and hyphens",
+        ),
+      city: z
+        .string({
+          required_error: "City is required",
+        })
+        .trim()
+        .min(1, "City cannot be empty")
+        .max(100, "City too long"),
+      line1: z
+        .string({
+          required_error: "Address line 1 is required",
+        })
+        .trim()
+        .min(1, "Address line 1 cannot be empty")
+        .max(255, "Address line 1 too long"),
+      line2: z.string().trim().max(255, "Address line 2 too long").optional(),
+      currency: z
+        .string()
+        .trim()
+        .length(3, "Currency code must be exactly 3 characters")
+        .optional(),
+    }),
+    profile: z.object({
+      first_name: z
+        .string({
+          required_error: "First name is required",
+        })
+        .trim()
+        .min(1, "First name cannot be empty")
+        .max(100, "First name too long"),
+      last_name: z
+        .string({
+          required_error: "Last name is required",
+        })
+        .trim()
+        .min(1, "Last name cannot be empty")
+        .max(100, "Last name too long"),
+    }),
+    avatar: z.discriminatedUnion("type", [
+      z.object({
+        type: z.literal("monogram"),
+        monogram_initials: z
+          .string()
+          .trim()
+          .min(1, "Monogram initials required")
+          .max(4, "Monogram initials too long"),
+        monogram_color: z.string().trim().min(1, "Monogram color required"),
+        monogram_style: z.string().trim().min(1, "Monogram style required"),
+      }),
+      z.object({
+        type: z.literal("upload"),
+        url: z
+          .string({
+            required_error: "Avatar URL is required",
+          })
+          .trim()
+          .url("Invalid URL")
+          .max(512, "URL too long"),
+      }),
+    ]),
+    acknowledgements: z.object({
+      tos: z.literal(true, {
+        errorMap: () => ({
+          message: "You must accept the terms of service",
+        }),
+      }),
+      privacy: z.literal(true, {
+        errorMap: () => ({
+          message: "You must accept the privacy policy",
+        }),
+      }),
+      rules: z.literal(true, {
+        errorMap: () => ({
+          message: "You must accept the community rules",
+        }),
+      }),
+    }),
+    payment: z
+      .discriminatedUnion("payment_method", [
+        z.object({
+          payment_method: z.literal("card"),
+          card_token: z
+            .string({
+              required_error: "Card token is required",
+            })
+            .trim()
+            .min(1, "Card token cannot be empty")
+            .max(255, "Card token too long"),
+          last_four: z
+            .string({
+              required_error: "Last four digits is required",
+            })
+            .trim()
+            .regex(/^\d{4}$/, "Last four must be exactly 4 digits"),
+        }),
+        z.object({
+          payment_method: z.literal("bank_account"),
+          bank_account_token: z
+            .string({
+              required_error: "Bank account token is required",
+            })
+            .trim()
+            .min(1, "Bank account token cannot be empty")
+            .max(255, "Bank account token too long"),
+          routing_number: z
+            .string({
+              required_error: "Routing number is required",
+            })
+            .trim()
+            .regex(/^\d{9}$/, "Routing number must be exactly 9 digits"),
+          last_four: z
+            .string({
+              required_error: "Last four digits is required",
+            })
+            .trim()
+            .regex(/^\d{4}$/, "Last four must be exactly 4 digits"),
+        }),
+      ])
+      .optional(),
+  }),
+});
+
 // ----------------------------------------------------------
 // Type Exports
 // ----------------------------------------------------------
@@ -1388,6 +1540,21 @@ export type PatchDisplayNameStepInput = z.infer<
   typeof patchDisplayNameStepSchema
 >;
 export type PatchLocationStepInput = z.infer<typeof patchLocationStepSchema>;
+export type CompleteOnboardingInput = z.infer<typeof completeOnboardingSchema>;
+
+// Payment Types
+export type PaymentMethod = "card" | "bank_account";
+export type CardPaymentInput = {
+  payment_method: "card";
+  card_token: string;
+  last_four: string;
+};
+export type BankAccountPaymentInput = {
+  payment_method: "bank_account";
+  bank_account_token: string;
+  routing_number: string;
+  last_four: string;
+};
 
 // Watch types
 export type GetWatchesInput = z.infer<typeof getWatchesSchema>;

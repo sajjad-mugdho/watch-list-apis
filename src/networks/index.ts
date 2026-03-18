@@ -12,6 +12,7 @@ import socialRoutes from "./routes/socialRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import { usersRoutes } from "./routes/usersRoutes";
+import onboardingRoutes from "./routes/onboardingRoutes";
 
 import { registerNetworksEventHandlers } from "./events";
 
@@ -28,7 +29,7 @@ router.use("/chat", chatRoutes);
 router.use("/messages", messageRoutes);
 router.use("/conversations", conversationRoutes);
 router.use("/reference-checks", referenceCheckRoutes);
-
+router.use("/onboarding", onboardingRoutes);
 router.use("/search", searchRoutes);
 router.use("/connections", connectionRoutes);
 router.use("/social", socialRoutes);

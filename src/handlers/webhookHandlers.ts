@@ -1,5 +1,4 @@
 import { User } from "../models/User";
-import { verifyWebhook } from "@clerk/express/webhooks";
 import { clerkClient } from "@clerk/express";
 import { DatabaseError, ValidationError } from "../utils/errors";
 import { NextFunction, Request, Response } from "express";
@@ -9,6 +8,7 @@ import { webhookLogger } from "../utils/logger";
 import { events } from "../utils/events";
 import { Connection } from "../networks/models/Connection";
 import { Block } from "../networks/models/Block";
+import { Webhook } from "svix";
 
 // ----------------------------------------------------------
 // Types
@@ -94,6 +94,44 @@ async function createUserFromClerkData(
 // ----------------------------------------------------------
 
 /**
+ * Verify Clerk webhook signature using Svix
+ */
+function verifyClerkWebhookSignature(req: Request): any {
+  const signature = req.headers["svix-signature"] as string;
+  const rawBody = (req as any).rawBody as string;
+
+  if (!signature || !rawBody) {
+    webhookLogger.warn("[Clerk] Missing webhook signature or body", {
+      hasSignature: !!signature,
+      hasRawBody: !!rawBody,
+    });
+    return null;
+  }
+
+  try {
+    const wh = new Webhook(config.clerkWebhookSigningSecret);
+    const evt = wh.verify(rawBody, {
+      "svix-id": req.headers["svix-id"] as string,
+      "svix-signature": signature,
+      "svix-timestamp": req.headers["svix-timestamp"] as string,
+    }) as any;
+
+    webhookLogger.info("[Clerk] Webhook signature verified successfully", {
+      eventType: evt.type,
+      msgId: req.headers["svix-id"],
+    });
+
+    return evt;
+  } catch (err) {
+    webhookLogger.warn("[Clerk] Webhook signature verification failed", {
+      error: (err as Error).message,
+      signature: signature.substring(0, 30),
+    });
+    return null;
+  }
+}
+
+/**
  * Handle Clerk webhook events
  * POST /api/v1/webhooks/clerk
  */
@@ -103,9 +141,11 @@ export const webhook_clerk_post = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const evt = await verifyWebhook(req as any, {
-      signingSecret: config.clerkWebhookSigningSecret,
-    });
+    // Verify signature and get event
+    const evt = verifyClerkWebhookSignature(req);
+    if (!evt) {
+      throw new ValidationError("Invalid webhook signature");
+    }
 
     const eventType = evt.type as string;
 

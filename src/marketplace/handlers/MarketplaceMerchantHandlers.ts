@@ -268,6 +268,100 @@ export const marketplace_merchant_onboard_post = async (
 };
 
 /**
+ * Get merchant profile
+ * GET /api/v1/marketplace/merchant
+ */
+export const marketplace_merchant_get = async (
+  req: Request,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) {
+      throw new MissingUserContextError({ route: req.path });
+    }
+
+    const userId = (req as any).user.dialist_id;
+
+    const [user, merchantOnboarding] = await Promise.all([
+      User.findById(userId).select(
+        [
+          "merchant",
+          "onboarding",
+          "first_name",
+          "last_name",
+          "display_name",
+          "email",
+          "phone",
+        ].join(" "),
+      ),
+      MerchantOnboarding.findOne({ dialist_user_id: userId }),
+    ]);
+
+    if (!user && !merchantOnboarding) {
+      res.json({
+        data: {
+          is_merchant: false,
+          merchant: null,
+          user: null,
+        },
+        requestId: req.headers["x-request-id"] as string,
+      });
+      return;
+    }
+
+    const merchantData = merchantOnboarding
+      ? {
+          form_id: merchantOnboarding.form_id,
+          onboarding_state: merchantOnboarding.onboarding_state,
+          verification_state: merchantOnboarding.verification_state || null,
+          identity_id: merchantOnboarding.identity_id || null,
+          merchant_id: merchantOnboarding.merchant_id || null,
+          last_form_link: merchantOnboarding.last_form_link || null,
+          last_form_link_expires_at: merchantOnboarding.last_form_link_expires_at
+            ? merchantOnboarding.last_form_link_expires_at.toISOString()
+            : null,
+          onboarded_at: merchantOnboarding.onboarded_at || null,
+          verified_at: merchantOnboarding.verified_at || null,
+        }
+      : null;
+
+    res.json({
+      data: {
+        is_merchant: merchantOnboarding
+          ? merchantOnboarding.onboarding_state === "APPROVED"
+          : !!user?.merchant,
+        merchant: merchantData,
+        user: user
+          ? {
+              first_name: user.first_name || null,
+              last_name: user.last_name || null,
+              display_name: user.display_name || null,
+              email: (user as any).email || null,
+              phone: (user as any).phone || null,
+            }
+          : null,
+      },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (error: any) {
+    if (
+      error instanceof ValidationError ||
+      error instanceof MissingUserContextError
+    ) {
+      return next(error);
+    }
+    merchantLogger.error(`Failed to fetch merchant profile`, {
+      user_id: (req as any).user?.dialist_id,
+      error: (error as Error).message,
+      stack: (error as Error).stack,
+      requestId: req.headers["x-request-id"],
+    });
+    next(new DatabaseError("Failed to fetch merchant profile", error));
+  }
+};
+
+/**
  * Get current user's merchant status
  * GET /api/v1/marketplace/merchant/status
  */
