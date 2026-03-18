@@ -1,9 +1,21 @@
 import { Router } from "express";
 import { validateRequest } from "../../middleware/validation";
 import { completeOnboardingSchema } from "../../validation/schemas";
-import { networks_onboarding_complete_patch } from "../handlers/onboardingHandlers";
+import {
+  networks_onboarding_status_get,
+  networks_onboarding_complete_patch,
+} from "../handlers/onboardingHandlers";
 
 const router: Router = Router();
+
+/**
+ * Get onboarding status for authenticated user
+ * GET /api/v1/networks/onboarding/status
+ *
+ * Returns: status ("incomplete"|"completed"), steps progress, user info
+ * Auth: Required (Clerk JWT)
+ */
+router.get("/status", networks_onboarding_status_get as any);
 
 /**
  * Complete onboarding atomically with all fields at once

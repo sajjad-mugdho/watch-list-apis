@@ -262,7 +262,7 @@ const OBDisplayNameSchema = new Schema(
 const OBAvatarSchema = new Schema(
   {
     // Type of avatar: 'monogram' or 'upload'
-    type: { type: String, enum: ["monogram", "upload"], default: "monogram" },
+    type: { type: String, enum: ["monogram", "upload"], default: undefined },
     // Monogram fields (type: 'monogram')
     monogram_initials: { type: String, default: null },
     monogram_color: { type: String, default: null },
@@ -296,7 +296,11 @@ const OBPaymentSchema = new Schema(
     // Card fields
     last_four: { type: String, default: null }, // Last 4 digits for display
     // Payment status
-    status: { type: String, default: "pending_verification" }, // pending_verification, verified, failed
+    status: {
+      type: String,
+      enum: ["pending_verification", "verified", "failed"],
+      default: null,
+    }, // pending_verification, verified, failed
     updated_at: { type: Date },
   },
   { _id: false },
@@ -344,8 +348,8 @@ const OnboardingSchema = new Schema(
       business_info: { type: OBBusinessInfoSchema, default: {} },
       personal_info: { type: OBPersonalInfoSchema, default: {} },
       display_name: { type: OBDisplayNameSchema, default: {} },
-      avatar: { type: OBAvatarSchema, default: {} },
-      payment: { type: OBPaymentSchema, default: {} },
+      avatar: { type: OBAvatarSchema, default: undefined },
+      payment: { type: OBPaymentSchema, default: undefined },
       acknowledgements: { type: OBAcksSchema, default: {} },
     },
     last_step: { type: String, default: null },

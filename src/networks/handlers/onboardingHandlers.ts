@@ -1,6 +1,12 @@
 import { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
-import { AppError, ConflictError, DatabaseError } from "../../utils/errors";
+import {
+  AppError,
+  ConflictError,
+  DatabaseError,
+  MissingUserContextError,
+  ValidationError,
+} from "../../utils/errors";
 import { ApiResponse } from "../../types";
 import { User } from "../../models/User";
 import { CompleteOnboardingInput } from "../../validation/schemas";
@@ -9,6 +15,95 @@ import logger from "../../utils/logger";
 // ----------------------------------------------------------
 // Handler Functions
 // ----------------------------------------------------------
+
+/**
+ * Get network onboarding status
+ * GET /api/v1/networks/onboarding/status
+ *
+ * Returns the current onboarding status for an authenticated user.
+ * Useful for checking on app launch whether to show onboarding flow
+ * or skip directly to home screen.
+ */
+export const networks_onboarding_status_get = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const dialist_id = req.user?.dialist_id;
+    if (!dialist_id) {
+      throw new MissingUserContextError({ route: req.path });
+    }
+
+    // Load user document
+    const user = await User.findById(dialist_id);
+    if (!user) {
+      throw new ValidationError("User not found");
+    }
+
+    // Count completed steps
+    const stepsCompleted = [
+      user.onboarding.steps.location &&
+        Object.keys(user.onboarding.steps.location).length > 0,
+      user.onboarding.steps.avatar &&
+        Object.keys(user.onboarding.steps.avatar).length > 0,
+      user.onboarding.steps.acknowledgements &&
+        Object.keys(user.onboarding.steps.acknowledgements).length > 0,
+    ].filter(Boolean).length;
+
+    const totalSteps = 3;
+    const progressPercentage = Math.round((stepsCompleted / totalSteps) * 100);
+
+    // Build response
+    const response: ApiResponse<any> = {
+      data: {
+        status: user.onboarding.status,
+        completed_at: user.onboarding.completed_at || null,
+        steps: {
+          location: user.onboarding.steps.location
+            ? { confirmed: true }
+            : { confirmed: false },
+          avatar: user.onboarding.steps.avatar
+            ? { confirmed: true }
+            : { confirmed: false },
+          acknowledgements: user.onboarding.steps.acknowledgements
+            ? { confirmed: true }
+            : { confirmed: false },
+          payment: user.onboarding.steps.payment
+            ? { confirmed: true }
+            : { confirmed: false },
+        },
+        progress: {
+          is_finished: user.onboarding.status === "completed",
+          percentage: progressPercentage,
+          steps_completed: stepsCompleted,
+          total_steps: totalSteps,
+        },
+        user: {
+          user_id: user._id,
+          dialist_id: user.dialist_id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          display_name: user.display_name,
+        },
+      },
+      _metadata: {
+        message: "Onboarding status retrieved successfully",
+        timestamp: new Date(),
+      },
+      requestId: req.headers["x-request-id"] as string,
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    logger.error("Error retrieving onboarding status", { error });
+    next(
+      error instanceof AppError
+        ? error
+        : new DatabaseError("Failed to retrieve onboarding status", error),
+    );
+  }
+};
 
 /**
  * Complete network onboarding atomically
@@ -30,20 +125,21 @@ export const networks_onboarding_complete_patch = async (
   res: Response,
   next: NextFunction,
 ): Promise<void> => {
-  const session = await mongoose.startSession();
+  let session: mongoose.ClientSession | null = null;
 
   try {
+    session = await mongoose.startSession();
     session.startTransaction();
 
     const dialist_id = req.user?.dialist_id;
     if (!dialist_id) {
-      throw new Error("Authenticated user required");
+      throw new MissingUserContextError({ route: req.path });
     }
 
     // Load user within transaction
     const user = await User.findById(dialist_id).session(session);
     if (!user) {
-      throw new Error("User not found");
+      throw new ValidationError("User not found");
     }
 
     // Guard: prevent re-completion
@@ -61,6 +157,14 @@ export const networks_onboarding_complete_patch = async (
     // Auto-generate display_name from first + last name
     user.display_name = `${profile.first_name} ${profile.last_name}`.trim();
 
+    // Update display_name step so onboarding progress reflects completion
+    user.onboarding.steps.display_name = {
+      value: user.display_name,
+      confirmed: true,
+      user_provided: true,
+      updated_at: new Date(),
+    };
+
     // Update location
     user.onboarding.steps.location = {
       country: location.country,
@@ -73,21 +177,42 @@ export const networks_onboarding_complete_patch = async (
       updated_at: new Date(),
     };
 
+    // Keep canonical user.location in sync with onboarding location
+    user.location = {
+      country: location.country,
+      region: location.region,
+      postal_code: location.postal_code,
+      city: location.city,
+      line1: location.line1,
+      line2: location.line2 || null,
+      currency: location.currency || null,
+    };
+
     // Update avatar
     if (avatar.type === "monogram") {
+      const avatarUpdatedAt = new Date();
       user.onboarding.steps.avatar = {
         type: "monogram",
         monogram_initials: avatar.monogram_initials,
         monogram_color: avatar.monogram_color,
         monogram_style: avatar.monogram_style,
-        updated_at: new Date(),
+        confirmed: true,
+        user_provided: true,
+        updated_at: avatarUpdatedAt,
       };
+      // For monogram avatars, generate display_avatar URL dynamically
+      // (avatar string field is used for display, but monograms are generated client/server-side)
     } else if (avatar.type === "upload") {
+      const avatarUpdatedAt = new Date();
       user.onboarding.steps.avatar = {
         type: "upload",
         url: avatar.url,
-        updated_at: new Date(),
+        confirmed: true,
+        user_provided: true,
+        updated_at: avatarUpdatedAt,
       };
+      // Persist uploaded avatar URL to canonical avatar field used across the app
+      user.avatar = avatar.url;
     }
 
     // Update payment (if provided)
@@ -118,6 +243,13 @@ export const networks_onboarding_complete_patch = async (
       privacy: acknowledgements.privacy,
       rules: acknowledgements.rules,
       updated_at: new Date(),
+    };
+
+    // Keep canonical legal acknowledgements in sync
+    user.legal_acks = {
+      tos_ack: acknowledgements.tos,
+      privacy_ack: acknowledgements.privacy,
+      rules_ack: acknowledgements.rules,
     };
 
     // Mark onboarding as completed
@@ -169,11 +301,11 @@ export const networks_onboarding_complete_patch = async (
                 url: user.onboarding.steps.avatar?.url || null,
               }),
             },
-            payment: payment
+            payment: user.onboarding.steps.payment?.payment_method
               ? {
-                  payment_method: payment.payment_method,
-                  last_four: payment.last_four,
-                  status: "pending_verification",
+                  payment_method: user.onboarding.steps.payment.payment_method,
+                  last_four: user.onboarding.steps.payment.last_four ?? null,
+                  status: user.onboarding.steps.payment.status ?? null,
                 }
               : null,
             acknowledgements: {
@@ -194,7 +326,7 @@ export const networks_onboarding_complete_patch = async (
     res.status(200).json(response);
   } catch (error) {
     // Rollback transaction on any error
-    if (session.inTransaction()) {
+    if (session && session.inTransaction()) {
       await session.abortTransaction();
     }
 
@@ -206,6 +338,6 @@ export const networks_onboarding_complete_patch = async (
         : new DatabaseError("Failed to complete onboarding", error),
     );
   } finally {
-    session.endSession();
+    await session?.endSession();
   }
 };

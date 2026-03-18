@@ -456,8 +456,8 @@ Backend receives PATCH request
 1. Frontend collects card via Stripe/payment UI
 2. Frontend tokenizes card (receives `card_token`)
 3. Frontend extracts last_four from card
-4. Sends token to backend (never raw card data)
-5. Backend validates token and stores securely
+4. Sends token to backend as a transient input (never raw card data)
+5. Backend validates token, forwards it to the payment processor, and **does not store the token in MongoDB** (only `last_four` + status are persisted)
 
 #### **Option B: Bank Account** (payment_method: "bank_account") [Future]
 

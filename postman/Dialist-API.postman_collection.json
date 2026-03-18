@@ -2228,8 +2228,62 @@
           }
         },
         {
+          "name": "Get Network Onboarding Status",
+          "description": "Check the current onboarding status for the authenticated user.\n\nUseful for:\n- App startup to decide whether to show onboarding flow or home screen\n- Progressive onboarding — show progress percentage as user completes steps\n- Rehydrating app state after refresh\n\nResponse includes:\n- status: 'incomplete' | 'completed'\n- completed_at: ISO timestamp if completed\n- steps: which sections have been filled\n- progress: percentage completion (0-100)\n- user: user profile data (name, display_name, etc)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/onboarding/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "onboarding", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get status - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains status field', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.status).to.be.oneOf(['incomplete', 'completed']);",
+                  "});",
+                  "",
+                  "pm.test('Response contains progress data', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.progress).to.exist;",
+                  "    pm.expect(responseData.data.progress.percentage).to.be.a('number');",
+                  "    pm.expect(responseData.data.progress.is_finished).to.be.a('boolean');",
+                  "});",
+                  "",
+                  "pm.test('Response contains steps confirmation', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.steps).to.exist;",
+                  "    pm.expect(responseData.data.steps.location).to.exist;",
+                  "    pm.expect(responseData.data.steps.avatar).to.exist;",
+                  "    pm.expect(responseData.data.steps.acknowledgements).to.exist;",
+                  "    pm.expect(responseData.data.steps.payment).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('Response contains user data', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.user).to.exist;",
+                  "    pm.expect(responseData.data.user.dialist_id).to.exist;",
+                  "    pm.expect(responseData.data.user.display_name).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
           "name": "Complete Network Onboarding (Atomic)",
-          "description": "Complete network onboarding atomically with all fields (location, profile, avatar, payment, acknowledgements) in a single request.\n\nFrontend prepares:\n- Location: country, region, postal_code, city, line1, line2 (optional), currency\n- Profile: first_name, last_name\n- Avatar: type (monogram|upload) + conditional fields\n- Payment: payment_method (card|bank_account) + type-specific fields\n- Acknowledgements: tos, privacy, rules (all true)\n\nBackend:\n- Validates all fields (all-or-nothing atomic transaction)\n- Updates user atomically\n- Stores payment token (never raw card data)\n- Sets onboarding.status = 'completed'\n- Returns updated user profile with all onboarding steps",
+          "description": "Complete network onboarding atomically with all fields (location, profile, avatar, payment, acknowledgements) in a single request.\n\nFrontend prepares:\n- Location: country, region, postal_code, city, line1, line2 (optional), currency\n- Profile: first_name, last_name\n- Avatar: type (monogram|upload) + conditional fields\n- Payment: payment_method (card|bank_account) + type-specific fields\n- Acknowledgements: tos, privacy, rules (all true)\n\nBackend:\n- Validates all fields (all-or-nothing atomic transaction)\n- Updates user atomically\n- Uses payment token to set up payment method (does not persist card_token/bank_account_token; only stores last_four and payment status)\n- Sets onboarding.status = 'completed'\n- Returns updated user profile with all onboarding steps",
           "request": {
             "method": "PATCH",
             "header": [
