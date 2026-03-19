@@ -152,10 +152,20 @@ export interface IUser extends Document {
         updated_at: Date | null;
       };
       avatar: {
-        confirmed: boolean;
-        url: string | null;
-        user_provided: boolean;
-        updated_at: Date | null;
+        type?: "monogram" | "upload";
+        monogram_initials?: string | null;
+        monogram_color?: string | null;
+        monogram_style?: string | null;
+        confirmed?: boolean;
+        url?: string | null;
+        user_provided?: boolean;
+        updated_at?: Date | null;
+      };
+      payment?: {
+        payment_method?: "card" | "bank_account" | null;
+        last_four?: string | null;
+        status?: string | null; // pending_verification | verified | failed
+        updated_at?: Date | null;
       };
       acknowledgements: {
         tos: boolean;
@@ -251,7 +261,14 @@ const OBDisplayNameSchema = new Schema(
 );
 const OBAvatarSchema = new Schema(
   {
-    url: { type: String, default: null }, // only if user_provided === true
+    // Type of avatar: 'monogram' or 'upload'
+    type: { type: String, enum: ["monogram", "upload"], default: undefined },
+    // Monogram fields (type: 'monogram')
+    monogram_initials: { type: String, default: null },
+    monogram_color: { type: String, default: null },
+    monogram_style: { type: String, default: null },
+    // Upload fields (type: 'upload')
+    url: { type: String, default: null },
     user_provided: { type: Boolean, default: false },
     confirmed: { type: Boolean, default: false },
     updated_at: { type: Date },
@@ -263,6 +280,27 @@ const OBAcksSchema = new Schema(
     tos: { type: Boolean, default: false },
     privacy: { type: Boolean, default: false },
     rules: { type: Boolean, default: false },
+    updated_at: { type: Date },
+  },
+  { _id: false },
+);
+
+// Payment Information Schema
+const OBPaymentSchema = new Schema(
+  {
+    payment_method: {
+      type: String,
+      enum: ["card", "bank_account"],
+      default: null,
+    },
+    // Card fields
+    last_four: { type: String, default: null }, // Last 4 digits for display
+    // Payment status
+    status: {
+      type: String,
+      enum: ["pending_verification", "verified", "failed"],
+      default: null,
+    }, // pending_verification, verified, failed
     updated_at: { type: Date },
   },
   { _id: false },
@@ -310,7 +348,8 @@ const OnboardingSchema = new Schema(
       business_info: { type: OBBusinessInfoSchema, default: {} },
       personal_info: { type: OBPersonalInfoSchema, default: {} },
       display_name: { type: OBDisplayNameSchema, default: {} },
-      avatar: { type: OBAvatarSchema, default: {} },
+      avatar: { type: OBAvatarSchema, default: undefined },
+      payment: { type: OBPaymentSchema, default: undefined },
       acknowledgements: { type: OBAcksSchema, default: {} },
     },
     last_step: { type: String, default: null },

@@ -1315,7 +1315,6 @@
             }
           }
         },
-
         {
           "name": "Remove Connection (Unfollow)",
           "request": {
@@ -1384,7 +1383,6 @@
             }
           }
         },
-
         {
           "name": "Get My Accepted Connections",
           "description": "Get my accepted/active connections",
@@ -1408,7 +1406,6 @@
             }
           }
         },
-
         {
           "name": "Send Connection Request",
           "event": [
@@ -2229,6 +2226,173 @@
               }
             }
           }
+        },
+        {
+          "name": "Get Network Onboarding Status",
+          "description": "Check the current onboarding status for the authenticated user.\n\nUseful for:\n- App startup to decide whether to show onboarding flow or home screen\n- Progressive onboarding — show progress percentage as user completes steps\n- Rehydrating app state after refresh\n\nResponse includes:\n- status: 'incomplete' | 'completed'\n- completed_at: ISO timestamp if completed\n- steps: which sections have been filled\n- progress: percentage completion (0-100)\n- user: user profile data (name, display_name, etc)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/onboarding/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "onboarding", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Get status - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('Response contains status field', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.status).to.be.oneOf(['incomplete', 'completed']);",
+                  "});",
+                  "",
+                  "pm.test('Response contains progress data', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.progress).to.exist;",
+                  "    pm.expect(responseData.data.progress.percentage).to.be.a('number');",
+                  "    pm.expect(responseData.data.progress.is_finished).to.be.a('boolean');",
+                  "});",
+                  "",
+                  "pm.test('Response contains steps confirmation', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.steps).to.exist;",
+                  "    pm.expect(responseData.data.steps.location).to.exist;",
+                  "    pm.expect(responseData.data.steps.avatar).to.exist;",
+                  "    pm.expect(responseData.data.steps.acknowledgements).to.exist;",
+                  "    pm.expect(responseData.data.steps.payment).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('Response contains user data', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.user).to.exist;",
+                  "    pm.expect(responseData.data.user.dialist_id).to.exist;",
+                  "    pm.expect(responseData.data.user.display_name).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete Network Onboarding (Atomic)",
+          "description": "Complete network onboarding atomically with all fields (location, profile, avatar, payment, acknowledgements) in a single request.\n\nFrontend prepares:\n- Location: country, region, postal_code, city, line1, line2 (optional), currency\n- Profile: first_name, last_name\n- Avatar: type (monogram|upload) + conditional fields\n- Payment: payment_method (card|bank_account) + type-specific fields\n- Acknowledgements: tos, privacy, rules (all true)\n\nBackend:\n- Validates all fields (all-or-nothing atomic transaction)\n- Updates user atomically\n- Uses payment token to set up payment method (does not persist card_token/bank_account_token; only stores last_four and payment status)\n- Sets onboarding.status = 'completed'\n- Returns updated user profile with all onboarding steps",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": {\n    \"country\": \"US\",\n    \"region\": \"California\",\n    \"postal_code\": \"94102\",\n    \"city\": \"San Francisco\",\n    \"line1\": \"123 Market Street\",\n    \"line2\": \"Suite 100\",\n    \"currency\": \"USD\"\n  },\n  \"profile\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\"\n  },\n  \"avatar\": {\n    \"type\": \"monogram\",\n    \"monogram_initials\": \"JD\",\n    \"monogram_color\": \"#FF5733\",\n    \"monogram_style\": \"circle\"\n  },\n  \"payment\": {\n    \"payment_method\": \"card\",\n    \"card_token\": \"tok_visa_4242_4242_4242_4242\",\n    \"last_four\": \"4242\"\n  },\n  \"acknowledgements\": {\n    \"tos\": true,\n    \"privacy\": true,\n    \"rules\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/onboarding/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "onboarding", "complete"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Onboarding complete - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('User onboarding status is completed', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.onboarding.status).to.equal('completed');",
+                  "});",
+                  "",
+                  "pm.test('Display name generated correctly', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.user.display_name).to.equal('John Doe');",
+                  "});",
+                  "",
+                  "pm.test('Completion timestamp present', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.onboarding.completed_at).to.exist;",
+                  "});",
+                  "",
+                  "pm.test('Payment information persisted', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.onboarding.steps.payment).to.exist;",
+                  "    pm.expect(responseData.data.onboarding.steps.payment.last_four).to.equal('4242');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete Network Onboarding (Upload Avatar)",
+          "description": "Alternative: Complete onboarding with uploaded avatar URL instead of monogram.\n\nAlso demonstrates bank account payment method as alternative to card.\n\nUse this when:\n- avatar_type = 'upload' to provide a URL-based avatar\n- payment_method = 'bank_account' for direct bank transfer\n\nBoth variants get saved atomically with all onboarding steps.",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"location\": {\n    \"country\": \"CA\",\n    \"region\": \"Ontario\",\n    \"postal_code\": \"M5V 3A8\",\n    \"city\": \"Toronto\",\n    \"line1\": \"456 King Street West\",\n    \"line2\": \"Suite 200\",\n    \"currency\": \"CAD\"\n  },\n  \"profile\": {\n    \"first_name\": \"Jane\",\n    \"last_name\": \"Smith\"\n  },\n  \"avatar\": {\n    \"type\": \"upload\",\n    \"url\": \"https://images.dialist.com/avatars/jane-smith-avatar.jpg\"\n  },\n  \"payment\": {\n    \"payment_method\": \"bank_account\",\n    \"bank_account_token\": \"ba_1234567890abcdef\",\n    \"routing_number\": \"110000000\",\n    \"last_four\": \"1234\"\n  },\n  \"acknowledgements\": {\n    \"tos\": true,\n    \"privacy\": true,\n    \"rules\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/onboarding/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "onboarding", "complete"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Onboarding complete with upload avatar - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "",
+                  "pm.test('User onboarding status is completed', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.onboarding.status).to.equal('completed');",
+                  "});",
+                  "",
+                  "pm.test('Display name generated correctly', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.user.display_name).to.equal('Jane Smith');",
+                  "});",
+                  "",
+                  "pm.test('Avatar URL persisted', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.onboarding.steps.avatar.type).to.equal('upload');",
+                  "    pm.expect(responseData.data.onboarding.steps.avatar.url).to.contain('dialist.com');",
+                  "});",
+                  "",
+                  "pm.test('Bank account payment persisted', () => {",
+                  "    const responseData = pm.response.json();",
+                  "    pm.expect(responseData.data.onboarding.steps.payment.payment_method).to.equal('bank_account');",
+                  "    pm.expect(responseData.data.onboarding.steps.payment.last_four).to.equal('1234');",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
