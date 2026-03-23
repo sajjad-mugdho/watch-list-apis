@@ -173,10 +173,6 @@ export const marketplace_listing_inquire = async (
 
     // 7. Create notification for seller
     try {
-      const actionUrl = channel.getstream_channel_id
-        ? `/chat/${channel.getstream_channel_id}`
-        : `/listings/${listingId}`; // Fallback if getstream_channel_id is missing
-
       // TODO: Replace with platform-specific notification service (marketplace)
       logger.debug(
         "[DEPRECATED] Notification creation disabled - use marketplace notification service",

@@ -177,28 +177,6 @@ const mockUsers: Record<string, MockUser> = {
     },
   },
 
-  onboarding_step4_acks: {
-    id: "onboarding_step4_acks",
-    name: "Onboarding Step 4 - At Acknowledgements",
-    description:
-      "User completed location + display_name + avatar, now on Step 4 (acknowledgements). next_step: acknowledgements",
-    category: "onboarding_in_progress",
-    auth: {
-      userId: "onboarding_step4_acks",
-      sessionClaims: {
-        dialist_id: "bbb444444444444444444444",
-        display_name: "Watch Collector",
-        display_avatar: "https://images.dialist.com/images/mock-avatar-1/w=400",
-        location_country: "US",
-        location_region: "California",
-        onboarding_status: "incomplete",
-        isMerchant: false,
-        networks_application_id: null,
-        networks_accessed: false,
-      },
-    },
-  },
-
   // -------------------------------------------------------------------------
   // CATEGORY: Buyers (Platform onboarding complete, NOT merchant)
   // -------------------------------------------------------------------------
@@ -582,7 +560,7 @@ export function getMockUser(id: string): MockUser | undefined {
  * Get mock users by category.
  */
 export function getMockUsersByCategory(
-  category: MockUser["category"]
+  category: MockUser["category"],
 ): MockUser[] {
   return Object.values(mockUsers).filter((user) => user.category === category);
 }

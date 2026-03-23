@@ -65,6 +65,14 @@ export interface IUser extends Document {
   display_name_last_changed_at?: Date | null;
   display_name_history?: Array<{ value: string; changed_at: Date }>;
 
+  // Platform-specific display names
+  networks_display_name?: string | null; // Auto-generated from first_name + last_name on Networks onboarding
+  marketplace_display_name?: string | null; // Custom business name (dealers) or users' marketplace persona
+
+  // Platform-specific avatars
+  networks_avatar?: string | null; // Avatar from Networks onboarding
+  marketplace_avatar?: string | null; // Avatar from Marketplace onboarding (separate from Networks)
+
   legal_acks?: { tos_ack: boolean; privacy_ack: boolean; rules_ack: boolean };
 
   // last accessed.
@@ -110,7 +118,7 @@ export interface IUser extends Document {
     location: "country" | "country_region" | "city";
     show_name: boolean;
   };
-  // Shared onboarding
+  // Shared onboarding (Networks, generic platform)
   onboarding: {
     status: "incomplete" | "completed";
     version: string;
@@ -124,6 +132,12 @@ export interface IUser extends Document {
         line2?: string | null; // Apt/Suite number
         currency?: string | null;
         updated_at: Date | null;
+      };
+      profile?: {
+        first_name?: string | null;
+        last_name?: string | null;
+        confirmed?: boolean;
+        updated_at?: Date | null;
       };
       business_info?: {
         // Business/Professional information
@@ -167,7 +181,7 @@ export interface IUser extends Document {
         status?: string | null; // pending_verification | verified | failed
         updated_at?: Date | null;
       };
-      acknowledgements: {
+      acknowledgements?: {
         tos: boolean;
         privacy: boolean;
         rules: boolean;
@@ -175,6 +189,42 @@ export interface IUser extends Document {
       };
     };
     last_step?: string | null;
+    completed_at?: Date | null;
+  };
+
+  // Marketplace-specific onboarding (separate from Networks)
+  marketplace_onboarding?: {
+    status: "incomplete" | "completed";
+    version: string;
+    intent?: "buyer" | "dealer";
+    steps: {
+      profile: {
+        first_name?: string | null;
+        last_name?: string | null;
+        confirmed: boolean;
+        updated_at: Date | null;
+      };
+      location: {
+        country?: "CA" | "US" | null;
+        region?: string | null;
+        postal_code?: string | null;
+        city?: string | null;
+        line1?: string | null;
+        line2?: string | null;
+        currency?: string | null;
+        confirmed: boolean;
+        updated_at: Date | null;
+      };
+      avatar: {
+        url: string | null;
+        confirmed: boolean;
+        updated_at: Date | null;
+      };
+      acknowledgements: {
+        marketplace_tos: boolean;
+        updated_at: Date | null;
+      };
+    };
     completed_at?: Date | null;
   };
 
@@ -246,6 +296,15 @@ const OBLocationSchema = new Schema(
     line1: { type: String, default: null }, // Street address
     line2: { type: String, default: null }, // Apt/Suite number
     currency: { type: String, trim: true, default: null },
+    updated_at: { type: Date, default: null },
+  },
+  { _id: false },
+);
+const OBProfileSchema = new Schema(
+  {
+    first_name: { type: String, default: null },
+    last_name: { type: String, default: null },
+    confirmed: { type: Boolean, default: false },
     updated_at: { type: Date, default: null },
   },
   { _id: false },
@@ -345,6 +404,7 @@ const OnboardingSchema = new Schema(
     version: { type: String, default: "v1" },
     steps: {
       location: { type: OBLocationSchema, default: {} },
+      profile: { type: OBProfileSchema, default: {} },
       business_info: { type: OBBusinessInfoSchema, default: {} },
       personal_info: { type: OBPersonalInfoSchema, default: {} },
       display_name: { type: OBDisplayNameSchema, default: {} },
@@ -353,6 +413,70 @@ const OnboardingSchema = new Schema(
       acknowledgements: { type: OBAcksSchema, default: {} },
     },
     last_step: { type: String, default: null },
+    completed_at: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
+// Marketplace Onboarding Schemas (separate from Networks)
+const MPOnboardingProfileSchema = new Schema(
+  {
+    first_name: { type: String, default: null },
+    last_name: { type: String, default: null },
+    confirmed: { type: Boolean, default: false },
+    updated_at: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
+const MPOnboardingLocationSchema = new Schema(
+  {
+    country: { type: String, enum: ["CA", "US"], default: null },
+    region: { type: String, default: null },
+    postal_code: { type: String, default: null },
+    city: { type: String, default: null },
+    line1: { type: String, default: null },
+    line2: { type: String, default: null },
+    currency: { type: String, trim: true, default: null },
+    confirmed: { type: Boolean, default: false },
+    updated_at: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
+const MPOnboardingAvatarSchema = new Schema(
+  {
+    url: { type: String, default: null },
+    confirmed: { type: Boolean, default: false },
+    updated_at: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
+const MPOnboardingAcksSchema = new Schema(
+  {
+    marketplace_tos: { type: Boolean, default: false },
+    updated_at: { type: Date, default: null },
+  },
+  { _id: false },
+);
+
+const MarketplaceOnboardingSchema = new Schema(
+  {
+    status: {
+      type: String,
+      enum: ["incomplete", "completed"],
+      default: "incomplete",
+      index: true,
+    },
+    version: { type: String, default: "v1" },
+    intent: { type: String, enum: ["buyer", "dealer"], default: "buyer" },
+    steps: {
+      profile: { type: MPOnboardingProfileSchema, default: {} },
+      location: { type: MPOnboardingLocationSchema, default: {} },
+      avatar: { type: MPOnboardingAvatarSchema, default: {} },
+      acknowledgements: { type: MPOnboardingAcksSchema, default: {} },
+    },
     completed_at: { type: Date, default: null },
   },
   { _id: false },
@@ -399,6 +523,14 @@ const userSchema = new Schema<IUser>(
     display_name_history: [
       { value: String, changed_at: { type: Date, default: Date.now } },
     ],
+
+    // Platform-specific display names
+    networks_display_name: { type: String, default: null, trim: true }, // Auto-generated from first + last
+    marketplace_display_name: { type: String, default: null, trim: true }, // Custom business name
+
+    // Platform-specific avatars
+    networks_avatar: { type: String, default: null, trim: true }, // Networks avatar URL
+    marketplace_avatar: { type: String, default: null, trim: true }, // Marketplace avatar URL
 
     networks_published: { type: Boolean, default: false },
     marketplace_published: { type: Boolean, default: false },
@@ -452,6 +584,9 @@ const userSchema = new Schema<IUser>(
 
     // general onboarding. All users
     onboarding: { type: OnboardingSchema, default: {} },
+
+    // marketplace-specific onboarding (separate from Networks)
+    marketplace_onboarding: { type: MarketplaceOnboardingSchema, default: {} },
 
     // legal
     legal_acks: {

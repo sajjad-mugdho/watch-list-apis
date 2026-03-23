@@ -10,7 +10,7 @@ import { userLogger } from "./logger";
 import { events } from "./events";
 import { getMockUser } from "../middleware/customClerkMw";
 
-type StepKey = "location" | "display_name" | "avatar" | "acknowledgements";
+type StepKey = "location" | "display_name" | "avatar";
 
 // ---------------- Utilities ----------------
 export function computeInternalDisplayName(u: {
@@ -39,24 +39,13 @@ export function getOnboardingProgress(user: IUser) {
   const avatarOk =
     !!s.avatar?.confirmed &&
     (s.avatar.user_provided ? !!s.avatar?.url?.trim() : true);
-  const acksOk =
-    s.acknowledgements.tos &&
-    s.acknowledgements.privacy &&
-    s.acknowledgements.rules;
-
   const complete = {
     location: locationOk,
     display_name: displayNameOk,
     avatar: avatarOk,
-    acknowledgements: acksOk,
   };
 
-  const order: StepKey[] = [
-    "location",
-    "display_name",
-    "avatar",
-    "acknowledgements",
-  ];
+  const order: StepKey[] = ["location", "display_name", "avatar"];
   const missing = order.filter((k) => !complete[k]);
 
   if (missing.length > 0) {
@@ -114,15 +103,7 @@ export async function finalizeOnboarding(user: IUser) {
   if (s.avatar.confirmed && s.avatar.user_provided && s.avatar.url?.trim())
     user.avatar = s.avatar.url.trim();
 
-  // 4) Promote acknowledgements
-  user.legal_acks = {
-    ...(user.legal_acks || {}),
-    tos_ack: !!s.acknowledgements?.tos,
-    privacy_ack: !!s.acknowledgements?.privacy,
-    rules_ack: !!s.acknowledgements?.rules,
-  };
-
-  // 5) Lock onboarding
+  // 4) Lock onboarding
   user.onboarding.status = "completed";
   user.onboarding.completed_at = now;
 
@@ -299,11 +280,6 @@ export async function fetchAndSyncLocalUser(input: {
                 url: claims.display_avatar,
                 user_provided: !!claims.display_avatar,
               },
-              acknowledgements: {
-                tos: claims.onboarding_status === "completed",
-                privacy: claims.onboarding_status === "completed",
-                rules: claims.onboarding_status === "completed",
-              },
             },
           },
         });
@@ -364,7 +340,6 @@ export async function getOrCreateUser(externalId: string): Promise<IUser> {
             location: {},
             display_name: { confirmed: false, user_provided: false },
             avatar: { confirmed: false, user_provided: false },
-            acknowledgements: { tos: false, privacy: false, rules: false },
           },
         },
       });

@@ -193,43 +193,12 @@ export const networks_order_complete = async (
 
     await order.save();
 
-    // Notify the other party
+    // Notify the other party (notifications pending platform-specific service)
     try {
-      const otherPartyId = isBuyer
-        ? order.seller_id.toString()
-        : order.buyer_id.toString();
-      const role = isBuyer ? "Buyer" : "Seller";
-
       if (bothConfirmed) {
-        // Notify both parties of completion
-        for (const partyId of [
-          order.buyer_id.toString(),
-          order.seller_id.toString(),
-        ]) {
-          // TODO: Use platform-specific notification service
-          /*          await Notification.create({
-            user_id: partyId,
-            type: "order_completed",
-            title: "Order Completed!",
-            body: "Both parties have confirmed. The order is now complete.",
-            data: {
-              order_id: orderId,
-            },
-            action_url: `/networks/orders/${orderId}`,
-          }); */
-        }
+        // TODO: Notify both parties of completion when notification service is ready
       } else {
-        // TODO: Use platform-specific notification service
-        /*        await Notification.create({
-          user_id: otherPartyId,
-          type: "order_confirmation_pending",
-          title: `${role} Confirmed Completion`,
-          body: "The other party has confirmed order completion. Please confirm on your end.",
-          data: {
-            order_id: orderId,
-          },
-          action_url: `/networks/orders/${orderId}`,
-        }); */
+        // TODO: Notify the other party to confirm completion when notification service is ready
       }
     } catch (notifErr) {
       logger.warn("Failed to create order completion notification", {

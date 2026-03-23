@@ -45,11 +45,59 @@ export const networks_onboarding_status_get = async (
     const stepsCompleted = [
       user.onboarding.steps.location &&
         Object.keys(user.onboarding.steps.location).length > 0,
-      user.onboarding.steps.avatar &&
-        Object.keys(user.onboarding.steps.avatar).length > 0,
-      user.onboarding.steps.acknowledgements &&
-        Object.keys(user.onboarding.steps.acknowledgements).length > 0,
+      user.onboarding.steps.display_name?.confirmed,
+      user.onboarding.steps.avatar?.confirmed,
     ].filter(Boolean).length;
+
+    const marketplaceComplete =
+      user.marketplace_onboarding?.status === "completed";
+    const marketplaceProfile = user.marketplace_onboarding?.steps?.profile;
+    const marketplaceLocation = user.marketplace_onboarding?.steps?.location;
+
+    const hasPrefillProfile =
+      marketplaceComplete &&
+      !!marketplaceProfile?.first_name?.trim() &&
+      !!marketplaceProfile?.last_name?.trim();
+
+    const hasPrefillLocation =
+      marketplaceComplete &&
+      !!marketplaceLocation?.country &&
+      !!marketplaceLocation?.region?.trim() &&
+      !!marketplaceLocation?.postal_code?.trim() &&
+      !!marketplaceLocation?.city?.trim() &&
+      !!marketplaceLocation?.line1?.trim();
+
+    const pre_populated =
+      user.onboarding.status !== "completed" &&
+      (hasPrefillProfile || hasPrefillLocation)
+        ? {
+            ...(hasPrefillProfile && {
+              first_name: marketplaceProfile?.first_name ?? null,
+              last_name: marketplaceProfile?.last_name ?? null,
+            }),
+            ...(hasPrefillLocation && {
+              location: {
+                country: marketplaceLocation?.country ?? null,
+                region: marketplaceLocation?.region ?? null,
+                postal_code: marketplaceLocation?.postal_code ?? null,
+                city: marketplaceLocation?.city ?? null,
+                line1: marketplaceLocation?.line1 ?? null,
+                line2: marketplaceLocation?.line2 ?? null,
+                currency: marketplaceLocation?.currency ?? null,
+              },
+            }),
+            source: "marketplace",
+          }
+        : null;
+
+    const requires =
+      user.onboarding.status === "completed"
+        ? []
+        : [
+            ...(hasPrefillProfile ? [] : ["profile"]),
+            ...(hasPrefillLocation ? [] : ["location"]),
+            "avatar",
+          ];
 
     const totalSteps = 3;
     const progressPercentage = Math.round((stepsCompleted / totalSteps) * 100);
@@ -60,18 +108,18 @@ export const networks_onboarding_status_get = async (
         status: user.onboarding.status,
         completed_at: user.onboarding.completed_at || null,
         steps: {
-          location: user.onboarding.steps.location
-            ? { confirmed: true }
-            : { confirmed: false },
-          avatar: user.onboarding.steps.avatar
-            ? { confirmed: true }
-            : { confirmed: false },
-          acknowledgements: user.onboarding.steps.acknowledgements
-            ? { confirmed: true }
-            : { confirmed: false },
-          payment: user.onboarding.steps.payment
-            ? { confirmed: true }
-            : { confirmed: false },
+          location: {
+            confirmed: !!(
+              user.onboarding.steps.location &&
+              Object.keys(user.onboarding.steps.location).length > 0
+            ),
+          },
+          display_name: {
+            confirmed: !!user.onboarding.steps.display_name?.confirmed,
+          },
+          avatar: {
+            confirmed: !!user.onboarding.steps.avatar?.confirmed,
+          },
         },
         progress: {
           is_finished: user.onboarding.status === "completed",
@@ -79,6 +127,10 @@ export const networks_onboarding_status_get = async (
           steps_completed: stepsCompleted,
           total_steps: totalSteps,
         },
+        ...(user.onboarding.status !== "completed" && {
+          requires,
+          ...(pre_populated && { pre_populated }),
+        }),
         user: {
           user_id: user._id,
           dialist_id: user.dialist_id,
@@ -110,15 +162,15 @@ export const networks_onboarding_status_get = async (
  * PATCH /api/v1/networks/onboarding/complete
  *
  * Receives complete onboarding payload and saves all fields in a single transaction.
- * Frontend prepares all data (location, profile, avatar, payment, acknowledgements)
+ * Frontend prepares all data (location, profile, avatar)
  * and backend validates + saves atomically to prevent partial state.
  *
  * Data Persistence:
  * - All fields saved together (atomic transaction)
  * - If any validation fails, entire update is rollback
- * - Payment token is stored securely (never raw card data)
  * - Timestamps recorded for audit trail
  * - Status changed to "completed" on success only
+ * - Payment is NOT collected during onboarding (handled separately by Marketplace)
  */
 export const networks_onboarding_complete_patch = async (
   req: Request<{}, {}, CompleteOnboardingInput["body"]>,
@@ -147,8 +199,8 @@ export const networks_onboarding_complete_patch = async (
       throw new ConflictError("Onboarding already completed");
     }
 
-    // Extract payload
-    const { location, profile, avatar, acknowledgements, payment } = req.body;
+    // Extract payload (payment not accepted for Networks onboarding)
+    const { location, profile, avatar } = req.body;
 
     // Update user fields atomically
     user.first_name = profile.first_name;
@@ -156,6 +208,14 @@ export const networks_onboarding_complete_patch = async (
 
     // Auto-generate display_name from first + last name
     user.display_name = `${profile.first_name} ${profile.last_name}`.trim();
+    user.networks_display_name = user.display_name;
+
+    user.onboarding.steps.profile = {
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      confirmed: true,
+      updated_at: new Date(),
+    };
 
     // Update display_name step so onboarding progress reflects completion
     user.onboarding.steps.display_name = {
@@ -200,6 +260,7 @@ export const networks_onboarding_complete_patch = async (
         user_provided: true,
         updated_at: avatarUpdatedAt,
       };
+      user.networks_avatar = null;
       // For monogram avatars, generate display_avatar URL dynamically
       // (avatar string field is used for display, but monograms are generated client/server-side)
     } else if (avatar.type === "upload") {
@@ -211,46 +272,10 @@ export const networks_onboarding_complete_patch = async (
         user_provided: true,
         updated_at: avatarUpdatedAt,
       };
+      user.networks_avatar = avatar.url;
       // Persist uploaded avatar URL to canonical avatar field used across the app
       user.avatar = avatar.url;
     }
-
-    // Update payment (if provided)
-    if (payment) {
-      if (payment.payment_method === "card") {
-        user.onboarding.steps.payment = {
-          payment_method: "card",
-          last_four: payment.last_four,
-          status: "pending_verification",
-          updated_at: new Date(),
-          // NOTE: card_token is NOT stored - it's passed only for backend to verify/process
-          // Backend should forward to payment processor (Stripe/Finix) in separate transaction
-        };
-      } else if (payment.payment_method === "bank_account") {
-        user.onboarding.steps.payment = {
-          payment_method: "bank_account",
-          last_four: payment.last_four,
-          status: "pending_verification",
-          updated_at: new Date(),
-          // NOTE: bank_account_token is NOT stored
-        };
-      }
-    }
-
-    // Update acknowledgements
-    user.onboarding.steps.acknowledgements = {
-      tos: acknowledgements.tos,
-      privacy: acknowledgements.privacy,
-      rules: acknowledgements.rules,
-      updated_at: new Date(),
-    };
-
-    // Keep canonical legal acknowledgements in sync
-    user.legal_acks = {
-      tos_ack: acknowledgements.tos,
-      privacy_ack: acknowledgements.privacy,
-      rules_ack: acknowledgements.rules,
-    };
 
     // Mark onboarding as completed
     user.onboarding.status = "completed";
@@ -308,11 +333,6 @@ export const networks_onboarding_complete_patch = async (
                   status: user.onboarding.steps.payment.status ?? null,
                 }
               : null,
-            acknowledgements: {
-              tos: user.onboarding.steps.acknowledgements?.tos || false,
-              privacy: user.onboarding.steps.acknowledgements?.privacy || false,
-              rules: user.onboarding.steps.acknowledgements?.rules || false,
-            },
           },
         },
       },

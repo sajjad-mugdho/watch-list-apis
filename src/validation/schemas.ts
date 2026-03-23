@@ -599,77 +599,6 @@ export const getListingChannelsSchema = z.object({
 });
 
 /**
- * Onboarding Step Schemas (wrapped in { body: ... } to match validateRequest)
- */
-
-export const patchLocationStepSchema = z.object({
-  body: z.object({
-    country: z.enum(["CA", "US"], {
-      required_error: "Country is required",
-      invalid_type_error: "Country must be 'CA' or 'US'",
-    }),
-    region: z
-      .string({
-        required_error: "Region is required",
-        invalid_type_error: "Region must be a string",
-      })
-      .trim()
-      .min(1, "Region cannot be empty")
-      .max(100, "Region too long"),
-    postal_code: z
-      .string({
-        required_error: "Postal code is required",
-        invalid_type_error: "Postal code must be a string",
-      })
-      .trim()
-      .min(3, "Postal code too short")
-      .max(12, "Postal code too long")
-      .refine(
-        (val) => /^[A-Za-z0-9\s-]+$/.test(val),
-        "Postal code may only contain letters, numbers, spaces, and hyphens",
-      ),
-    currency: z
-      .string()
-      .trim()
-      .length(3, "Currency code must be exactly 3 characters")
-      .optional(),
-  }),
-});
-
-export const patchDisplayNameStepSchema = z.object({
-  body: z.discriminatedUnion("mode", [
-    z.object({
-      mode: z.literal("default"), // user accepts the suggested/default name
-    }),
-    z.object({
-      mode: z.literal("custom"), // user provides their own
-      value: z.string().trim().min(7).max(60),
-    }),
-  ]),
-});
-export const patchAvatarStepSchema = z.object({
-  body: z.discriminatedUnion("mode", [
-    z.object({ mode: z.literal("default") }),
-    z.object({
-      mode: z.literal("custom"),
-      url: z.string().trim().url().max(512),
-    }),
-  ]),
-});
-export const patchAcksStepSchema = z.object({
-  body: z.object({
-    tos: z.literal(true),
-    privacy: z.literal(true),
-    rules: z.literal(true),
-  }),
-});
-
-// ── Status (no payload) ──
-export const getOnboardingStatusSchema = z.object({
-  query: z.object({}).optional(),
-});
-
-/**
  * Schema for getting listings with filters, sorting, and pagination
  */
 export const getListingsSchema = z.object({
@@ -1466,65 +1395,105 @@ export const completeOnboardingSchema = z.object({
           .max(512, "URL too long"),
       }),
     ]),
+  }),
+});
+
+/**
+ * Marketplace Onboarding Complete Schema
+ * PATCH /api/v1/marketplace/onboarding/complete
+ *
+ * Schema for completing Marketplace onboarding atomically (all fields at once)
+ * Used by existing Networks users signing into Marketplace for the first time
+ * or brand new Marketplace users.
+ *
+ * Note: This is separate from Networks onboarding and does NOT include payment.
+ * Payment is handled separately by the dealer upgrade flow (Finix).
+ */
+export const marketplaceOnboardingCompleteSchema = z.object({
+  body: z.object({
+    intent: z.enum(["buyer", "dealer"], {
+      required_error: "intent is required",
+      invalid_type_error: "intent must be either 'buyer' or 'dealer'",
+    }),
+    profile: z.object({
+      first_name: z
+        .string({
+          required_error: "First name is required",
+        })
+        .trim()
+        .min(1, "First name cannot be empty")
+        .max(100, "First name too long"),
+      last_name: z
+        .string({
+          required_error: "Last name is required",
+        })
+        .trim()
+        .min(1, "Last name cannot be empty")
+        .max(100, "Last name too long"),
+    }),
+    location: z.object({
+      country: z.enum(["CA", "US"], {
+        required_error: "Country is required",
+        invalid_type_error: "Country must be 'CA' or 'US'",
+      }),
+      region: z
+        .string({
+          required_error: "Region is required",
+          invalid_type_error: "Region must be a string",
+        })
+        .trim()
+        .min(1, "Region cannot be empty")
+        .max(100, "Region too long"),
+      postal_code: z
+        .string({
+          required_error: "Postal code is required",
+          invalid_type_error: "Postal code must be a string",
+        })
+        .trim()
+        .min(3, "Postal code too short")
+        .max(12, "Postal code too long")
+        .refine(
+          (val) => /^[A-Za-z0-9\s-]+$/.test(val),
+          "Postal code may only contain letters, numbers, spaces, and hyphens",
+        ),
+      city: z
+        .string({
+          required_error: "City is required",
+        })
+        .trim()
+        .min(1, "City cannot be empty")
+        .max(100, "City too long"),
+      line1: z
+        .string({
+          required_error: "Address line 1 is required",
+        })
+        .trim()
+        .min(1, "Address line 1 cannot be empty")
+        .max(255, "Address line 1 too long"),
+      line2: z.string().trim().max(255, "Address line 2 too long").optional(),
+      currency: z
+        .string()
+        .trim()
+        .length(3, "Currency code must be exactly 3 characters")
+        .optional(),
+    }),
+    avatar: z.object({
+      type: z.literal("upload"),
+      url: z
+        .string({
+          required_error: "Avatar URL is required",
+        })
+        .trim()
+        .url("Invalid URL")
+        .max(512, "URL too long"),
+    }),
     acknowledgements: z.object({
-      tos: z.literal(true, {
+      marketplace_tos: z.literal(true, {
         errorMap: () => ({
-          message: "You must accept the terms of service",
-        }),
-      }),
-      privacy: z.literal(true, {
-        errorMap: () => ({
-          message: "You must accept the privacy policy",
-        }),
-      }),
-      rules: z.literal(true, {
-        errorMap: () => ({
-          message: "You must accept the community rules",
+          message: "You must accept the Marketplace terms of service",
         }),
       }),
     }),
-    payment: z
-      .discriminatedUnion("payment_method", [
-        z.object({
-          payment_method: z.literal("card"),
-          card_token: z
-            .string({
-              required_error: "Card token is required",
-            })
-            .trim()
-            .min(1, "Card token cannot be empty")
-            .max(255, "Card token too long"),
-          last_four: z
-            .string({
-              required_error: "Last four digits is required",
-            })
-            .trim()
-            .regex(/^\d{4}$/, "Last four must be exactly 4 digits"),
-        }),
-        z.object({
-          payment_method: z.literal("bank_account"),
-          bank_account_token: z
-            .string({
-              required_error: "Bank account token is required",
-            })
-            .trim()
-            .min(1, "Bank account token cannot be empty")
-            .max(255, "Bank account token too long"),
-          routing_number: z
-            .string({
-              required_error: "Routing number is required",
-            })
-            .trim()
-            .regex(/^\d{9}$/, "Routing number must be exactly 9 digits"),
-          last_four: z
-            .string({
-              required_error: "Last four digits is required",
-            })
-            .trim()
-            .regex(/^\d{4}$/, "Last four must be exactly 4 digits"),
-        }),
-      ])
-      .optional(),
   }),
 });
 
@@ -1533,28 +1502,12 @@ export const completeOnboardingSchema = z.object({
 // ----------------------------------------------------------
 export type { UserClaims, ValidatedUserClaims } from "../types/auth";
 
-// Onboarding Types
-export type PatchAcksStepInput = z.infer<typeof patchAcksStepSchema>;
-export type PatchAvatarStepInput = z.infer<typeof patchAvatarStepSchema>;
-export type PatchDisplayNameStepInput = z.infer<
-  typeof patchDisplayNameStepSchema
->;
-export type PatchLocationStepInput = z.infer<typeof patchLocationStepSchema>;
 export type CompleteOnboardingInput = z.infer<typeof completeOnboardingSchema>;
 
-// Payment Types
-export type PaymentMethod = "card" | "bank_account";
-export type CardPaymentInput = {
-  payment_method: "card";
-  card_token: string;
-  last_four: string;
-};
-export type BankAccountPaymentInput = {
-  payment_method: "bank_account";
-  bank_account_token: string;
-  routing_number: string;
-  last_four: string;
-};
+// Marketplace Types
+export type MarketplaceOnboardingCompleteInput = z.infer<
+  typeof marketplaceOnboardingCompleteSchema
+>;
 
 // Watch types
 export type GetWatchesInput = z.infer<typeof getWatchesSchema>;

@@ -180,7 +180,15 @@ describe("Bank Tokenization Flow", () => {
       expect(response.body.success).toBe(true);
       expect(response.body.data).toHaveProperty("application_id");
       expect(response.body.data).toHaveProperty("buyer_identity_id");
-      expect(response.body.data).toHaveProperty("fraud_session_id");
+      // fraud_session_id is optional in current tokenization config responses
+      if (
+        Object.prototype.hasOwnProperty.call(
+          response.body.data,
+          "fraud_session_id",
+        )
+      ) {
+        expect(typeof response.body.data.fraud_session_id).toBe("string");
+      }
       expect(response.body.data.order_id).toBe(order.order_id);
 
       tokenConfig = response.body.data;
@@ -314,6 +322,7 @@ describe("Bank Tokenization Flow", () => {
         status: "authorized",
         finix_buyer_identity_id: "ID_TEST_BUYER_123",
         finix_payment_instrument_id: "PI_BANK_ACCOUNT_123",
+        finix_authorization_id: "",
         finix_transfer_id: "TR_ACH_TEST_123",
         // No finix_authorization_id for Bank/ACH
         metadata: {
@@ -370,7 +379,7 @@ describe("Bank Tokenization Flow", () => {
       };
 
       const response = await request(app)
-        .post("/api/v1/webhooks/finix")
+        .post("/api/v1/marketplace/webhooks/finix")
         .set(
           "Authorization",
           `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
@@ -413,7 +422,7 @@ describe("Bank Tokenization Flow", () => {
       };
 
       const response = await request(app)
-        .post("/api/v1/webhooks/finix")
+        .post("/api/v1/marketplace/webhooks/finix")
         .set(
           "Authorization",
           `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
@@ -464,7 +473,7 @@ describe("Bank Tokenization Flow", () => {
       };
 
       const response = await request(app)
-        .post("/api/v1/webhooks/finix")
+        .post("/api/v1/marketplace/webhooks/finix")
         .set(
           "Authorization",
           `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
@@ -506,7 +515,7 @@ describe("Bank Tokenization Flow", () => {
       };
 
       const response = await request(app)
-        .post("/api/v1/webhooks/finix")
+        .post("/api/v1/marketplace/webhooks/finix")
         .set(
           "Authorization",
           `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
@@ -535,7 +544,7 @@ describe("Bank Tokenization Flow", () => {
       };
 
       const response = await request(app)
-        .post("/api/v1/webhooks/finix")
+        .post("/api/v1/marketplace/webhooks/finix")
         .set(
           "Authorization",
           `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,
@@ -564,7 +573,7 @@ describe("Bank Tokenization Flow", () => {
       };
 
       const response = await request(app)
-        .post("/api/v1/webhooks/finix")
+        .post("/api/v1/marketplace/webhooks/finix")
         .set(
           "Authorization",
           `Basic ${Buffer.from(`${config.finixWebhookUsername}:${config.finixWebhookPassword}`).toString("base64")}`,

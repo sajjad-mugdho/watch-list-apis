@@ -5172,30 +5172,43 @@ swaggerSpec.paths = {
       },
     },
   },
-  "/api/v1/onboarding/status": {
+  "/api/v1/networks/onboarding/status": {
     get: {
       tags: ["Onboarding"],
-      summary: "Get onboarding status",
+      summary: "Get Networks onboarding status",
       description:
-        "Returns the current onboarding status and progress for the authenticated user",
+        "Returns the current Networks onboarding status and any pre-population hints.",
       security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "Onboarding status retrieved successfully",
+          description: "Networks onboarding status retrieved",
           content: {
             "application/json": {
               schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
+                type: "object",
+                properties: {
+                  data: {
                     type: "object",
                     properties: {
-                      data: {
-                        $ref: "#/components/schemas/OnboardingStatus",
+                      status: {
+                        type: "string",
+                        enum: ["incomplete", "completed"],
+                      },
+                      completed_at: {
+                        type: ["string", "null"],
+                        format: "date-time",
+                      },
+                      requires: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      pre_populated: {
+                        type: ["object", "null"],
                       },
                     },
                   },
-                ],
+                  requestId: { type: "string" },
+                },
               },
             },
           },
@@ -5204,398 +5217,19 @@ swaggerSpec.paths = {
           description: "Unauthorized",
           content: {
             "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
+              schema: { $ref: "#/components/schemas/Error" },
             },
           },
         },
       },
     },
   },
-  "/api/v1/onboarding/steps/location": {
+  "/api/v1/networks/onboarding/complete": {
     patch: {
       tags: ["Onboarding"],
-      summary: "Update location step",
-      description: "Updates the user's location information during onboarding",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["country", "region", "postal_code"],
-              properties: {
-                country: {
-                  type: "string",
-                  enum: ["CA", "US"],
-                },
-                region: {
-                  type: "string",
-                  minLength: 1,
-                  maxLength: 100,
-                },
-                postal_code: {
-                  type: "string",
-                  minLength: 3,
-                  maxLength: 12,
-                  pattern: "^[A-Za-z0-9\\s-]+$",
-                },
-              },
-            },
-            example: {
-              country: "US",
-              region: "California",
-              postal_code: "90210",
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Location updated successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "object",
-                        properties: {
-                          country: { type: "string" },
-                          postal_code: { type: "string" },
-                          region: { type: "string" },
-                          updated_at: { type: "string", format: "date-time" },
-                        },
-                      },
-                      _metadata: {
-                        type: "object",
-                        properties: {
-                          onboarding: {
-                            type: "object",
-                            properties: {
-                              is_finished: { type: "boolean" },
-                              completed_steps: {
-                                type: "array",
-                                items: { type: "string" },
-                              },
-                              next_step: { type: "string" },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        400: {
-          description: "Bad request - validation error",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        409: {
-          description: "Conflict - onboarding already completed",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/onboarding/steps/display_name": {
-    patch: {
-      tags: ["Onboarding"],
-      summary: "Update display name step",
-      description: `Updates the user's display name during onboarding.
-
-**Mode Options:**
-- \`default\` - Backend generates name from user's first/last name (e.g., "John D.")
-- \`custom\` - User provides their own display name (7-60 characters, trimmed)
-
-**Validation:**
-- If \`mode\` is "custom", \`value\` field is required and must be 7-60 characters
-- If \`mode\` is "default", \`value\` field should not be provided`,
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                mode: {
-                  type: "string",
-                  enum: ["default", "custom"],
-                  description: "Whether to use default name or provide custom",
-                },
-                value: {
-                  type: "string",
-                  minLength: 7,
-                  maxLength: 60,
-                  description:
-                    "Custom display name (required only if mode is custom)",
-                },
-              },
-              required: ["mode"],
-            },
-            examples: {
-              default: {
-                summary: "Use default name",
-                value: {
-                  mode: "default",
-                },
-              },
-              custom: {
-                summary: "Use custom name",
-                value: {
-                  mode: "custom",
-                  value: "John's Watch Shop",
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Display name updated successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "object",
-                        properties: {
-                          confirmed: { type: "boolean" },
-                          value: { type: "string" },
-                          user_provided: { type: "boolean" },
-                          updated_at: { type: "string", format: "date-time" },
-                        },
-                      },
-                      _metadata: {
-                        type: "object",
-                        properties: {
-                          onboarding: {
-                            type: "object",
-                            properties: {
-                              is_finished: { type: "boolean" },
-                              completed_steps: {
-                                type: "array",
-                                items: { type: "string" },
-                              },
-                              next_step: { type: "string" },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        400: {
-          description: "Bad request - validation error",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        409: {
-          description: "Conflict - onboarding already completed",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/onboarding/steps/avatar": {
-    patch: {
-      tags: ["Onboarding"],
-      summary: "Update avatar step",
-      description: `Updates the user's avatar during onboarding.
-
-**Mode Options:**
-- \`default\` - Backend assigns a default avatar
-- \`custom\` - User provides their own avatar URL
-
-**Validation:**
-- If \`mode\` is "custom", \`url\` field is required, must be a valid URL, max 512 characters
-- If \`mode\` is "default", \`url\` field should not be provided
-- Custom URLs should be publicly accessible and from a trusted image hosting service`,
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                mode: {
-                  type: "string",
-                  enum: ["default", "custom"],
-                  description:
-                    "Whether to use default avatar or provide custom URL",
-                },
-                url: {
-                  type: "string",
-                  format: "uri",
-                  maxLength: 512,
-                  description:
-                    "Custom avatar URL (required only if mode is custom)",
-                },
-              },
-              required: ["mode"],
-            },
-            examples: {
-              default: {
-                summary: "Use default avatar",
-                value: {
-                  mode: "default",
-                },
-              },
-              custom: {
-                summary: "Use custom avatar",
-                value: {
-                  mode: "custom",
-                  url: "https://cdn.example.com/users/avatar_abc123.jpg",
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Avatar updated successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "object",
-                        properties: {
-                          confirmed: { type: "boolean" },
-                          url: { type: "string" },
-                          user_provided: { type: "boolean" },
-                          updated_at: { type: "string", format: "date-time" },
-                        },
-                      },
-                      _metadata: {
-                        type: "object",
-                        properties: {
-                          onboarding: {
-                            type: "object",
-                            properties: {
-                              is_finished: { type: "boolean" },
-                              completed_steps: {
-                                type: "array",
-                                items: { type: "string" },
-                              },
-                              next_step: { type: "string" },
-                            },
-                          },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        400: {
-          description: "Bad request - validation error",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        409: {
-          description: "Conflict - onboarding already completed",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/onboarding/steps/acknowledgements": {
-    patch: {
-      tags: ["Onboarding"],
-      summary: "Update acknowledgements step",
+      summary: "Complete Networks onboarding",
       description:
-        "Updates the user's acknowledgements (terms of service, privacy policy, rules) during onboarding",
+        "Atomically completes Networks onboarding with profile, location, and avatar.",
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -5603,100 +5237,275 @@ swaggerSpec.paths = {
           "application/json": {
             schema: {
               type: "object",
-              required: ["tos", "privacy", "rules"],
+              required: ["profile", "location", "avatar"],
               properties: {
-                tos: {
-                  type: "boolean",
-                  description: "Accept terms of service",
+                profile: {
+                  type: "object",
+                  required: ["first_name", "last_name"],
+                  properties: {
+                    first_name: { type: "string" },
+                    last_name: { type: "string" },
+                  },
                 },
-                privacy: {
-                  type: "boolean",
-                  description: "Accept privacy policy",
+                location: {
+                  type: "object",
+                  required: [
+                    "country",
+                    "region",
+                    "postal_code",
+                    "city",
+                    "line1",
+                  ],
+                  properties: {
+                    country: { type: "string", enum: ["CA", "US"] },
+                    region: { type: "string" },
+                    postal_code: { type: "string" },
+                    city: { type: "string" },
+                    line1: { type: "string" },
+                    line2: { type: "string" },
+                    currency: { type: "string" },
+                  },
                 },
-                rules: {
-                  type: "boolean",
-                  description: "Accept platform rules",
+                avatar: {
+                  type: "object",
+                  oneOf: [
+                    {
+                      type: "object",
+                      required: [
+                        "type",
+                        "monogram_initials",
+                        "monogram_color",
+                        "monogram_style",
+                      ],
+                      properties: {
+                        type: { type: "string", enum: ["monogram"] },
+                        monogram_initials: { type: "string" },
+                        monogram_color: { type: "string" },
+                        monogram_style: { type: "string" },
+                      },
+                    },
+                    {
+                      type: "object",
+                      required: ["type", "url"],
+                      properties: {
+                        type: { type: "string", enum: ["upload"] },
+                        url: { type: "string", format: "uri" },
+                      },
+                    },
+                  ],
                 },
               },
-            },
-            example: {
-              tos: true,
-              privacy: true,
-              rules: true,
             },
           },
         },
       },
       responses: {
         200: {
-          description: "Acknowledgements updated successfully",
+          description: "Networks onboarding completed",
           content: {
             "application/json": {
               schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
+                type: "object",
+                properties: {
+                  data: {
                     type: "object",
                     properties: {
-                      data: {
+                      onboarding: {
                         type: "object",
                         properties: {
-                          tos: { type: "boolean" },
-                          privacy: { type: "boolean" },
-                          rules: { type: "boolean" },
-                          updated_at: { type: "string", format: "date-time" },
-                        },
-                      },
-                      _metadata: {
-                        type: "object",
-                        properties: {
-                          onboarding: {
-                            type: "object",
-                            properties: {
-                              is_finished: { type: "boolean" },
-                              completed_steps: {
-                                type: "array",
-                                items: { type: "string" },
-                              },
-                              next_step: { type: "string" },
-                            },
+                          status: { type: "string", enum: ["completed"] },
+                          completed_at: {
+                            type: "string",
+                            format: "date-time",
                           },
                         },
                       },
                     },
                   },
-                ],
+                },
               },
             },
           },
         },
         400: {
-          description: "Bad request - must accept all terms",
+          description: "Validation error",
           content: {
             "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
+              schema: { $ref: "#/components/schemas/Error" },
             },
           },
         },
         409: {
-          description: "Conflict - onboarding already completed",
+          description: "Already completed",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Error" },
+            },
+          },
+        },
+      },
+    },
+  },
+  "/api/v1/marketplace/onboarding/status": {
+    get: {
+      tags: ["Onboarding"],
+      summary: "Get Marketplace onboarding status",
+      description:
+        "Returns current Marketplace onboarding status, requirements, and optional pre-population from Networks.",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Marketplace onboarding status retrieved",
           content: {
             "application/json": {
               schema: {
-                $ref: "#/components/schemas/Error",
+                type: "object",
+                properties: {
+                  data: {
+                    type: "object",
+                    properties: {
+                      status: {
+                        type: "string",
+                        enum: ["incomplete", "completed"],
+                      },
+                      requires: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      pre_populated: {
+                        type: ["object", "null"],
+                      },
+                      user_type: {
+                        type: "string",
+                        enum: ["buyer", "dealer"],
+                      },
+                    },
+                  },
+                },
               },
+            },
+          },
+        },
+      },
+    },
+  },
+  "/api/v1/marketplace/onboarding/complete": {
+    patch: {
+      tags: ["Onboarding"],
+      summary: "Complete Marketplace onboarding",
+      description:
+        "Atomically completes Marketplace onboarding. Dealer intent can auto-start merchant onboarding session creation.",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: [
+                "intent",
+                "profile",
+                "location",
+                "avatar",
+                "acknowledgements",
+              ],
+              properties: {
+                intent: { type: "string", enum: ["buyer", "dealer"] },
+                profile: {
+                  type: "object",
+                  required: ["first_name", "last_name"],
+                  properties: {
+                    first_name: { type: "string" },
+                    last_name: { type: "string" },
+                  },
+                },
+                location: {
+                  type: "object",
+                  required: [
+                    "country",
+                    "region",
+                    "postal_code",
+                    "city",
+                    "line1",
+                  ],
+                  properties: {
+                    country: { type: "string", enum: ["CA", "US"] },
+                    region: { type: "string" },
+                    postal_code: { type: "string" },
+                    city: { type: "string" },
+                    line1: { type: "string" },
+                    line2: { type: "string" },
+                    currency: { type: "string" },
+                  },
+                },
+                avatar: {
+                  type: "object",
+                  required: ["type", "url"],
+                  properties: {
+                    type: { type: "string", enum: ["upload"] },
+                    url: { type: "string", format: "uri" },
+                  },
+                },
+                acknowledgements: {
+                  type: "object",
+                  required: ["marketplace_tos"],
+                  properties: {
+                    marketplace_tos: { type: "boolean", enum: [true] },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Marketplace onboarding completed",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    type: "object",
+                    properties: {
+                      marketplace_onboarding: {
+                        type: "object",
+                        properties: {
+                          status: { type: "string", enum: ["completed"] },
+                          intent: {
+                            type: "string",
+                            enum: ["buyer", "dealer"],
+                          },
+                          user_type: {
+                            type: "string",
+                            enum: ["buyer", "dealer"],
+                          },
+                        },
+                      },
+                      merchant_onboarding: {
+                        type: ["object", "null"],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Validation error",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Error" },
+            },
+          },
+        },
+        409: {
+          description: "Already completed",
+          content: {
+            "application/json": {
+              schema: { $ref: "#/components/schemas/Error" },
             },
           },
         },

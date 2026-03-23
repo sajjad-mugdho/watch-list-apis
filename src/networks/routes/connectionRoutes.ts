@@ -2,10 +2,7 @@
 import { Router } from "express";
 import * as handlers from "../handlers/NetworksConnectionHandlers";
 import { validateRequest } from "../../middleware/validation";
-import {
-  connectionRequestSchema,
-  respondConnectionRequestSchema,
-} from "../../validation/schemas";
+import { connectionRequestSchema } from "../../validation/schemas";
 
 const router = Router();
 
