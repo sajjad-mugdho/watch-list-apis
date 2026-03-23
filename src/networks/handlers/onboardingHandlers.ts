@@ -63,9 +63,7 @@ export const networks_onboarding_status_get = async (
       marketplaceComplete &&
       !!marketplaceLocation?.country &&
       !!marketplaceLocation?.region?.trim() &&
-      !!marketplaceLocation?.postal_code?.trim() &&
-      !!marketplaceLocation?.city?.trim() &&
-      !!marketplaceLocation?.line1?.trim();
+      !!marketplaceLocation?.currency?.trim();
 
     const pre_populated =
       user.onboarding.status !== "completed" &&
@@ -229,11 +227,11 @@ export const networks_onboarding_complete_patch = async (
     user.onboarding.steps.location = {
       country: location.country,
       region: location.region,
-      postal_code: location.postal_code,
-      city: location.city,
-      line1: location.line1,
+      postal_code: location.postal_code ?? null,
+      city: location.city ?? null,
+      line1: location.line1 ?? null,
       line2: location.line2 || null,
-      currency: location.currency || null,
+      currency: location.currency,
       updated_at: new Date(),
     };
 
@@ -241,11 +239,11 @@ export const networks_onboarding_complete_patch = async (
     user.location = {
       country: location.country,
       region: location.region,
-      postal_code: location.postal_code,
-      city: location.city,
-      line1: location.line1,
+      postal_code: location.postal_code ?? null,
+      city: location.city ?? null,
+      line1: location.line1 ?? null,
       line2: location.line2 || null,
-      currency: location.currency || null,
+      currency: location.currency,
     };
 
     // Update avatar

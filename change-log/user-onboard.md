@@ -88,10 +88,15 @@ Required body fields:
 - profile.last_name
 - location.country (CA or US)
 - location.region
+- location.currency (USD or CAD)
+- avatar
+
+Optional location fields:
+
 - location.postal_code
 - location.city
 - location.line1
-- avatar
+- location.line2
 
 Avatar rules:
 
@@ -112,12 +117,17 @@ Required body fields:
 - profile.last_name
 - location.country (CA or US)
 - location.region
-- location.postal_code
-- location.city
-- location.line1
+- location.currency (USD or CAD)
 - avatar.type must be upload
 - avatar.url
 - acknowledgements.marketplace_tos must be true
+
+Optional location fields:
+
+- location.postal_code
+- location.city
+- location.line1
+- location.line2
 
 Notes:
 
@@ -146,6 +156,181 @@ Precondition:
 Required body fields:
 
 - idempotency_id
+
+## Body Payload Examples (Copy/Paste)
+
+### 1) Networks user onboarding body
+
+Endpoint:
+
+- PATCH /api/v1/networks/onboarding/complete
+
+Example body (upload avatar):
+
+```json
+{
+  "profile": {
+    "first_name": "John",
+    "last_name": "Network"
+  },
+  "location": {
+    "country": "US",
+    "region": "California",
+    "postal_code": "94102",
+    "city": "San Francisco",
+    "line1": "123 Market Street",
+    "line2": "Suite 100",
+    "currency": "USD"
+  },
+  "avatar": {
+    "type": "upload",
+    "url": "https://images.example.com/avatar-network.jpg"
+  }
+}
+```
+
+Example body (monogram avatar):
+
+```json
+{
+  "profile": {
+    "first_name": "John",
+    "last_name": "Network"
+  },
+  "location": {
+    "country": "US",
+    "region": "California",
+    "postal_code": "94102",
+    "city": "San Francisco",
+    "line1": "123 Market Street",
+    "currency": "USD"
+  },
+  "avatar": {
+    "type": "monogram",
+    "monogram_initials": "JN",
+    "monogram_color": "#2563EB",
+    "monogram_style": "circle"
+  }
+}
+```
+
+Notes:
+
+- No payment fields in Networks onboarding
+- No acknowledgements field in Networks onboarding
+- currency is required and must be USD or CAD
+
+### 2) Marketplace user onboarding body (buyer)
+
+Endpoint:
+
+- PATCH /api/v1/marketplace/onboarding/complete
+
+Example body:
+
+```json
+{
+  "intent": "buyer",
+  "profile": {
+    "first_name": "John",
+    "last_name": "Buyer"
+  },
+  "location": {
+    "country": "US",
+    "region": "California",
+    "postal_code": "94102",
+    "city": "San Francisco",
+    "line1": "123 Market Street",
+    "line2": "Suite 100",
+    "currency": "USD"
+  },
+  "avatar": {
+    "type": "upload",
+    "url": "https://images.example.com/avatar-buyer.jpg"
+  },
+  "acknowledgements": {
+    "marketplace_tos": true
+  }
+}
+```
+
+### 3) Marketplace user onboarding body (dealer)
+
+Endpoint:
+
+- PATCH /api/v1/marketplace/onboarding/complete
+
+Example body:
+
+```json
+{
+  "intent": "dealer",
+  "profile": {
+    "first_name": "Jane",
+    "last_name": "Dealer"
+  },
+  "location": {
+    "country": "US",
+    "region": "New York",
+    "postal_code": "10001",
+    "city": "New York",
+    "line1": "456 Broadway",
+    "line2": "Suite 20",
+    "currency": "USD"
+  },
+  "avatar": {
+    "type": "upload",
+    "url": "https://images.example.com/avatar-dealer.jpg"
+  },
+  "acknowledgements": {
+    "marketplace_tos": true
+  }
+}
+```
+
+Notes:
+
+- Dealer intent can auto-start merchant onboarding session (best effort)
+- currency is required and must be USD or CAD
+
+### 4) Dealer merchant onboard body (Finix session)
+
+Endpoint:
+
+- POST /api/v1/marketplace/merchant/onboard
+
+Minimal body:
+
+```json
+{
+  "idempotency_id": "dealer-onboard-001"
+}
+```
+
+Full body example:
+
+```json
+{
+  "idempotency_id": "dealer-onboard-001",
+  "business_name": "Dialist Dealer LLC",
+  "max_transaction_amount": 100000,
+  "return_url": "https://app.example.com/merchant/onboarding-complete"
+}
+```
+
+### 5) Dealer merchant refresh-link body
+
+Endpoint:
+
+- POST /api/v1/marketplace/merchant/onboard/refresh-link
+
+Example body:
+
+```json
+{
+  "idempotency_id": "dealer-refresh-001"
+}
+```
 
 ## Response Contracts
 

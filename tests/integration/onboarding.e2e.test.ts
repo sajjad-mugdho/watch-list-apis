@@ -40,9 +40,7 @@ describe("Platform onboarding integration", () => {
         location: {
           country: "US",
           region: "California",
-          postal_code: "94102",
-          city: "San Francisco",
-          line1: "1 Market St",
+          currency: "USD",
         },
         avatar: {
           type: "upload",
@@ -105,9 +103,7 @@ describe("Platform onboarding integration", () => {
         location: {
           country: "CA",
           region: "Ontario",
-          postal_code: "M5H2N2",
-          city: "Toronto",
-          line1: "100 King St W",
+          currency: "CAD",
         },
         avatar: {
           type: "upload",

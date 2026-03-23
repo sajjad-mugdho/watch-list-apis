@@ -284,9 +284,7 @@ export const marketplace_onboarding_status_get = async (
       networksComplete &&
       !!networksLocation?.country &&
       !!networksLocation?.region?.trim() &&
-      !!networksLocation?.postal_code?.trim() &&
-      !!networksLocation?.city?.trim() &&
-      !!networksLocation?.line1?.trim();
+      !!networksLocation?.currency?.trim();
 
     const intent = user.marketplace_onboarding?.intent ?? "buyer";
 
@@ -426,11 +424,11 @@ export const marketplace_onboarding_complete_patch = async (
     user.location = {
       country: location.country,
       region: location.region,
-      postal_code: location.postal_code,
-      city: location.city,
-      line1: location.line1,
+      postal_code: location.postal_code ?? null,
+      city: location.city ?? null,
+      line1: location.line1 ?? null,
       line2: location.line2 || null,
-      currency: location.currency || null,
+      currency: location.currency,
     };
 
     // Update marketplace avatar (separate from networks_avatar)
@@ -454,11 +452,11 @@ export const marketplace_onboarding_complete_patch = async (
         location: {
           country: location.country,
           region: location.region,
-          postal_code: location.postal_code,
-          city: location.city,
-          line1: location.line1,
+          postal_code: location.postal_code ?? null,
+          city: location.city ?? null,
+          line1: location.line1 ?? null,
           line2: location.line2 || null,
-          currency: location.currency || null,
+          currency: location.currency,
           confirmed: true,
           updated_at: new Date(),
         },

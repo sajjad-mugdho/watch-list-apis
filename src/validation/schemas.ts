@@ -1326,7 +1326,6 @@ export const completeOnboardingSchema = z.object({
         .max(100, "Region too long"),
       postal_code: z
         .string({
-          required_error: "Postal code is required",
           invalid_type_error: "Postal code must be a string",
         })
         .trim()
@@ -1335,27 +1334,25 @@ export const completeOnboardingSchema = z.object({
         .refine(
           (val) => /^[A-Za-z0-9\s-]+$/.test(val),
           "Postal code may only contain letters, numbers, spaces, and hyphens",
-        ),
+        )
+        .optional(),
       city: z
-        .string({
-          required_error: "City is required",
-        })
-        .trim()
-        .min(1, "City cannot be empty")
-        .max(100, "City too long"),
-      line1: z
-        .string({
-          required_error: "Address line 1 is required",
-        })
-        .trim()
-        .min(1, "Address line 1 cannot be empty")
-        .max(255, "Address line 1 too long"),
-      line2: z.string().trim().max(255, "Address line 2 too long").optional(),
-      currency: z
         .string()
         .trim()
-        .length(3, "Currency code must be exactly 3 characters")
+        .min(1, "City cannot be empty")
+        .max(100, "City too long")
         .optional(),
+      line1: z
+        .string()
+        .trim()
+        .min(1, "Address line 1 cannot be empty")
+        .max(255, "Address line 1 too long")
+        .optional(),
+      line2: z.string().trim().max(255, "Address line 2 too long").optional(),
+      currency: z.enum(["USD", "CAD"], {
+        required_error: "Currency is required",
+        invalid_type_error: "Currency must be either 'USD' or 'CAD'",
+      }),
     }),
     profile: z.object({
       first_name: z
@@ -1446,7 +1443,6 @@ export const marketplaceOnboardingCompleteSchema = z.object({
         .max(100, "Region too long"),
       postal_code: z
         .string({
-          required_error: "Postal code is required",
           invalid_type_error: "Postal code must be a string",
         })
         .trim()
@@ -1455,27 +1451,25 @@ export const marketplaceOnboardingCompleteSchema = z.object({
         .refine(
           (val) => /^[A-Za-z0-9\s-]+$/.test(val),
           "Postal code may only contain letters, numbers, spaces, and hyphens",
-        ),
+        )
+        .optional(),
       city: z
-        .string({
-          required_error: "City is required",
-        })
-        .trim()
-        .min(1, "City cannot be empty")
-        .max(100, "City too long"),
-      line1: z
-        .string({
-          required_error: "Address line 1 is required",
-        })
-        .trim()
-        .min(1, "Address line 1 cannot be empty")
-        .max(255, "Address line 1 too long"),
-      line2: z.string().trim().max(255, "Address line 2 too long").optional(),
-      currency: z
         .string()
         .trim()
-        .length(3, "Currency code must be exactly 3 characters")
+        .min(1, "City cannot be empty")
+        .max(100, "City too long")
         .optional(),
+      line1: z
+        .string()
+        .trim()
+        .min(1, "Address line 1 cannot be empty")
+        .max(255, "Address line 1 too long")
+        .optional(),
+      line2: z.string().trim().max(255, "Address line 2 too long").optional(),
+      currency: z.enum(["USD", "CAD"], {
+        required_error: "Currency is required",
+        invalid_type_error: "Currency must be either 'USD' or 'CAD'",
+      }),
     }),
     avatar: z.object({
       type: z.literal("upload"),

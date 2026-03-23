@@ -5249,13 +5249,7 @@ swaggerSpec.paths = {
                 },
                 location: {
                   type: "object",
-                  required: [
-                    "country",
-                    "region",
-                    "postal_code",
-                    "city",
-                    "line1",
-                  ],
+                  required: ["country", "region", "currency"],
                   properties: {
                     country: { type: "string", enum: ["CA", "US"] },
                     region: { type: "string" },
@@ -5263,7 +5257,7 @@ swaggerSpec.paths = {
                     city: { type: "string" },
                     line1: { type: "string" },
                     line2: { type: "string" },
-                    currency: { type: "string" },
+                    currency: { type: "string", enum: ["USD", "CAD"] },
                   },
                 },
                 avatar: {
@@ -5421,13 +5415,7 @@ swaggerSpec.paths = {
                 },
                 location: {
                   type: "object",
-                  required: [
-                    "country",
-                    "region",
-                    "postal_code",
-                    "city",
-                    "line1",
-                  ],
+                  required: ["country", "region", "currency"],
                   properties: {
                     country: { type: "string", enum: ["CA", "US"] },
                     region: { type: "string" },
@@ -5435,7 +5423,7 @@ swaggerSpec.paths = {
                     city: { type: "string" },
                     line1: { type: "string" },
                     line2: { type: "string" },
-                    currency: { type: "string" },
+                    currency: { type: "string", enum: ["USD", "CAD"] },
                   },
                 },
                 avatar: {
