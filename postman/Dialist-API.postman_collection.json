@@ -864,6 +864,173 @@
       ]
     },
     {
+      "name": "🛍️ Marketplace — User Onboarding",
+      "description": "Marketplace onboarding flow: buyer/dealer intent selection with Finix auto-start for dealers",
+      "item": [
+        {
+          "name": "1. GET Status (Pre-Marketplace)",
+          "description": "Check marketplace onboarding status. Shows pre-populated data from Networks if completed.\n\nUse mock user: buyer_us_complete (has Networks done)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/onboarding/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "onboarding", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('GET status - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test('Response has status field', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.status).to.be.oneOf(['incomplete', 'completed']);",
+                  "});",
+                  "pm.test('If incomplete, shows required steps', () => {",
+                  "    const data = pm.response.json();",
+                  "    if (data.data.status === 'incomplete') {",
+                  "        pm.expect(data.data.requires).to.be.an('array');",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. PATCH Complete (Buyer Intent)",
+          "description": "Complete marketplace onboarding as BUYER. No merchant onboarding auto-start.",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profile\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Buyer\"\n  },\n  \"location\": {\n    \"country\": \"US\",\n    \"region\": \"California\",\n    \"postal_code\": \"94102\",\n    \"city\": \"San Francisco\",\n    \"line1\": \"123 Market St\",\n    \"currency\": \"USD\"\n  },\n  \"avatar\": {\n    \"type\": \"upload\",\n    \"url\": \"https://images.dialist.com/mock-avatar-buyer.jpg\"\n  },\n  \"acknowledgements\": {\n    \"marketplace_tos\": true\n  },\n  \"intent\": \"buyer\"\n}\n"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/onboarding/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "onboarding", "complete"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Buyer onboarding - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test('Marketplace status is completed', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.marketplace_onboarding.status).to.equal('completed');",
+                  "});",
+                  "pm.test('Buyer intent persisted', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.marketplace_onboarding.intent).to.equal('buyer');",
+                  "});",
+                  "pm.test('No merchant onboarding started for buyer', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.merchant_onboarding).to.be.undefined;",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "3. PATCH Complete (Dealer Intent + Finix Auto-Start)",
+          "description": "Complete marketplace onboarding as DEALER. Auto-starts Finix merchant onboarding and returns form link.\n\nUse mock user: buyer_us_complete",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"profile\": {\n    \"first_name\": \"Jane\",\n    \"last_name\": \"Dealer\"\n  },\n  \"location\": {\n    \"country\": \"US\",\n    \"region\": \"New York\",\n    \"postal_code\": \"10001\",\n    \"city\": \"New York\",\n    \"line1\": \"456 Broadway\",\n    \"currency\": \"USD\"\n  },\n  \"avatar\": {\n    \"type\": \"upload\",\n    \"url\": \"https://images.dialist.com/mock-avatar-dealer.jpg\"\n  },\n  \"acknowledgements\": {\n    \"marketplace_tos\": true\n  },\n  \"intent\": \"dealer\"\n}\n"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/onboarding/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "onboarding", "complete"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Dealer onboarding - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test('Dealer intent persisted', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.marketplace_onboarding.intent).to.equal('dealer');",
+                  "});",
+                  "pm.test('Finix merchant form link auto-generated', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.merchant_onboarding).to.exist;",
+                  "    pm.expect(data.data.merchant_onboarding.onboarding_url).to.exist;",
+                  "    pm.expect(data.data.merchant_onboarding.form_id).to.exist;",
+                  "    pm.expect(data.data.merchant_onboarding.expires_at).to.exist;",
+                  "    pm.environment.set('finixFormLink', data.data.merchant_onboarding.onboarding_url);",
+                  "    pm.environment.set('finixFormId', data.data.merchant_onboarding.form_id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "4. GET Status (After Completion)",
+          "description": "Verify marketplace onboarding is now completed. Should show completed status and user_type.",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/onboarding/status",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "onboarding", "status"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test('Status now completed', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.status).to.equal('completed');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "🏷️ Networks — Listings",
       "description": "Create, update, publish, and manage Networks listings.\nIMPORTANT: Use `merchant_approved` as mockUser when creating listings.",
       "item": [
@@ -2229,7 +2396,7 @@
         },
         {
           "name": "Get Network Onboarding Status",
-          "description": "Check the current onboarding status for the authenticated user.\n\nUseful for:\n- App startup to decide whether to show onboarding flow or home screen\n- Progressive onboarding — show progress percentage as user completes steps\n- Rehydrating app state after refresh\n\nResponse includes:\n- status: 'incomplete' | 'completed'\n- completed_at: ISO timestamp if completed\n- steps: which sections have been filled\n- progress: percentage completion (0-100)\n- user: user profile data (name, display_name, etc)",
+          "description": "Check current Networks onboarding status for the authenticated user.",
           "request": {
             "method": "GET",
             "header": [],
@@ -2258,23 +2425,14 @@
                   "    const responseData = pm.response.json();",
                   "    pm.expect(responseData.data.progress).to.exist;",
                   "    pm.expect(responseData.data.progress.percentage).to.be.a('number');",
-                  "    pm.expect(responseData.data.progress.is_finished).to.be.a('boolean');",
                   "});",
                   "",
-                  "pm.test('Response contains steps confirmation', () => {",
+                  "pm.test('Response contains current onboarding step confirmations', () => {",
                   "    const responseData = pm.response.json();",
                   "    pm.expect(responseData.data.steps).to.exist;",
                   "    pm.expect(responseData.data.steps.location).to.exist;",
+                  "    pm.expect(responseData.data.steps.display_name).to.exist;",
                   "    pm.expect(responseData.data.steps.avatar).to.exist;",
-                  "    pm.expect(responseData.data.steps.acknowledgements).to.exist;",
-                  "    pm.expect(responseData.data.steps.payment).to.exist;",
-                  "});",
-                  "",
-                  "pm.test('Response contains user data', () => {",
-                  "    const responseData = pm.response.json();",
-                  "    pm.expect(responseData.data.user).to.exist;",
-                  "    pm.expect(responseData.data.user.dialist_id).to.exist;",
-                  "    pm.expect(responseData.data.user.display_name).to.be.a('string');",
                   "});"
                 ]
               }
@@ -2283,7 +2441,7 @@
         },
         {
           "name": "Complete Network Onboarding (Atomic)",
-          "description": "Complete network onboarding atomically with all fields (location, profile, avatar, payment, acknowledgements) in a single request.\n\nFrontend prepares:\n- Location: country, region, postal_code, city, line1, line2 (optional), currency\n- Profile: first_name, last_name\n- Avatar: type (monogram|upload) + conditional fields\n- Payment: payment_method (card|bank_account) + type-specific fields\n- Acknowledgements: tos, privacy, rules (all true)\n\nBackend:\n- Validates all fields (all-or-nothing atomic transaction)\n- Updates user atomically\n- Uses payment token to set up payment method (does not persist card_token/bank_account_token; only stores last_four and payment status)\n- Sets onboarding.status = 'completed'\n- Returns updated user profile with all onboarding steps",
+          "description": "Complete Networks onboarding atomically with profile, location, and avatar (no payment payload).",
           "request": {
             "method": "PATCH",
             "header": [
@@ -2294,7 +2452,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"location\": {\n    \"country\": \"US\",\n    \"region\": \"California\",\n    \"postal_code\": \"94102\",\n    \"city\": \"San Francisco\",\n    \"line1\": \"123 Market Street\",\n    \"line2\": \"Suite 100\",\n    \"currency\": \"USD\"\n  },\n  \"profile\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\"\n  },\n  \"avatar\": {\n    \"type\": \"monogram\",\n    \"monogram_initials\": \"JD\",\n    \"monogram_color\": \"#FF5733\",\n    \"monogram_style\": \"circle\"\n  },\n  \"payment\": {\n    \"payment_method\": \"card\",\n    \"card_token\": \"tok_visa_4242_4242_4242_4242\",\n    \"last_four\": \"4242\"\n  },\n  \"acknowledgements\": {\n    \"tos\": true,\n    \"privacy\": true,\n    \"rules\": true\n  }\n}"
+              "raw": "{\n  \"location\": {\n    \"country\": \"US\",\n    \"region\": \"California\",\n    \"postal_code\": \"94102\",\n    \"city\": \"San Francisco\",\n    \"line1\": \"123 Market Street\",\n    \"line2\": \"Suite 100\",\n    \"currency\": \"USD\"\n  },\n  \"profile\": {\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\"\n  },\n  \"avatar\": {\n    \"type\": \"monogram\",\n    \"monogram_initials\": \"JD\",\n    \"monogram_color\": \"#FF5733\",\n    \"monogram_style\": \"circle\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/onboarding/complete",
@@ -2317,20 +2475,9 @@
                   "    pm.expect(responseData.data.onboarding.status).to.equal('completed');",
                   "});",
                   "",
-                  "pm.test('Display name generated correctly', () => {",
-                  "    const responseData = pm.response.json();",
-                  "    pm.expect(responseData.data.user.display_name).to.equal('John Doe');",
-                  "});",
-                  "",
                   "pm.test('Completion timestamp present', () => {",
                   "    const responseData = pm.response.json();",
                   "    pm.expect(responseData.data.onboarding.completed_at).to.exist;",
-                  "});",
-                  "",
-                  "pm.test('Payment information persisted', () => {",
-                  "    const responseData = pm.response.json();",
-                  "    pm.expect(responseData.data.onboarding.steps.payment).to.exist;",
-                  "    pm.expect(responseData.data.onboarding.steps.payment.last_four).to.equal('4242');",
                   "});"
                 ]
               }
@@ -2339,7 +2486,7 @@
         },
         {
           "name": "Complete Network Onboarding (Upload Avatar)",
-          "description": "Alternative: Complete onboarding with uploaded avatar URL instead of monogram.\n\nAlso demonstrates bank account payment method as alternative to card.\n\nUse this when:\n- avatar_type = 'upload' to provide a URL-based avatar\n- payment_method = 'bank_account' for direct bank transfer\n\nBoth variants get saved atomically with all onboarding steps.",
+          "description": "Complete Networks onboarding with uploaded avatar URL (no payment payload).",
           "request": {
             "method": "PATCH",
             "header": [
@@ -2350,7 +2497,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"location\": {\n    \"country\": \"CA\",\n    \"region\": \"Ontario\",\n    \"postal_code\": \"M5V 3A8\",\n    \"city\": \"Toronto\",\n    \"line1\": \"456 King Street West\",\n    \"line2\": \"Suite 200\",\n    \"currency\": \"CAD\"\n  },\n  \"profile\": {\n    \"first_name\": \"Jane\",\n    \"last_name\": \"Smith\"\n  },\n  \"avatar\": {\n    \"type\": \"upload\",\n    \"url\": \"https://images.dialist.com/avatars/jane-smith-avatar.jpg\"\n  },\n  \"payment\": {\n    \"payment_method\": \"bank_account\",\n    \"bank_account_token\": \"ba_1234567890abcdef\",\n    \"routing_number\": \"110000000\",\n    \"last_four\": \"1234\"\n  },\n  \"acknowledgements\": {\n    \"tos\": true,\n    \"privacy\": true,\n    \"rules\": true\n  }\n}"
+              "raw": "{\n  \"location\": {\n    \"country\": \"CA\",\n    \"region\": \"Ontario\",\n    \"postal_code\": \"M5V 3A8\",\n    \"city\": \"Toronto\",\n    \"line1\": \"456 King Street West\",\n    \"line2\": \"Suite 200\",\n    \"currency\": \"CAD\"\n  },\n  \"profile\": {\n    \"first_name\": \"Jane\",\n    \"last_name\": \"Smith\"\n  },\n  \"avatar\": {\n    \"type\": \"upload\",\n    \"url\": \"https://images.dialist.com/avatars/jane-smith-avatar.jpg\"\n  }\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/onboarding/complete",
@@ -2373,21 +2520,9 @@
                   "    pm.expect(responseData.data.onboarding.status).to.equal('completed');",
                   "});",
                   "",
-                  "pm.test('Display name generated correctly', () => {",
-                  "    const responseData = pm.response.json();",
-                  "    pm.expect(responseData.data.user.display_name).to.equal('Jane Smith');",
-                  "});",
-                  "",
-                  "pm.test('Avatar URL persisted', () => {",
+                  "pm.test('Avatar upload persisted', () => {",
                   "    const responseData = pm.response.json();",
                   "    pm.expect(responseData.data.onboarding.steps.avatar.type).to.equal('upload');",
-                  "    pm.expect(responseData.data.onboarding.steps.avatar.url).to.contain('dialist.com');",
-                  "});",
-                  "",
-                  "pm.test('Bank account payment persisted', () => {",
-                  "    const responseData = pm.response.json();",
-                  "    pm.expect(responseData.data.onboarding.steps.payment.payment_method).to.equal('bank_account');",
-                  "    pm.expect(responseData.data.onboarding.steps.payment.last_four).to.equal('1234');",
                   "});"
                 ]
               }
@@ -2850,19 +2985,91 @@
       "description": "Finix merchant onboarding flow.\nUse mockUser = `new_user_us` or `merchant_pending`.",
       "item": [
         {
-          "name": "Get Merchant Profile",
+          "name": "1. POST Onboard (Create/Reuse Finix Form)",
+          "description": "Start or continue merchant onboarding with Finix.\n- First call: creates new form, returns link\n- Subsequent calls: reuses existing form (status 200), or creates new link if expired\n\nPrereq: Marketplace onboarding completed as dealer\nMock users: buyer_us_complete (new form) / merchant_pending (reuse)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"business_name\": \"Optional: Override display name for merchant form\"\n}\n"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/v1/marketplace/merchant/onboard",
+              "host": ["{{baseUrl}}"],
+              "path": ["v1", "marketplace", "merchant", "onboard"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Merchant onboard - 200/201 OK', () => {",
+                  "    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+                  "});",
+                  "pm.test('Response has Finix form link', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.onboarding_url).to.exist;",
+                  "    pm.expect(data.data.form_id).to.exist;",
+                  "    pm.expect(data.data.expires_at).to.exist;",
+                  "    pm.environment.set('merchantFormId', data.data.form_id);",
+                  "});",
+                  "pm.test('First call returns 201, reuse returns 200', () => {",
+                  "    pm.environment.set('merchantOnboardCode', pm.response.code);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "2. GET Status (Merchant Verification State)",
+          "description": "Check merchant verification status and state.\n- onboarding_state: PENDING | PROVISIONING | APPROVED | REJECTED | UPDATE_REQUESTED\n- is_merchant: true only when APPROVED\n- user_type: reflects merchant status\n\nTry with: merchant_pending, merchant_approved, merchant_rejected",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/marketplace/merchant",
+              "raw": "{{baseUrl}}/v1/marketplace/merchant/status",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "merchant"]
+              "path": ["v1", "marketplace", "merchant", "status"]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Merchant status - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test('Response has onboarding_state', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.onboarding_state).to.be.oneOf(['PENDING', 'PROVISIONING', 'APPROVED', 'REJECTED', 'UPDATE_REQUESTED']);",
+                  "});",
+                  "pm.test('is_merchant true only when APPROVED', () => {",
+                  "    const data = pm.response.json();",
+                  "    if (data.data.onboarding_state === 'APPROVED') {",
+                  "        pm.expect(data.data.is_merchant).to.be.true;",
+                  "    } else {",
+                  "        pm.expect(data.data.is_merchant).to.be.false;",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Start Onboarding (get hosted form URL)",
+          "name": "3. POST Refresh Link (Expired Form)",
+          "description": "Regenerate an expired Finix form link for an existing merchant.\nOnly works if MerchantOnboarding record exists.\n\nMock user: merchant_pending (will generate new link)",
           "request": {
             "method": "POST",
             "header": [
@@ -2873,34 +3080,12 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idempotency_id\": \"{{$randomUUID}}\"\n}"
+              "raw": "{}\n"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "marketplace", "merchant", "onboard"]
-            }
-          }
-        },
-        {
-          "name": "Refresh Onboarding Link",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"idempotency_id\": \"{{$randomUUID}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard/refresh-link",
+              "raw": "{{baseUrl}}/v1/marketplace/merchant/onboard/refresh-link",
               "host": ["{{baseUrl}}"],
               "path": [
-                "api",
                 "v1",
                 "marketplace",
                 "merchant",
@@ -2908,26 +3093,58 @@
                 "refresh-link"
               ]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Refresh link - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test('Response has new onboarding_url and expires_at', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.onboarding_url).to.exist;",
+                  "    pm.expect(data.data.expires_at).to.exist;",
+                  "});"
+                ]
+              }
+            }
+          ]
         },
         {
-          "name": "Get Onboarding Status",
+          "name": "4. GET Profile (Merchant Profile & Status)",
+          "description": "Get full merchant profile including Finix verification details.\n\nResponse includes:\n- is_merchant: true if APPROVED\n- merchant: Finix form/state details\n- user: user profile (name, email, etc.)",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/marketplace/merchant/onboard/status",
+              "raw": "{{baseUrl}}/v1/marketplace/merchant",
               "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "marketplace",
-                "merchant",
-                "onboard",
-                "status"
-              ]
+              "path": ["v1", "marketplace", "merchant"]
             }
-          }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Merchant profile - 200 OK', () => {",
+                  "    pm.expect(pm.response.code).to.equal(200);",
+                  "});",
+                  "pm.test('Response has merchant data structure', () => {",
+                  "    const data = pm.response.json();",
+                  "    pm.expect(data.data.is_merchant).to.be.a('boolean');",
+                  "    if (data.data.merchant) {",
+                  "        pm.expect(data.data.merchant.onboarding_state).to.exist;",
+                  "    }",
+                  "});"
+                ]
+              }
+            }
+          ]
         }
       ]
     },

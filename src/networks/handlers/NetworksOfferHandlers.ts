@@ -442,8 +442,6 @@ export const networks_offer_counter = async (
 
     // Create in-app notification for recipient
     try {
-      const recipientId =
-        role === "buyer" ? channel.seller_id : channel.buyer_id;
       // TODO: Use platform-specific notification service
       /*      await Notification.create({
         user_id: recipientId,

@@ -369,16 +369,11 @@ export class ConnectionService {
     targetId: string,
   ): Promise<void> {
     try {
-      const requester = await User.findById(requesterId).select("display_name");
       // TODO: Use platform-specific notification service
-      /*      await Notification.create({
-        user_id: targetId,
-        type: "new_follower",
-        title: "New Connection Request",
-        body: `${requester?.display_name || "Someone"} sent you a connection request.`,
-        data: { requester_id: requesterId },
-        action_url: `/users/${requesterId}`,
-      }); */
+      logger.debug("[ConnectionService] notifyTargetOfRequest placeholder", {
+        requesterId,
+        targetId,
+      });
     } catch (err) {
       logger.warn("[ConnectionService] Failed to create request notification", {
         err,
@@ -391,16 +386,11 @@ export class ConnectionService {
     targetId: string,
   ): Promise<void> {
     try {
-      const target = await User.findById(targetId).select("display_name");
       // TODO: Use platform-specific notification service
-      /*      await Notification.create({
-        user_id: requesterId,
-        type: "follow_received",
-        title: "Connection Request Accepted",
-        body: `${target?.display_name || "Someone"} accepted your connection request.`,
-        data: { target_id: targetId },
-        action_url: `/users/${targetId}`,
-      }); */
+      logger.debug("[ConnectionService] notifyRequesterAccepted placeholder", {
+        requesterId,
+        targetId,
+      });
     } catch (err) {
       logger.warn(
         "[ConnectionService] Failed to create acceptance notification",

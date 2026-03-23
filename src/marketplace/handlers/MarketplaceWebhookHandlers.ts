@@ -15,7 +15,7 @@ import { webhookLogger, logWebhookEvent } from "../../utils/logger";
 
 /**
  * Handle Finix webhook events
- * POST /api/v1/webhooks/finix
+ * POST /api/v1/marketplace/webhooks/finix
  *
  * Flow:
  * 1. Verify Basic Auth and HMAC signature

@@ -7,10 +7,7 @@ import {
   NotFoundError,
 } from "../../utils/errors";
 import { connectionService } from "../../services/connection/ConnectionService";
-import {
-  ConnectionRequestInput,
-  RespondConnectionRequestInput,
-} from "../../validation/schemas";
+import { ConnectionRequestInput } from "../../validation/schemas";
 import { connectionRepository } from "../../repositories/ConnectionRepository";
 import { User } from "../../models/User";
 

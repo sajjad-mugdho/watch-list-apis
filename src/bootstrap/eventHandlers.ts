@@ -5,10 +5,8 @@
  * It is called once during server startup.
  */
 
-import { events } from "../utils/events";
 import { isoMatchingService } from "../services/ISOMatchingService";
 import logger from "../utils/logger";
-import { ReferenceCheck } from "../models/ReferenceCheck";
 
 let outboxStarted = false;
 

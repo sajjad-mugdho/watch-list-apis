@@ -26,6 +26,172 @@ export interface MerchantOnboardResponse {
   existing_form?: boolean;
 }
 
+// Shared helper to create or reuse a Finix merchant onboarding session
+export async function ensureMerchantOnboardingSession(params: {
+  user: any;
+  requestId?: string;
+  idempotencyId?: string;
+  businessName?: string;
+}): Promise<MerchantOnboardResponse> {
+  const { user, requestId, idempotencyId, businessName } = params;
+
+  const userLocation =
+    user.location?.country ?? user.onboarding?.steps?.location?.country;
+
+  if (!userLocation) {
+    throw new ValidationError(
+      "User location is required for merchant onboarding. Please complete marketplace onboarding.",
+    );
+  }
+
+  const existingOnboarding = await MerchantOnboarding.findOne({
+    dialist_user_id: user._id,
+  });
+
+  if (existingOnboarding) {
+    merchantLogger.info(`User already has onboarding record`, {
+      user_id: user._id.toString(),
+      form_id: existingOnboarding.form_id,
+      onboarding_state: existingOnboarding.onboarding_state,
+      requestId,
+    });
+
+    const linkExpired = existingOnboarding.last_form_link_expires_at
+      ? new Date() > existingOnboarding.last_form_link_expires_at
+      : true;
+
+    if (linkExpired) {
+      merchantLogger.info(`Creating new link for existing form`, {
+        user_id: user._id.toString(),
+        form_id: existingOnboarding.form_id,
+        requestId,
+      });
+
+      const { form_link, expires_at } = await createFormLink(
+        existingOnboarding.form_id,
+        undefined,
+        idempotencyId,
+      );
+
+      existingOnboarding.last_form_link = form_link;
+      existingOnboarding.last_form_link_expires_at = new Date(expires_at);
+      await existingOnboarding.save();
+
+      return {
+        onboarding_url: form_link,
+        form_id: existingOnboarding.form_id,
+        expires_at,
+        existing_form: true,
+      };
+    }
+
+    return {
+      onboarding_url: existingOnboarding.last_form_link!,
+      form_id: existingOnboarding.form_id,
+      expires_at: existingOnboarding.last_form_link_expires_at
+        ? existingOnboarding.last_form_link_expires_at.toISOString()
+        : new Date().toISOString(),
+      existing_form: true,
+    };
+  }
+
+  const onboardingLocation = user.onboarding?.steps?.location;
+  const businessInfo = user.onboarding?.steps?.business_info;
+  const personalInfo = user.onboarding?.steps?.personal_info;
+
+  const onboardingParams: CreateOnboardingFormParams = {
+    dialist_user_id: user._id.toString(),
+    user_location: userLocation as "US" | "CA",
+  };
+
+  if (user.first_name) onboardingParams.first_name = user.first_name;
+  if (user.last_name) onboardingParams.last_name = user.last_name;
+
+  if (businessName) {
+    onboardingParams.business_name = businessName;
+  } else if (businessInfo?.business_name) {
+    onboardingParams.business_name = businessInfo.business_name;
+  } else if (user.display_name) {
+    onboardingParams.business_name = user.display_name;
+  }
+
+  if (user.email) onboardingParams.email = user.email;
+  if (user.phone) onboardingParams.phone = user.phone;
+
+  if (businessInfo) {
+    if (businessInfo.business_phone)
+      onboardingParams.business_phone = businessInfo.business_phone;
+    if (businessInfo.website) onboardingParams.website = businessInfo.website;
+    if (businessInfo.business_type)
+      onboardingParams.business_type = businessInfo.business_type;
+  }
+
+  if (personalInfo) {
+    if (personalInfo.title) onboardingParams.title = personalInfo.title;
+    if (personalInfo.date_of_birth) {
+      const dob: { year?: number; month?: number; day?: number } = {};
+      if (personalInfo.date_of_birth.year)
+        dob.year = personalInfo.date_of_birth.year;
+      if (personalInfo.date_of_birth.month)
+        dob.month = personalInfo.date_of_birth.month;
+      if (personalInfo.date_of_birth.day)
+        dob.day = personalInfo.date_of_birth.day;
+
+      if (Object.keys(dob).length > 0) {
+        onboardingParams.date_of_birth = dob;
+      }
+    }
+  }
+
+  if (onboardingLocation) {
+    if (onboardingLocation.country) {
+      onboardingParams.country = getCountryName(onboardingLocation.country);
+    }
+    if (onboardingLocation.region)
+      onboardingParams.region = onboardingLocation.region;
+    if (onboardingLocation.postal_code)
+      onboardingParams.postal_code = onboardingLocation.postal_code;
+    if (onboardingLocation.city)
+      onboardingParams.city = onboardingLocation.city;
+    if (onboardingLocation.line1)
+      onboardingParams.line1 = onboardingLocation.line1;
+    if (onboardingLocation.line2)
+      onboardingParams.line2 = onboardingLocation.line2;
+  }
+
+  if (idempotencyId) onboardingParams.idempotencyKey = idempotencyId;
+
+  const { form_id, form_link, expires_at } =
+    await createOnboardingForm(onboardingParams);
+
+  merchantLogger.info(`Creating MerchantOnboarding record`, {
+    user_id: user._id.toString(),
+    form_id,
+    requestId,
+  });
+
+  const merchantOnboarding = await MerchantOnboarding.create({
+    dialist_user_id: user._id,
+    form_id,
+    last_form_link: form_link,
+    last_form_link_expires_at: new Date(expires_at),
+    onboarding_state: "PENDING",
+  });
+
+  merchantLogger.info(`✅ Created MerchantOnboarding record`, {
+    user_id: user._id.toString(),
+    form_id,
+    merchant_onboarding_id: merchantOnboarding._id.toString(),
+    requestId,
+  });
+
+  return {
+    onboarding_url: form_link,
+    form_id,
+    expires_at,
+  };
+}
+
 // ----------------------------------------------------------
 // Handler Functions
 // ----------------------------------------------------------
@@ -46,8 +212,9 @@ export const marketplace_merchant_onboard_post = async (
 
     const user = await User.findById((req as any).user.dialist_id).select(
       [
-        "merchant",
         "onboarding",
+        "marketplace_onboarding",
+        "location",
         "first_name",
         "last_name",
         "display_name",
@@ -60,188 +227,24 @@ export const marketplace_merchant_onboard_post = async (
       throw new ValidationError("User not found");
     }
 
-    // ✅ Validate platform onboarding is complete
-    if (user.onboarding.status !== "completed") {
+    // ✅ Validate Marketplace onboarding is complete
+    if (user.marketplace_onboarding?.status !== "completed") {
       throw new ValidationError(
-        "Please complete platform onboarding before merchant registration",
+        "Please complete marketplace onboarding before merchant registration",
       );
     }
 
-    // ✅ Validate location is set
-    const userLocation = user.onboarding.steps?.location?.country;
-    if (!userLocation) {
-      throw new ValidationError(
-        "User location is required for merchant onboarding. Please complete platform onboarding.",
-      );
-    }
-
-    // ✅ Check if user already has merchant onboarding record
-    const existingOnboarding = await MerchantOnboarding.findOne({
-      dialist_user_id: user._id,
+    const merchantOnboarding = await ensureMerchantOnboardingSession({
+      user,
+      requestId: req.headers["x-request-id"] as string,
+      idempotencyId: (req.body as any)?.idempotency_id,
+      businessName: req.body?.business_name,
     });
 
-    if (existingOnboarding) {
-      merchantLogger.info(`User already has onboarding record`, {
-        user_id: user._id.toString(),
-        form_id: existingOnboarding.form_id,
-        onboarding_state: existingOnboarding.onboarding_state,
-        requestId: req.headers["x-request-id"],
-      });
+    const statusCode = merchantOnboarding.existing_form ? 200 : 201;
 
-      // Check if existing link is still valid
-      const linkExpired = existingOnboarding.last_form_link_expires_at
-        ? new Date() > existingOnboarding.last_form_link_expires_at
-        : true;
-
-      if (linkExpired) {
-        merchantLogger.info(`Creating new link for existing form`, {
-          user_id: user._id.toString(),
-          form_id: existingOnboarding.form_id,
-          requestId: req.headers["x-request-id"],
-        });
-
-        const { idempotency_id: refreshId } = req.body as any;
-        const { form_link, expires_at } = await createFormLink(
-          existingOnboarding.form_id,
-          undefined,
-          refreshId,
-        );
-
-        existingOnboarding.last_form_link = form_link;
-        existingOnboarding.last_form_link_expires_at = new Date(expires_at);
-        await existingOnboarding.save();
-
-        res.json({
-          data: {
-            onboarding_url: form_link,
-            form_id: existingOnboarding.form_id,
-            expires_at,
-            existing_form: true,
-          },
-          requestId: req.headers["x-request-id"] as string,
-        });
-        return;
-      } else {
-        // Link still valid, return it
-        res.json({
-          data: {
-            onboarding_url: existingOnboarding.last_form_link!,
-            form_id: existingOnboarding.form_id,
-            expires_at:
-              existingOnboarding.last_form_link_expires_at!.toISOString(),
-            existing_form: true,
-          },
-          requestId: req.headers["x-request-id"] as string,
-        });
-        return;
-      }
-    }
-
-    // ✅ Create new onboarding form (first time)
-    merchantLogger.info(`Creating new onboarding form for user`, {
-      user_id: user._id.toString(),
-      user_location: userLocation,
-      requestId: req.headers["x-request-id"],
-    });
-
-    const requestBusinessName = req.body?.business_name as string | undefined;
-    const onboardingLocation = user.onboarding.steps?.location;
-    const businessInfo = user.onboarding.steps?.business_info;
-    const personalInfo = user.onboarding.steps?.personal_info;
-
-    const onboardingParams: CreateOnboardingFormParams = {
-      dialist_user_id: user._id.toString(),
-      user_location: userLocation as "US" | "CA",
-    };
-
-    if (user.first_name) onboardingParams.first_name = user.first_name;
-    if (user.last_name) onboardingParams.last_name = user.last_name;
-
-    if (requestBusinessName) {
-      onboardingParams.business_name = requestBusinessName;
-    } else if (businessInfo?.business_name) {
-      onboardingParams.business_name = businessInfo.business_name;
-    } else if (user.display_name) {
-      onboardingParams.business_name = user.display_name;
-    }
-
-    if (user.email) onboardingParams.email = user.email;
-    if (user.phone) onboardingParams.phone = user.phone;
-
-    if (businessInfo) {
-      if (businessInfo.business_phone)
-        onboardingParams.business_phone = businessInfo.business_phone;
-      if (businessInfo.website) onboardingParams.website = businessInfo.website;
-      if (businessInfo.business_type)
-        onboardingParams.business_type = businessInfo.business_type;
-    }
-
-    if (personalInfo) {
-      if (personalInfo.title) onboardingParams.title = personalInfo.title;
-      if (personalInfo.date_of_birth) {
-        const dob: { year?: number; month?: number; day?: number } = {};
-        if (personalInfo.date_of_birth.year)
-          dob.year = personalInfo.date_of_birth.year;
-        if (personalInfo.date_of_birth.month)
-          dob.month = personalInfo.date_of_birth.month;
-        if (personalInfo.date_of_birth.day)
-          dob.day = personalInfo.date_of_birth.day;
-
-        if (Object.keys(dob).length > 0) {
-          onboardingParams.date_of_birth = dob;
-        }
-      }
-    }
-
-    if (onboardingLocation) {
-      if (onboardingLocation.country) {
-        onboardingParams.country = getCountryName(onboardingLocation.country);
-      }
-      if (onboardingLocation.region)
-        onboardingParams.region = onboardingLocation.region;
-      if (onboardingLocation.postal_code)
-        onboardingParams.postal_code = onboardingLocation.postal_code;
-      if (onboardingLocation.city)
-        onboardingParams.city = onboardingLocation.city;
-      if (onboardingLocation.line1)
-        onboardingParams.line1 = onboardingLocation.line1;
-      if (onboardingLocation.line2)
-        onboardingParams.line2 = onboardingLocation.line2;
-    }
-    const { idempotency_id: onboardIdempotency } = req.body as any;
-    if (onboardIdempotency)
-      onboardingParams.idempotencyKey = onboardIdempotency;
-    const { form_id, form_link, expires_at } =
-      await createOnboardingForm(onboardingParams);
-
-    merchantLogger.info(`Creating MerchantOnboarding record`, {
-      user_id: user._id.toString(),
-      form_id,
-      requestId: req.headers["x-request-id"],
-    });
-
-    // Create MerchantOnboarding record
-    const merchantOnboarding = await MerchantOnboarding.create({
-      dialist_user_id: user._id,
-      form_id,
-      last_form_link: form_link,
-      last_form_link_expires_at: new Date(expires_at),
-      onboarding_state: "PENDING",
-    });
-
-    merchantLogger.info(`✅ Created MerchantOnboarding record`, {
-      user_id: user._id.toString(),
-      form_id,
-      merchant_onboarding_id: merchantOnboarding._id.toString(),
-      requestId: req.headers["x-request-id"],
-    });
-
-    res.status(201).json({
-      data: {
-        onboarding_url: form_link,
-        form_id,
-        expires_at,
-      },
+    res.status(statusCode).json({
+      data: merchantOnboarding,
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (error: any) {
@@ -286,7 +289,6 @@ export const marketplace_merchant_get = async (
     const [user, merchantOnboarding] = await Promise.all([
       User.findById(userId).select(
         [
-          "merchant",
           "onboarding",
           "first_name",
           "last_name",
@@ -318,9 +320,10 @@ export const marketplace_merchant_get = async (
           identity_id: merchantOnboarding.identity_id || null,
           merchant_id: merchantOnboarding.merchant_id || null,
           last_form_link: merchantOnboarding.last_form_link || null,
-          last_form_link_expires_at: merchantOnboarding.last_form_link_expires_at
-            ? merchantOnboarding.last_form_link_expires_at.toISOString()
-            : null,
+          last_form_link_expires_at:
+            merchantOnboarding.last_form_link_expires_at
+              ? merchantOnboarding.last_form_link_expires_at.toISOString()
+              : null,
           onboarded_at: merchantOnboarding.onboarded_at || null,
           verified_at: merchantOnboarding.verified_at || null,
         }
@@ -330,7 +333,7 @@ export const marketplace_merchant_get = async (
       data: {
         is_merchant: merchantOnboarding
           ? merchantOnboarding.onboarding_state === "APPROVED"
-          : !!user?.merchant,
+          : false,
         merchant: merchantData,
         user: user
           ? {

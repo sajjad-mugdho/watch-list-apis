@@ -294,6 +294,7 @@ export async function createTestOrder(
   overrides: Partial<IOrder> = {},
 ): Promise<IOrder> {
   const defaultOrder = {
+    listing_type: "MarketplaceListing" as const,
     listing_id: new mongoose.Types.ObjectId(),
     listing_snapshot: {
       brand: "Rolex",

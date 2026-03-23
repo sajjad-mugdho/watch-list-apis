@@ -37,6 +37,7 @@ describe("Finix Debug Endpoint", () => {
     });
 
     const order = await Order.create({
+      listing_type: "MarketplaceListing",
       listing_id: listing._id,
       buyer_id: buyer._id,
       seller_id: seller._id,
@@ -65,7 +66,7 @@ describe("Finix Debug Endpoint", () => {
       res,
       (err: any) => {
         if (err) throw err;
-      }
+      },
     );
 
     expect(res.json).toHaveBeenCalled();
@@ -74,10 +75,10 @@ describe("Finix Debug Endpoint", () => {
     expect(response.data.payloads).toBeDefined();
     // Assert the tokenized payload includes tags and fraud_session_id
     expect(
-      response.data.payloads.createPaymentInstrumentFromToken.tags
+      response.data.payloads.createPaymentInstrumentFromToken.tags,
     ).toEqual(expect.objectContaining({ source_type: "tokenized" }));
     expect(
-      response.data.payloads.createPaymentInstrumentFromToken.fraud_session_id
+      response.data.payloads.createPaymentInstrumentFromToken.fraud_session_id,
     ).toBe("fs_debug_123");
   });
 });

@@ -1,5 +1,4 @@
 import { Router, Request, Response } from "express";
-import rateLimit from "express-rate-limit";
 import networksRoutes from "../networks";
 import marketplaceRoutes from "../marketplace";
 
@@ -9,7 +8,6 @@ import {
   requireAdmin,
 } from "../middleware/authentication";
 import { watchesRoutes } from "./watchesRoutes";
-import { onboardingRoutes } from "./onboardingRoutes";
 import { authRoutes } from "./auth";
 import { debugRoutes } from "./debugRoutes";
 import { subscriptionRoutes } from "./subscriptionRoutes";
@@ -17,6 +15,7 @@ import { getstreamWebhookRoutes } from "./getstreamWebhookRoutes";
 import { userSubRoutes } from "./user"; // Consolidated user routes
 import { analyticsRoutes } from "./analyticsRoutes";
 import { newsRoutes } from "./newsRoutes";
+import { marketplaceWebhookRoutes } from "../marketplace/routes/webhookRoutes";
 
 import { trustCaseRoutes } from "./admin/trustCaseRoutes";
 
@@ -42,22 +41,6 @@ router.use("/v1/debug", debugRoutes);
 // platform-agnostic top level resources
 router.use("/v1/watches", watchesRoutes);
 
-const onboardingLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // limit each IP to 20 requests per windowMs
-  message: {
-    error: {
-      message: "Too many requests to onboarding, please try again later.",
-    },
-  },
-});
-router.use(
-  "/v1/onboarding",
-  requirePlatformAuth(),
-  onboardingLimiter,
-  onboardingRoutes,
-);
-
 // Current User Resources (scoped to the authenticated user)
 // /api/v1/user/* -> "My Content"
 router.use("/v1/user", requirePlatformAuth(), userSubRoutes); // Consolidated!
@@ -67,6 +50,9 @@ router.use("/v1/subscriptions", requirePlatformAuth(), subscriptionRoutes);
 
 // GetStream webhooks (no auth - uses signature verification)
 router.use("/v1/webhooks/getstream", getstreamWebhookRoutes);
+
+// Marketplace webhooks (no auth - uses Finix signature verification)
+router.use("/v1/marketplace/webhooks", marketplaceWebhookRoutes);
 
 // platform specific routes
 router.use("/v1/networks", requirePlatformAuth(), networksRoutes);

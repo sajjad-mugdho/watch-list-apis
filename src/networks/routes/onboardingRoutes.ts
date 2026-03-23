@@ -25,8 +25,6 @@ router.get("/status", networks_onboarding_status_get as any);
  * - location: { country, region, postal_code, city, line1, line2?, currency? }
  * - profile: { first_name, last_name }
  * - avatar: { type: 'monogram'|'upload', fields vary by type }
- * - acknowledgements: { tos: true, privacy: true, rules: true }
- * - payment: { payment_method: 'card'|'bank_account', fields vary by method }
  */
 router.patch(
   "/complete",
