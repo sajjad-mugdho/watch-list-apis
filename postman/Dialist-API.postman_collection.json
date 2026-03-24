@@ -3415,9 +3415,9 @@
               "raw": "{\n  \"type\": \"transfer.succeeded\",\n  \"data\": {}\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/webhooks/finix",
+              "raw": "{{baseUrl}}/api/v1/marketplace/webhooks/finix",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "webhooks", "finix"]
+              "path": ["api", "v1", "marketplace", "webhooks", "finix"]
             }
           }
         },

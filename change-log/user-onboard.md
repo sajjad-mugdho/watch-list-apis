@@ -434,7 +434,7 @@ Validation failures return:
 Run these checks before merging onboarding changes:
 
 1. npm test -- tests/integration/onboarding.e2e.test.ts tests/integration/auth.me.test.ts tests/integration/bank-tokenization.test.ts tests/integration/finix-debug.test.ts
-2. bash ./test-onboarding-apis.sh
+2. bash ./scripts/test_all_endpoints.sh
 
 Expected baseline:
 
@@ -456,7 +456,7 @@ Expected baseline:
 - tests/integration/onboarding.e2e.test.ts
 - tests/integration/bank-tokenization.test.ts
 - tests/integration/finix-debug.test.ts
-- test-onboarding-apis.sh
+- scripts/test_all_endpoints.sh
 
 ## Change Log
 
