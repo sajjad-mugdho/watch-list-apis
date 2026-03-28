@@ -12,8 +12,8 @@ Last verified: 2026-03-29
 ### Fixes Applied
 
 1. **Notification Mutations Now User-Scoped** (P1 Security)
-   - Issue: NotificationService.markAsRead() and delete() mutated by _id only, allowing privilege escalation
-   - Fix: Added userId parameter, now filters by {_id, user_id, platform: "networks"}
+   - Issue: NotificationService.markAsRead() and delete() mutated by \_id only, allowing privilege escalation
+   - Fix: Added userId parameter, now filters by {\_id, user_id, platform: "networks"}
    - Files: src/networks/services/NotificationService.ts, src/networks/routes/notificationRoutes.ts
    - Impact: 401/403 responses if user not owner of notification
 

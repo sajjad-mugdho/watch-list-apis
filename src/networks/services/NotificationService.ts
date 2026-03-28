@@ -178,7 +178,9 @@ export class NetworksNotificationService {
     );
 
     if (!result) {
-      throw new Error(`Notification ${notificationId} not found or not owned by user`);
+      throw new Error(
+        `Notification ${notificationId} not found or not owned by user`,
+      );
     }
   }
 
@@ -212,7 +214,9 @@ export class NetworksNotificationService {
     });
 
     if (!result) {
-      throw new Error(`Notification ${notificationId} not found or not owned by user`);
+      throw new Error(
+        `Notification ${notificationId} not found or not owned by user`,
+      );
     }
   }
 }
