@@ -2,7 +2,46 @@
 
 Status: Active tracking file  
 Owner: Backend API team + Frontend integration owners  
-Last verified: 2026-03-27
+Last verified: 2026-03-29
+
+## Recent Security & Bug Fixes (2026-03-29)
+
+**Status:** Critical fixes implemented and verified  
+**PR:** Review fixes for CodeRabbit/Copilot feedback
+
+### Fixes Applied
+
+1. **Notification Mutations Now User-Scoped** (P1 Security)
+   - Issue: NotificationService.markAsRead() and delete() mutated by _id only, allowing privilege escalation
+   - Fix: Added userId parameter, now filters by {_id, user_id, platform: "networks"}
+   - Files: src/networks/services/NotificationService.ts, src/networks/routes/notificationRoutes.ts
+   - Impact: 401/403 responses if user not owner of notification
+
+2. **Regex Injection Escape** (P1 Security)
+   - Issue: Raw user input in $regex for category/contents (ReDoS/injection risk)
+   - Fix: Added escapeRegex() helper, escapes all metacharacters before pattern
+   - Files: src/utils/listingFilters.ts
+   - Impact: Prevents regex injection attacks, blocks ReDoS patterns
+
+3. **Finix Webhook Secret Required** (P1 Security)
+   - Issue: Empty secret allows unsigned webhook forgery in production
+   - Fix: Added FINIX_WEBHOOK_SECRET to requiredEnvVars, app now fails to start without it
+   - Files: src/config/index.ts
+   - Impact: Prevents unsigned webhook acceptance
+
+4. **Query Mode Parameter Added** (P2 Logic)
+   - Issue: Both $regex and $text applied to same query, changing ranking semantics
+   - Fix: Added queryMode parameter ("regex" | "text"), skips $or when mode="text"
+   - Files: src/utils/listingFilters.ts
+   - Impact: Correct search results for relevance-based queries
+
+5. **Offset Pagination Precision Preserved** (P2 Logic)
+   - Issue: Math.floor(offset/limit) loses precision (offset=15&limit=10 → skip=10, loses 5 items)
+   - Fix: Removed page conversion, keep offset-based pagination intact
+   - Files: src/networks/middleware/normalizeListingQuery.ts
+   - Impact: No duplicate/skipped items with non-multiple offsets
+
+---
 
 ## Purpose
 

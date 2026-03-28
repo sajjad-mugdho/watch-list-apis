@@ -1,8 +1,10 @@
 # User Onboarding Final Contract
 
-Status: Frozen baseline
-Owner: Backend API team
-Last verified: 2026-03-24
+Status: Frozen baseline  
+Owner: Backend API team  
+Last verified: 2026-03-29
+
+**Security Update (2026-03-29):** FINIX_WEBHOOK_SECRET now required in production (blocks unsigned webhook forgery)
 
 ## Purpose
 

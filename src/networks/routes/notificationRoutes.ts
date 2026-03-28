@@ -166,8 +166,15 @@ router.post(
   validateRequest(notificationIdSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const auth = (req as any).auth;
+      const user = await User.findOne({ external_id: auth.userId });
+      if (!user) {
+        res.status(401).json({ error: { message: "Unauthorized" } });
+        return;
+      }
+
       const { id } = req.params;
-      await networksNotificationService.markAsRead(id);
+      await networksNotificationService.markAsRead(user._id.toString(), id);
       res.json({ platform: "networks", success: true, id });
     } catch (error) {
       next(error);
@@ -213,8 +220,15 @@ router.delete(
   validateRequest(notificationIdSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const auth = (req as any).auth;
+      const user = await User.findOne({ external_id: auth.userId });
+      if (!user) {
+        res.status(401).json({ error: { message: "Unauthorized" } });
+        return;
+      }
+
       const { id } = req.params;
-      await networksNotificationService.delete(id);
+      await networksNotificationService.delete(user._id.toString(), id);
       res.json({ platform: "networks", success: true, id });
     } catch (error) {
       next(error);

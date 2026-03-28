@@ -159,11 +159,27 @@ export class NetworksNotificationService {
 
   /**
    * Mark networks notification as read
+   * Scoped to current user (security: prevents privilege escalation)
+   * @param userId - Current authenticated user ID (from auth context)
+   * @param notificationId - Notification to mark as read
+   * @throws Error if notification not found or doesn't belong to user
    */
-  async markAsRead(notificationId: string): Promise<void> {
-    await Notification.findByIdAndUpdate(notificationId, {
-      $set: { is_read: true, read_at: new Date() },
-    });
+  async markAsRead(userId: string, notificationId: string): Promise<void> {
+    const result = await Notification.findOneAndUpdate(
+      {
+        _id: notificationId,
+        user_id: new mongoose.Types.ObjectId(userId),
+        platform: "networks",
+        is_read: false,
+      },
+      {
+        $set: { is_read: true, read_at: new Date() },
+      },
+    );
+
+    if (!result) {
+      throw new Error(`Notification ${notificationId} not found or not owned by user`);
+    }
   }
 
   /**
@@ -183,9 +199,21 @@ export class NetworksNotificationService {
 
   /**
    * Delete networks notification
+   * Scoped to current user (security: prevents privilege escalation)
+   * @param userId - Current authenticated user ID (from auth context)
+   * @param notificationId - Notification to delete
+   * @throws Error if notification not found or doesn't belong to user
    */
-  async delete(notificationId: string): Promise<void> {
-    await Notification.findByIdAndDelete(notificationId);
+  async delete(userId: string, notificationId: string): Promise<void> {
+    const result = await Notification.findOneAndDelete({
+      _id: notificationId,
+      user_id: new mongoose.Types.ObjectId(userId),
+      platform: "networks",
+    });
+
+    if (!result) {
+      throw new Error(`Notification ${notificationId} not found or not owned by user`);
+    }
   }
 }
 

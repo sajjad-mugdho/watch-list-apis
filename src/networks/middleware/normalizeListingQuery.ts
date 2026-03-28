@@ -57,10 +57,12 @@ export const normalizeListingQuery = (
   }
 
   if (query.page === undefined && query.offset !== undefined) {
-    const limit = parsePositiveInt(query.limit, 20);
+    // Keep offset-based pagination intact (don't convert to page)
+    // Math.floor(offset/limit) loses precision for non-multiple offsets
+    // Example: offset=15&limit=10 becomes page=2, skip=10, loses 5 items
+    // Preserve offset semantics for downstream handlers
     const offset = parseNonNegativeInt(query.offset, 0);
-    // Keep query values string-like for downstream Zod query schemas.
-    query.page = String(Math.floor(offset / limit) + 1);
+    query.offset = String(offset);
   }
 
   if (typeof query.allow_offers === "boolean") {

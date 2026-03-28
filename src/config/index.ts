@@ -121,10 +121,7 @@ export const config: Config = {
 
   finixWebhookPassword: process.env.FINIX_WEBHOOK_PASSWORD!,
   finixWebhookUsername: process.env.FINIX_WEBHOOK_USERNAME!,
-  finixWebhookSecret:
-    process.env.FINIX_WEBHOOK_SECRET ||
-    process.env.FINIX_WEBHOOK_SIGNING_SECRET ||
-    "",
+  finixWebhookSecret: process.env.FINIX_WEBHOOK_SECRET!,
 
   finixVersion: process.env.FINIX_VERSION!,
   finixUsername: process.env.FINIX_USERNAME!,

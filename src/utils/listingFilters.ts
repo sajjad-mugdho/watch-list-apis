@@ -3,6 +3,17 @@
  * Standardizes filtering logic between marketplace and networks
  */
 
+/**
+ * Escape regex metacharacters in user input to prevent injection/ReDoS attacks
+ * @param value - Raw user input string
+ * @returns Escaped string safe to use in MongoDB $regex
+ */
+function escapeRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+export type ListingQueryMode = "regex" | "text";
+
 export interface ListingFilterInput {
   q?: string;
   brand?: string;
@@ -21,11 +32,13 @@ export interface ListingFilterInput {
  * Build a MongoDB filter query for listings
  * @param input - Filter parameters from query string
  * @param includeOffersFilter - Whether to include allow_offers in filter (marketplace now supports it)
+ * @param queryMode - "regex" for keyword search, "text" for full-text search (skip regex $or when using $text)
  * @returns MongoDB filter object
  */
 export function buildListingFilter(
   input: ListingFilterInput,
   includeOffersFilter: boolean = true,
+  queryMode: ListingQueryMode = "regex",
 ): Record<string, any> {
   const {
     q,
@@ -50,23 +63,30 @@ export function buildListingFilter(
   }
 
   // Search query (searches brand, model, reference)
-  if (q) {
+  // Skip regex $or if using $text search mode (prevents combined query semantics)
+  if (q && queryMode === "regex") {
     filter.$or = [
-      { brand: { $regex: q, $options: "i" } },
-      { model: { $regex: q, $options: "i" } },
-      { reference: { $regex: q, $options: "i" } },
-      { title: { $regex: q, $options: "i" } },
+      { brand: { $regex: escapeRegex(q), $options: "i" } },
+      { model: { $regex: escapeRegex(q), $options: "i" } },
+      { reference: { $regex: escapeRegex(q), $options: "i" } },
+      { title: { $regex: escapeRegex(q), $options: "i" } },
     ];
   }
 
   // Brand filter
   if (brand) {
-    filter.brand = { $regex: `^${brand}$`, $options: "i" };
+    filter.brand = {
+      $regex: `^${escapeRegex(brand)}$`,
+      $options: "i",
+    };
   }
 
-  // Category filter
+  // Category filter (enum-like, escape to prevent injection)
   if (category) {
-    filter.category = { $regex: `^${category}$`, $options: "i" };
+    filter.category = {
+      $regex: `^${escapeRegex(category)}$`,
+      $options: "i",
+    };
   }
 
   // Condition filter
@@ -74,9 +94,12 @@ export function buildListingFilter(
     filter.condition = condition;
   }
 
-  // Contents filter
+  // Contents filter (escape to prevent regex injection/ReDoS)
   if (contents) {
-    filter.contents = { $regex: contents, $options: "i" };
+    filter.contents = {
+      $regex: escapeRegex(contents),
+      $options: "i",
+    };
   }
 
   // Year range filter
