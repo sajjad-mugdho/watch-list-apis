@@ -4,6 +4,7 @@ import {
   ListingStatus,
   IListingAuthorSnapshot,
 } from "../../models/Listings";
+import { WATCH_CATEGORY_VALUES, WatchCategory } from "../../models/Watches";
 
 // ----------------------------------------------------------
 // Network Listing
@@ -16,10 +17,12 @@ export interface INetworkListing {
   is_deleted?: boolean;
 
   // Watch details
+  type: "for_sale" | "wtb";
   title: string;
   brand: string;
   model: string;
   reference: string;
+  category?: WatchCategory;
   thumbnail?: string;
   images: string[];
   price?: number;
@@ -79,11 +82,23 @@ const networkListingSchema = new Schema<INetworkListing>(
       default: "draft",
       index: true,
     },
+    type: {
+      type: String,
+      enum: ["for_sale", "wtb"],
+      default: "for_sale",
+      index: true,
+    },
     is_deleted: { type: Boolean, default: false },
     title: { type: String, required: true },
     brand: { type: String, required: true, index: true },
     model: { type: String, required: true },
     reference: { type: String, required: true, index: true },
+    category: {
+      type: String,
+      enum: WATCH_CATEGORY_VALUES,
+      default: "Uncategorized",
+      index: true,
+    },
     thumbnail: { type: String },
     images: { type: [String], default: [] },
     price: { type: Number, min: 0 },
@@ -126,6 +141,14 @@ const networkListingSchema = new Schema<INetworkListing>(
   },
   { timestamps: true },
 );
+
+// Supports basic relevance sorting for listing search.
+networkListingSchema.index({
+  title: "text",
+  brand: "text",
+  model: "text",
+  reference: "text",
+});
 
 export const NetworkListing = mongoose.model<INetworkListing>(
   "NetworkListing",

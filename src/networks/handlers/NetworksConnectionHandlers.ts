@@ -10,6 +10,7 @@ import { connectionService } from "../../services/connection/ConnectionService";
 import { ConnectionRequestInput } from "../../validation/schemas";
 import { connectionRepository } from "../../repositories/ConnectionRepository";
 import { User } from "../../models/User";
+import { Connection } from "../models/Connection";
 
 // ============================================================
 // Input Validation Helpers
@@ -30,6 +31,21 @@ const parsePositiveInt = (
 const parseNonNegativeInt = (value: unknown): number => {
   const parsed = Number.parseInt(String(value), 10);
   return Number.isFinite(parsed) && parsed >= 0 ? parsed : 0;
+};
+
+const getAcceptedPeerIds = async (userId: string): Promise<string[]> => {
+  const connections = await Connection.find({
+    status: "accepted",
+    $or: [{ follower_id: userId }, { following_id: userId }],
+  })
+    .select("follower_id following_id")
+    .lean();
+
+  return connections.map((c: any) => {
+    const followerId = String(c.follower_id);
+    const followingId = String(c.following_id);
+    return followerId === userId ? followingId : followerId;
+  });
 };
 
 /**
@@ -54,19 +70,34 @@ export const networks_connection_incoming_pending = async (
       offset,
     });
 
+    const currentUserPeerSet = new Set(await getAcceptedPeerIds(userId));
+
     // Enhance response with requester user info for UI display
     const enrichedData = await Promise.all(
       result.data.map(async (connection: any) => {
+        const requesterId = String(connection.follower_id);
         const requester = await User.findById(connection.follower_id).select(
           "display_name avatar bio",
         );
+
+        const requesterPeerIds = await getAcceptedPeerIds(requesterId);
+        const mutualFriendsCount = requesterPeerIds.filter((peerId) =>
+          currentUserPeerSet.has(peerId),
+        ).length;
+
+        const handle = requester?.display_name
+          ? `@${String(requester.display_name).replace(/^@+/, "")}`
+          : null;
+
         return {
           id: connection._id?.toString(),
           requester: {
-            user_id: connection.follower_id?.toString(),
+            user_id: requesterId,
             display_name: requester?.display_name || "Unknown User",
+            handle,
             avatar: requester?.avatar || null,
             bio: requester?.bio || null,
+            mutual_friends_count: mutualFriendsCount,
           },
           status: connection.status,
           created_at: connection.createdAt,

@@ -608,6 +608,7 @@ export const getListingsSchema = z.object({
 
     // Filters
     brand: z.string().trim().max(50).optional(),
+    category: z.enum(watchCategoryValues).optional(),
     condition: z
       .enum([
         "New",
@@ -616,6 +617,25 @@ export const getListingsSchema = z.object({
         "Used - Fair",
         "Used - Damaged",
       ])
+      .optional(),
+    contents: z.string().trim().max(50).optional(),
+    year_min: z
+      .string()
+      .regex(/^\d+$/, "Min year must be a number")
+      .transform(Number)
+      .refine(
+        (n) => n >= 1800 && n <= 2030,
+        "Min year must be between 1800 and 2030",
+      )
+      .optional(),
+    year_max: z
+      .string()
+      .regex(/^\d+$/, "Max year must be a number")
+      .transform(Number)
+      .refine(
+        (n) => n >= 1800 && n <= 2030,
+        "Max year must be between 1800 and 2030",
+      )
       .optional(),
     min_price: z
       .string()
@@ -636,12 +656,92 @@ export const getListingsSchema = z.object({
 
     // Sorting
     sort_by: z
-      .enum(["price", "created", "updated"])
+      .enum(["price", "created", "updated", "popularity", "relevance"])
       .optional()
       .default("created"),
     sort_order: z.enum(["asc", "desc"]).optional().default("desc"),
 
     // Pagination
+    limit: z
+      .string()
+      .regex(/^\d+$/, "Limit must be a positive number")
+      .transform(Number)
+      .refine((n) => n > 0 && n <= 100, "Limit must be between 1 and 100")
+      .optional()
+      .default("20"),
+    page: z
+      .string()
+      .regex(/^\d+$/, "Page must be a positive number")
+      .transform(Number)
+      .refine((n) => n > 0, "Page must be positive")
+      .optional()
+      .default("1"),
+  }),
+});
+
+/**
+ * Schema for unified networks search query
+ * Canonical keys: year_min/year_max, sort_by/sort_order, page/limit.
+ * Legacy aliases are normalized in middleware before validation.
+ */
+export const getNetworksSearchSchema = z.object({
+  query: z.object({
+    q: z.string().trim().max(100, "Search query too long").optional(),
+    type: z.enum(["listing", "iso", "user"]).optional(),
+
+    brand: z.string().trim().max(50).optional(),
+    category: z.enum(watchCategoryValues).optional(),
+    condition: z
+      .enum([
+        "New",
+        "Used - Very Good",
+        "Used - Good",
+        "Used - Fair",
+        "Used - Damaged",
+      ])
+      .optional(),
+    contents: z.string().trim().max(50).optional(),
+    year_min: z
+      .string()
+      .regex(/^\d+$/, "Min year must be a number")
+      .transform(Number)
+      .refine(
+        (n) => n >= 1800 && n <= 2030,
+        "Min year must be between 1800 and 2030",
+      )
+      .optional(),
+    year_max: z
+      .string()
+      .regex(/^\d+$/, "Max year must be a number")
+      .transform(Number)
+      .refine(
+        (n) => n >= 1800 && n <= 2030,
+        "Max year must be between 1800 and 2030",
+      )
+      .optional(),
+    min_price: z
+      .string()
+      .regex(/^\d+$/, "Min price must be a number")
+      .transform(Number)
+      .refine((n) => n >= 0, "Min price must be non-negative")
+      .optional(),
+    max_price: z
+      .string()
+      .regex(/^\d+$/, "Max price must be a number")
+      .transform(Number)
+      .refine((n) => n >= 0, "Max price must be non-negative")
+      .optional(),
+    allow_offers: z
+      .enum(["true", "false"])
+      .transform((val) => val === "true")
+      .optional(),
+
+    sort_by: z
+      .enum(["price", "created", "updated", "popularity", "relevance"])
+      .optional()
+      .default("created"),
+    sort_order: z.enum(["asc", "desc"]).optional().default("desc"),
+
     limit: z
       .string()
       .regex(/^\d+$/, "Limit must be a positive number")
@@ -1508,6 +1608,7 @@ export type GetWatchesInput = z.infer<typeof getWatchesSchema>;
 
 // Listing types
 export type GetListingsInput = z.infer<typeof getListingsSchema>;
+export type GetNetworksSearchInput = z.infer<typeof getNetworksSearchSchema>;
 export type CreateListingInput = z.infer<typeof createListingSchema>;
 export type GetUserInventoryInput = z.infer<typeof getUserInventorySchema>;
 export type UpdateListingInput = z.infer<typeof updateListingSchema>;

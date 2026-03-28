@@ -7,6 +7,10 @@ export interface ListingFilterInput {
   q?: string;
   brand?: string;
   condition?: string;
+  category?: string;
+  contents?: string;
+  year_min?: number;
+  year_max?: number;
   min_price?: number;
   max_price?: number;
   allow_offers?: boolean;
@@ -21,9 +25,21 @@ export interface ListingFilterInput {
  */
 export function buildListingFilter(
   input: ListingFilterInput,
-  includeOffersFilter: boolean = true
+  includeOffersFilter: boolean = true,
 ): Record<string, any> {
-  const { q, brand, condition, min_price, max_price, allow_offers, is_featured } = input;
+  const {
+    q,
+    brand,
+    condition,
+    category,
+    contents,
+    year_min,
+    year_max,
+    min_price,
+    max_price,
+    allow_offers,
+    is_featured,
+  } = input;
 
   const filter: any = {
     status: "active",
@@ -39,6 +55,7 @@ export function buildListingFilter(
       { brand: { $regex: q, $options: "i" } },
       { model: { $regex: q, $options: "i" } },
       { reference: { $regex: q, $options: "i" } },
+      { title: { $regex: q, $options: "i" } },
     ];
   }
 
@@ -47,9 +64,30 @@ export function buildListingFilter(
     filter.brand = { $regex: `^${brand}$`, $options: "i" };
   }
 
+  // Category filter
+  if (category) {
+    filter.category = { $regex: `^${category}$`, $options: "i" };
+  }
+
   // Condition filter
   if (condition) {
     filter.condition = condition;
+  }
+
+  // Contents filter
+  if (contents) {
+    filter.contents = { $regex: contents, $options: "i" };
+  }
+
+  // Year range filter
+  if (year_min !== undefined || year_max !== undefined) {
+    filter.year = {};
+    if (year_min !== undefined) {
+      filter.year.$gte = year_min;
+    }
+    if (year_max !== undefined) {
+      filter.year.$lte = year_max;
+    }
   }
 
   // Price range filters
@@ -78,15 +116,19 @@ export function buildListingFilter(
  * @returns MongoDB sort object
  */
 export function buildListingSort(
-  sort_by?: "price" | "created" | "updated",
-  sort_order?: "asc" | "desc"
+  sort_by?: "price" | "created" | "updated" | "popularity" | "relevance",
+  sort_order?: "asc" | "desc",
 ): Record<string, 1 | -1> {
   const sortField =
     sort_by === "created"
       ? "createdAt"
       : sort_by === "updated"
-      ? "updatedAt"
-      : "price";
+        ? "updatedAt"
+        : sort_by === "popularity"
+          ? "view_count"
+          : sort_by === "relevance"
+            ? "createdAt"
+            : "price";
   const sortDirection: 1 | -1 = sort_order === "asc" ? 1 : -1;
   return { [sortField]: sortDirection };
 }

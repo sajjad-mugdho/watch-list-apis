@@ -60,7 +60,11 @@ export const networks_listings_get = async (
     const {
       q,
       brand,
+      category,
       condition,
+      contents,
+      year_min,
+      year_max,
       min_price,
       max_price,
       allow_offers,
@@ -72,11 +76,15 @@ export const networks_listings_get = async (
 
     // Build filter query using shared utility
     const filterInput: Record<string, any> = {};
-    if (q) filterInput.q = q;
+    if (q && sort_by !== "relevance") filterInput.q = q;
     if (brand) filterInput.brand = brand;
+    if (category) filterInput.category = category;
     if (condition) filterInput.condition = condition;
-    if (min_price) filterInput.min_price = min_price;
-    if (max_price) filterInput.max_price = max_price;
+    if (contents) filterInput.contents = contents;
+    if (year_min !== undefined) filterInput.year_min = year_min;
+    if (year_max !== undefined) filterInput.year_max = year_max;
+    if (min_price !== undefined) filterInput.min_price = min_price;
+    if (max_price !== undefined) filterInput.max_price = max_price;
     if (allow_offers !== undefined) filterInput.allow_offers = allow_offers;
 
     const filter = buildListingFilter(
@@ -91,17 +99,24 @@ export const networks_listings_get = async (
     const skip = (page - 1) * limit;
 
     // Execute query with pagination (excluding deleted)
-    const activeFilter = {
+    const activeFilter: Record<string, any> = {
       ...filter,
       is_deleted: { $ne: true },
       status: { $in: ["active", "reserved", "sold"] },
     };
+    if (sort_by === "relevance" && q) {
+      activeFilter.$text = { $search: String(q) };
+    }
+
+    const listQuery =
+      sort_by === "relevance" && q
+        ? NetworkListing.find(activeFilter, {
+            score: { $meta: "textScore" },
+          }).sort({ score: { $meta: "textScore" }, createdAt: -1 } as any)
+        : NetworkListing.find(activeFilter).sort(sort);
+
     const [listings, total] = await Promise.all([
-      NetworkListing.find(activeFilter)
-        .sort(sort)
-        .skip(skip)
-        .limit(limit)
-        .lean(),
+      listQuery.skip(skip).limit(limit).lean(),
       NetworkListing.countDocuments(activeFilter),
     ]);
 
@@ -119,7 +134,11 @@ export const networks_listings_get = async (
         filters: {
           q,
           brand,
+          category,
           condition,
+          contents,
+          year_min,
+          year_max,
           min_price,
           max_price,
           allow_offers,
@@ -156,7 +175,7 @@ export const networks_listing_create = async (
     }
 
     const user = (req as any).user;
-    const { watch } = req.body;
+    const { watch, type = "for_sale" } = req.body;
 
     const fetchedProduct = await Watch.findById(watch).lean();
     if (!fetchedProduct) {
@@ -182,6 +201,7 @@ export const networks_listing_create = async (
     // Create listing
     const newListing = await NetworkListing.create({
       status: "draft",
+      type,
       dialist_id: user.dialist_id,
       clerk_id: user.userId,
       title: `${watchDetails?.brand} ${watchDetails?.model}`,
