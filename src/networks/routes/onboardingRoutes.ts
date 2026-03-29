@@ -22,7 +22,7 @@ router.get("/status", networks_onboarding_status_get as any);
  * PATCH /api/v1/networks/onboarding/complete
  *
  * Request body must include:
- * - location: { country, region, postal_code, city, line1, line2?, currency? }
+ * - location: { country, region, currency, postal_code?, city?, line1?, line2? }
  * - profile: { first_name, last_name }
  * - avatar: { type: 'monogram'|'upload', fields vary by type }
  */

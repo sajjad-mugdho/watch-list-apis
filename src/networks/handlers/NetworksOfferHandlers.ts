@@ -30,6 +30,7 @@ import {
 import { INetworkListing, NetworkListing } from "../models/NetworkListing";
 import { networksOfferService } from "./../../networks/services/NetworksOfferService";
 import { Offer } from "../../models/Offer";
+import { networksNotificationService } from "../services/NotificationService";
 
 // ----------------------------------------------------------
 // Helper Functions
@@ -205,19 +206,18 @@ export const networks_offer_send = async (
 
       // Create in-app notification for seller
       try {
-        // TODO: Use platform-specific notification service
-        /*        await Notification.create({
-          user_id: listing.dialist_id,
+        await networksNotificationService.create({
+          userId: String(listing.dialist_id),
           type: "offer_received",
-          title: "New Offer Received",
+          title: "Offer Received",
           body: `You received an offer of $${amount.toLocaleString()} for ${listing.brand} ${listing.model}`,
+          actionUrl: `/networks/offers/${(existingChannel._id as any).toString()}`,
           data: {
             listing_id: listingId,
             channel_id: (existingChannel._id as any).toString(),
             amount,
           },
-          action_url: `/networks/offers/${(existingChannel._id as any).toString()}`,
-        }); */
+        });
       } catch (notifError) {
         logger.warn("Failed to create networks offer notification", {
           notifError,
@@ -320,19 +320,18 @@ export const networks_offer_send = async (
 
     // Create in-app notification for seller
     try {
-      // TODO: Use platform-specific notification service
-      /*      await Notification.create({
-        user_id: listing.dialist_id,
+      await networksNotificationService.create({
+        userId: String(listing.dialist_id),
         type: "offer_received",
-        title: "New Offer Received",
+        title: "Offer Received",
         body: `You received an offer of $${amount.toLocaleString()} for ${listing.brand} ${listing.model}`,
+        actionUrl: `/networks/offers/${(channel._id as any).toString()}`,
         data: {
           listing_id: listingId,
           channel_id: (channel._id as any).toString(),
           amount,
         },
-        action_url: `/networks/offers/${(channel._id as any).toString()}`,
-      }); */
+      });
     } catch (notifError) {
       logger.warn("Failed to create networks offer notification", {
         notifError,
@@ -442,19 +441,21 @@ export const networks_offer_counter = async (
 
     // Create in-app notification for recipient
     try {
-      // TODO: Use platform-specific notification service
-      /*      await Notification.create({
-        user_id: recipientId,
+      const recipientId =
+        role === "buyer" ? String(channel.seller_id) : String(channel.buyer_id);
+
+      await networksNotificationService.create({
+        userId: recipientId,
         type: "counter_offer",
         title: "Counter Offer Received",
         body: `You received a counter offer of $${amount.toLocaleString()} for ${channel.listing_snapshot.brand} ${channel.listing_snapshot.model}`,
+        actionUrl: `/networks/offers/${(channel._id as any).toString()}`,
         data: {
           listing_id: channel.listing_id.toString(),
           channel_id: (channel._id as any).toString(),
           amount,
         },
-        action_url: `/networks/offers/${(channel._id as any).toString()}`,
-      }); */
+      });
     } catch (notifError) {
       logger.warn("Failed to create networks counter offer notification", {
         notifError,

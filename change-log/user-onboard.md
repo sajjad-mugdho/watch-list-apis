@@ -1,8 +1,10 @@
 # User Onboarding Final Contract
 
-Status: Frozen baseline
-Owner: Backend API team
-Last verified: 2026-03-24
+Status: Frozen baseline  
+Owner: Backend API team  
+Last verified: 2026-03-29
+
+**Security Update (2026-03-29):** FINIX_WEBHOOK_SECRET now required in production (blocks unsigned webhook forgery)
 
 ## Purpose
 
@@ -434,7 +436,7 @@ Validation failures return:
 Run these checks before merging onboarding changes:
 
 1. npm test -- tests/integration/onboarding.e2e.test.ts tests/integration/auth.me.test.ts tests/integration/bank-tokenization.test.ts tests/integration/finix-debug.test.ts
-2. bash ./test-onboarding-apis.sh
+2. bash ./scripts/test_all_endpoints.sh
 
 Expected baseline:
 
@@ -456,7 +458,7 @@ Expected baseline:
 - tests/integration/onboarding.e2e.test.ts
 - tests/integration/bank-tokenization.test.ts
 - tests/integration/finix-debug.test.ts
-- test-onboarding-apis.sh
+- scripts/test_all_endpoints.sh
 
 ## Change Log
 
@@ -465,3 +467,63 @@ Expected baseline:
 - Created frozen onboarding contract document for Networks, Marketplace, and Finix merchant flow.
 - Locked baseline request and response expectations.
 - Added required validation and test gate checklist.
+
+### 2026-03-27
+
+- Verified Batch 2 non-onboarding API coverage alignment between:
+  - docs/BATCH_2_PART1_PART2_FINAL_INTEGRATION_GUIDE.md
+  - docs/BATCH_2_NEEDED_FEATURE_APIS_SPEC.md
+- Added dedicated non-onboarding Batch 2 API change log file:
+  - change-log/batch2-apis.md
+- Future Batch 2 API changes must update change-log/batch2-apis.md in the same PR.
+- Coverage result (canonical method + path):
+  - Guide (non-onboarding): 54
+  - Spec: 54
+  - Missing: 0
+  - Extra: 0
+
+500 status failure:
+
+- Keep previous UI state and show retry path.
+- Do not clear local view model on transient 500 failures.
+
+12. Working Rules for the Frontend
+
+- Always send canonical query keys from UI code.
+- Treat 409 as a state drift signal and re-fetch.
+- Normalize pagination into one internal model per screen.
+- Use a shared adapter to map page/limit and limit/offset into the UI paging state.
+- Keep route state separate from server entity state.
+- For notifications, re-fetch unread count after every read mutation.
+- For favorites, prefer Set<string> in UI memory for fast membership checks.
+- For offers/orders, always trust the latest server response for terminal state.
+
+13. Excluded From This Spec
+
+The following are intentionally excluded:
+
+- /api/v1/networks/onboarding/status
+- /api/v1/networks/onboarding/complete
+
+14. Status Code Summary
+
+- 200: Success -> Render/update UI
+- 201: Created -> Store returned entity
+- 400: Validation/business error -> Show field or rule message
+- 401: Unauthorized -> Redirect to sign-in
+- 403: Forbidden -> Show permission denied state
+- 404: Not found -> Show empty state or remove stale row
+- 409: Conflict -> Re-fetch and reconcile
+- 500: Server error -> Keep previous state and retry
+
+15. Canonical Key Reference
+
+- year_min <- min_year (Search, Listings)
+- year_max <- max_year (Search, Listings)
+- sort_by <- sort (Search, Listings)
+- sort_order <- encoded in sort value (Search, Listings)
+
+Note:
+
+- Backend accepts legacy aliases via normalization middleware.
+- Frontend should always send canonical keys.

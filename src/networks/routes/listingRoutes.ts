@@ -29,11 +29,13 @@ import {
   conciergeRequestSchema,
   createReservationSchema,
 } from "../../validation/schemas";
+import { normalizeListingQuery } from "../middleware/normalizeListingQuery";
 
 const router: Router = Router();
 
 router.get(
   "/",
+  normalizeListingQuery,
   validateRequest(getListingsSchema),
   networks_listings_get as any,
 );

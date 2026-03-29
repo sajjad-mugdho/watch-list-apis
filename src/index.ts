@@ -5,6 +5,7 @@ import {
   startOutboxPublisherOnce,
 } from "./bootstrap/eventHandlers";
 import { startOfferExpiryJob } from "./jobs/offerExpiryJob";
+import { startWebhookWorker } from "./workers/webhookProcessor";
 import logger from "./utils/logger";
 import { config } from "./config";
 
@@ -24,7 +25,10 @@ async function bootstrap() {
     // 4. Start Offer Expiry Job
     startOfferExpiryJob();
 
-    // 5. Start HTTP Server
+    // 5. Start Webhook Worker (Bull queue consumer)
+    startWebhookWorker();
+
+    // 6. Start HTTP Server
     app.listen(PORT, () => {
       logger.info(`Dialist API Server is running on port ${PORT}`);
     });

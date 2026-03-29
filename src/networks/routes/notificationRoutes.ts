@@ -19,6 +19,20 @@ const getNotificationsSchema = z.object({
     limit: z.coerce.number().min(1).max(100).default(20),
     offset: z.coerce.number().min(0).default(0),
     unread_only: z.enum(["true", "false"]).optional().default("false"),
+    types: z.string().optional(), // comma-separated notification type filters
+    tab: z
+      .enum(["all", "buying", "selling", "social", "system"])
+      .optional()
+      .default("all"),
+  }),
+});
+
+const markAllReadSchema = z.object({
+  query: z.object({
+    tab: z
+      .enum(["all", "buying", "selling", "social", "system"])
+      .optional()
+      .default("all"),
   }),
 });
 
@@ -44,22 +58,70 @@ router.get(
         return;
       }
 
-      const { limit, offset, unread_only } = req.query as any;
+      const { limit, offset, unread_only, types, tab } = req.query as any;
       const unreadOnly = unread_only === "true";
+      const categories = tab && tab !== "all" ? [tab] : undefined;
+      const typeFilters =
+        typeof types === "string" && types.trim().length > 0
+          ? types
+              .split(",")
+              .map((t: string) => t.trim())
+              .filter(Boolean)
+          : undefined;
 
-      const [notifications, unreadCount] = await Promise.all([
-        networksNotificationService.getForUser(user._id.toString(), {
-          limit,
-          offset,
-          unreadOnly,
+      const notificationOptions: {
+        limit: number;
+        offset: number;
+        unreadOnly: boolean;
+        types?: string[];
+        categories?: Array<"buying" | "selling" | "social" | "system">;
+      } = {
+        limit,
+        offset,
+        unreadOnly,
+      };
+      if (typeFilters && typeFilters.length > 0) {
+        notificationOptions.types = typeFilters;
+      }
+      if (categories && categories.length > 0) {
+        notificationOptions.categories = categories;
+      }
+
+      const totalCountOptions: {
+        unreadOnly: boolean;
+        types?: string[];
+        categories?: Array<"buying" | "selling" | "social" | "system">;
+      } = {
+        unreadOnly,
+      };
+      if (typeFilters && typeFilters.length > 0) {
+        totalCountOptions.types = typeFilters;
+      }
+      if (categories && categories.length > 0) {
+        totalCountOptions.categories = categories;
+      }
+
+      const [notifications, unreadCount, total] = await Promise.all([
+        networksNotificationService.getForUser(
+          user._id.toString(),
+          notificationOptions,
+        ),
+        networksNotificationService.getUnreadCount(user._id.toString(), {
+          ...(typeFilters && typeFilters.length > 0
+            ? { types: typeFilters }
+            : {}),
+          ...(categories && categories.length > 0 ? { categories } : {}),
         }),
-        networksNotificationService.getUnreadCount(user._id.toString()),
+        networksNotificationService.getTotalCount(
+          user._id.toString(),
+          totalCountOptions,
+        ),
       ]);
 
       res.json({
         platform: "networks",
         data: notifications,
-        total: notifications.length, // TEMPORARY: should be actual total count from service
+        total,
         unread_count: unreadCount,
         limit,
         offset,
@@ -104,8 +166,15 @@ router.post(
   validateRequest(notificationIdSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const auth = (req as any).auth;
+      const user = await User.findOne({ external_id: auth.userId });
+      if (!user) {
+        res.status(401).json({ error: { message: "Unauthorized" } });
+        return;
+      }
+
       const { id } = req.params;
-      await networksNotificationService.markAsRead(id);
+      await networksNotificationService.markAsRead(user._id.toString(), id);
       res.json({ platform: "networks", success: true, id });
     } catch (error) {
       next(error);
@@ -119,6 +188,7 @@ router.post(
  */
 router.post(
   "/mark-all-read",
+  validateRequest(markAllReadSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
       const auth = (req as any).auth;
@@ -128,7 +198,12 @@ router.post(
         return;
       }
 
-      await networksNotificationService.markAllAsRead(user._id.toString());
+      const tab = (req.query as any).tab;
+      const categories = tab && tab !== "all" ? [tab] : undefined;
+
+      await networksNotificationService.markAllAsRead(user._id.toString(), {
+        ...(categories && categories.length > 0 ? { categories } : {}),
+      });
       res.json({ platform: "networks", success: true });
     } catch (error) {
       next(error);
@@ -145,8 +220,15 @@ router.delete(
   validateRequest(notificationIdSchema),
   async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
+      const auth = (req as any).auth;
+      const user = await User.findOne({ external_id: auth.userId });
+      if (!user) {
+        res.status(401).json({ error: { message: "Unauthorized" } });
+        return;
+      }
+
       const { id } = req.params;
-      await networksNotificationService.delete(id);
+      await networksNotificationService.delete(user._id.toString(), id);
       res.json({ platform: "networks", success: true, id });
     } catch (error) {
       next(error);

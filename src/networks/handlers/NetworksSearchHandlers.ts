@@ -5,6 +5,11 @@ import { User } from "../../models/User";
 import { getUserId } from "../../middleware/attachUser";
 import { recentSearchService } from "../../services";
 import logger from "../../utils/logger";
+import { GetNetworksSearchInput } from "../../validation/schemas";
+import {
+  buildListingFilter,
+  buildListingSort,
+} from "../../utils/listingFilters";
 
 /**
  * Unified Search Gateway
@@ -18,21 +23,29 @@ export const unifiedSearch = async (
 ): Promise<void> => {
   try {
     const userId = getUserId(req);
+    const queryInput = req.query as unknown as GetNetworksSearchInput["query"];
     const {
       q = "",
       type,
       limit = 20,
-      offset = 0,
+      page = 1,
       brand,
       condition,
       category,
-      sort,
+      contents,
+      year_min,
+      year_max,
       min_price,
       max_price,
-    } = req.query;
+      allow_offers,
+      sort_by = "created",
+      sort_order = "desc",
+    } = queryInput;
+
     const query = String(q).trim();
     const searchLimit = Math.min(Number(limit), 50);
-    const searchOffset = Number(offset);
+    const searchPage = Number(page);
+    const searchOffset = (searchPage - 1) * searchLimit;
 
     // Enforce minimum query length
     if (query.length > 0 && query.length < 2) {
@@ -40,21 +53,6 @@ export const unifiedSearch = async (
         .status(400)
         .json({ error: "Search query must be at least 2 characters" });
       return;
-    }
-
-    // Determine sort order
-    let sortOrder: Record<string, 1 | -1>;
-    switch (String(sort)) {
-      case "priceAsc":
-        sortOrder = { price: 1 };
-        break;
-      case "priceDesc":
-        sortOrder = { price: -1 };
-        break;
-      case "newest":
-      default:
-        sortOrder = { createdAt: -1 };
-        break;
     }
 
     // Save search history if query exists
@@ -73,31 +71,42 @@ export const unifiedSearch = async (
 
     // 1. Listings Search (For Sale)
     if (!type || type === "listing") {
-      const listingQuery: any = {
+      const listingFilterInput: Record<string, any> = {};
+      if (query && sort_by !== "relevance") listingFilterInput.q = query;
+      if (brand) listingFilterInput.brand = brand;
+      if (category) listingFilterInput.category = category;
+      if (condition) listingFilterInput.condition = condition;
+      if (contents) listingFilterInput.contents = contents;
+      if (year_min !== undefined) listingFilterInput.year_min = year_min;
+      if (year_max !== undefined) listingFilterInput.year_max = year_max;
+      if (min_price !== undefined) listingFilterInput.min_price = min_price;
+      if (max_price !== undefined) listingFilterInput.max_price = max_price;
+      if (allow_offers !== undefined)
+        listingFilterInput.allow_offers = allow_offers;
+
+      const listingQuery: Record<string, any> = {
+        ...buildListingFilter(listingFilterInput, true),
         status: "active",
         type: "for_sale",
         is_deleted: { $ne: true },
       };
-      if (query) {
-        listingQuery.$or = [
-          { brand: { $regex: query, $options: "i" } },
-          { model: { $regex: query, $options: "i" } },
-          { reference: { $regex: query, $options: "i" } },
-          { title: { $regex: query, $options: "i" } },
-        ];
+
+      if (sort_by === "relevance" && query) {
+        listingQuery.$text = { $search: query };
       }
-      if (brand) listingQuery.brand = { $regex: String(brand), $options: "i" };
-      if (condition) listingQuery.condition = String(condition);
-      if (category) listingQuery.category = String(category);
-      if (min_price || max_price) {
-        listingQuery.price = {};
-        if (min_price) listingQuery.price.$gte = Number(min_price);
-        if (max_price) listingQuery.price.$lte = Number(max_price);
-      }
-      results.listings = await NetworkListing.find(listingQuery)
-        .sort(sortOrder)
+
+      const listingSort = buildListingSort(sort_by, sort_order);
+      const listingFind =
+        sort_by === "relevance" && query
+          ? NetworkListing.find(listingQuery, {
+              score: { $meta: "textScore" },
+            }).sort({ score: { $meta: "textScore" }, createdAt: -1 } as any)
+          : NetworkListing.find(listingQuery).sort(listingSort);
+
+      results.listings = await listingFind
         .skip(searchOffset)
-        .limit(searchLimit);
+        .limit(searchLimit)
+        .lean();
 
       results.listings_count =
         await NetworkListing.countDocuments(listingQuery);
@@ -155,6 +164,7 @@ export const unifiedSearch = async (
       data: results,
       pagination: {
         limit: searchLimit,
+        page: searchPage,
         offset: searchOffset,
       },
     });

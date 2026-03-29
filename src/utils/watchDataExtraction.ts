@@ -9,6 +9,7 @@ export interface WatchSpecData {
   brand: string;
   model: string;
   reference: string;
+  category?: string;
   diameter: string;
   color?: string;
   bezel: string;
@@ -39,6 +40,7 @@ export function ExtractWatchSpecData(data: any): WatchSpecData | null {
       brand: data.brand,
       model: data.model,
       reference: data.reference,
+      category: data.category,
       diameter: data.diameter,
       color: data.color,
       bezel: data.bezel,

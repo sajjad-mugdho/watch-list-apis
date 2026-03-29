@@ -60,7 +60,7 @@ This API implements all 10 Finix sandbox certification requirements:
 - Returns payment_token for secure payment processing
 
 ### 9. Webhooks for Events ✅
-- **POST /api/v1/webhooks/finix** handles Finix webhook events
+- **POST /api/v1/marketplace/webhooks/finix** handles Finix webhook events
 - Implements HMAC-SHA256 signature verification with \`crypto.timingSafeEqual\`
 - Events: merchant.onboarding.updated, dispute.created, transfer.succeeded, verification.updated
 - All events logged to FinixWebhookEvent collection
@@ -5504,8 +5504,9 @@ swaggerSpec.paths = {
     post: {
       tags: ["Webhooks"],
       summary: "Clerk webhook",
-      description: "Handles webhook events from Clerk authentication service",
-      security: [{ basicAuth: [] }],
+      description:
+        "Handles webhook events from Clerk authentication service. Requires Svix signature headers: svix-id, svix-signature, and svix-timestamp.",
+      security: [],
       requestBody: {
         required: true,
         content: {
@@ -5525,9 +5526,9 @@ swaggerSpec.paths = {
               schema: {
                 type: "object",
                 properties: {
-                  status: {
-                    type: "string",
-                    example: "ok",
+                  success: {
+                    type: "boolean",
+                    example: true,
                   },
                 },
               },
@@ -5547,7 +5548,7 @@ swaggerSpec.paths = {
       },
     },
   },
-  "/api/v1/webhooks/finix": {
+  "/api/v1/marketplace/webhooks/finix": {
     post: {
       tags: ["Webhooks"],
       summary: "Finix webhook",
@@ -5572,11 +5573,25 @@ swaggerSpec.paths = {
               schema: {
                 type: "object",
                 properties: {
-                  status: {
+                  success: {
+                    type: "boolean",
+                    example: true,
+                  },
+                  message: {
                     type: "string",
-                    example: "ok",
+                    example: "Webhook received and enqueued",
                   },
                 },
+              },
+            },
+          },
+        },
+        401: {
+          description: "Unauthorized - invalid webhook signature",
+          content: {
+            "application/json": {
+              schema: {
+                $ref: "#/components/schemas/Error",
               },
             },
           },
@@ -10679,6 +10694,20 @@ Once approved:
       responses: {
         200: { description: "Stats retrieved" },
         401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/user/profile": {
+    get: {
+      tags: ["Networks - User"],
+      summary: "Get consolidated current-user profile payload",
+      description:
+        "Returns profile identity, verification, onboarding progress, and activity stats in one response for Networks Home/Profile screens.",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: { description: "Consolidated profile payload retrieved" },
+        401: { description: "Unauthorized" },
+        404: { description: "User not found" },
       },
     },
   },

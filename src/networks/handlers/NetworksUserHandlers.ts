@@ -11,6 +11,9 @@ import { Review } from "../../models/Review";
 import { ReferenceCheck } from "../../models/ReferenceCheck";
 import { Connection } from "../models/Connection";
 import { User } from "../../models/User";
+import { Favorite } from "../../models/Favorite";
+import { Order } from "../../models/Order";
+import { ISO } from "../../models/ISO";
 import { Block } from "../models/Block";
 import { Report } from "../models/Report";
 import {
@@ -20,7 +23,9 @@ import {
 } from "../../validation/schemas";
 import mongoose from "mongoose";
 import { INetworkListing, NetworkListing } from "../models/NetworkListing";
+import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { feedService } from "../../services/FeedService";
+import { supportTicketService } from "../../services/support/SupportTicketService";
 
 // ----------------------------------------------------------
 // Types
@@ -68,6 +73,209 @@ export const networks_user_get = async (
     res.json(response);
   } catch (error: any) {
     next(new DatabaseError("Failed to fetch user", error));
+  }
+};
+
+/**
+ * Get consolidated current-user profile payload for Networks screens.
+ * GET /api/v1/networks/user/profile
+ */
+export const networks_user_profile_get = async (
+  req: Request,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const authUser = (req as any).user;
+    if (!authUser?.dialist_id) {
+      throw new MissingUserContextError({
+        route: req.path,
+        note: "(req as any).user.dialist_id missing in networks_user_profile_get",
+      });
+    }
+
+    const userId = new mongoose.Types.ObjectId(authUser.dialist_id);
+
+    const [
+      user,
+      listingsByStatus,
+      pendingOffers,
+      activeISOs,
+      pendingRefChecks,
+      followersCount,
+      followingCount,
+      verifiedDealersCount,
+      hasFirstListing,
+      hasFirstISO,
+      activeOrders,
+      wishlistCount,
+      openTicketsCount,
+    ] = await Promise.all([
+      User.findById(userId)
+        .select(
+          "first_name last_name display_name email bio avatar location social_links createdAt rating_average rating_count reference_count identityVerified identityVerifiedAt personaStatus",
+        )
+        .lean(),
+      NetworkListing.aggregate([
+        { $match: { dialist_id: userId, is_deleted: { $ne: true } } },
+        { $group: { _id: "$status", count: { $sum: 1 } } },
+      ]),
+      NetworkListingChannel.countDocuments({
+        $or: [{ buyer_id: userId }, { seller_id: userId }],
+        status: "open",
+        "last_offer.status": "sent",
+        "last_offer.sender_id": { $ne: userId },
+      }),
+      ISO.countDocuments({ user_id: userId, status: "active" }),
+      ReferenceCheck.countDocuments({ target_id: userId, status: "pending" }),
+      Connection.getIncomingCount(authUser.dialist_id),
+      Connection.getOutgoingCount(authUser.dialist_id),
+      User.countDocuments({ "verification.verification_state": "SUCCEEDED" }),
+      NetworkListing.exists({ dialist_id: userId }),
+      ISO.exists({ user_id: userId }),
+      Order.countDocuments({
+        listing_type: "NetworkListing",
+        $or: [{ buyer_id: userId }, { seller_id: userId }],
+        status: {
+          $in: [
+            "pending",
+            "reserved",
+            "paid",
+            "authorized",
+            "shipped",
+            "delivered",
+          ],
+        },
+      }),
+      Favorite.countDocuments({
+        user_id: userId,
+        $or: [
+          { platform: "networks" },
+          { platform: null },
+          { platform: { $exists: false } },
+        ],
+      }),
+      supportTicketService.getOpenTicketsCount(userId.toString()),
+    ]);
+
+    if (!user) {
+      throw new NotFoundError("User not found");
+    }
+
+    const listingGroups = {
+      all: 0,
+      draft: 0,
+      active: 0,
+      reserved: 0,
+      sold: 0,
+      inactive: 0,
+    };
+
+    for (const row of listingsByStatus) {
+      const key = String(row._id);
+      const count = Number(row.count || 0);
+      if (key in listingGroups) {
+        (listingGroups as any)[key] = count;
+      }
+      listingGroups.all += count;
+    }
+
+    const verificationStatus = user.identityVerified
+      ? "SUCCEEDED"
+      : "NOT_STARTED";
+
+    const onboardingItems = [
+      { id: "display_name", completed: !!user.display_name },
+      { id: "avatar", completed: !!user.avatar },
+      {
+        id: "location",
+        completed: !!(user.location?.country || user.location?.region),
+      },
+      { id: "first_listing", completed: !!hasFirstListing },
+      { id: "first_iso", completed: !!hasFirstISO },
+    ];
+
+    const onboardingCompleted = onboardingItems.filter(
+      (i) => i.completed,
+    ).length;
+
+    const response: ApiResponse<any> = {
+      data: {
+        profile: {
+          _id: user._id,
+          first_name: user.first_name,
+          last_name: user.last_name,
+          display_name: user.display_name,
+          email: user.email,
+          bio: user.bio || null,
+          avatar_url: user.avatar || null,
+          location: {
+            city: user.location?.city || null,
+            region: user.location?.region || null,
+            country: user.location?.country || null,
+          },
+          social_links: user.social_links || {},
+          joined_at: user.createdAt,
+        },
+        verification: {
+          status: user.personaStatus ?? "unverified",
+          identity_verified: !!user.identityVerified,
+          verified_at: user.identityVerifiedAt || null,
+          verification_status: verificationStatus,
+        },
+        onboarding: {
+          completed_count: onboardingCompleted,
+          total_count: onboardingItems.length,
+          percentage: Math.round(
+            (onboardingCompleted / onboardingItems.length) * 100,
+          ),
+          items: onboardingItems,
+        },
+        stats: {
+          listings: {
+            all: listingGroups.all,
+            draft: listingGroups.draft,
+            active: listingGroups.active,
+            reserved: listingGroups.reserved,
+            sold: listingGroups.sold,
+            inactive: listingGroups.inactive,
+          },
+          offers: { pending: pendingOffers },
+          orders: { active: activeOrders },
+          isos: { active: activeISOs },
+          reference_checks: { pending: pendingRefChecks },
+          favorites: { total: wishlistCount },
+          support: { open_tickets: openTicketsCount },
+          social: {
+            followers: followersCount,
+            following: followingCount,
+          },
+          rating: {
+            average: user.rating_average || 0,
+            count: user.rating_count || 0,
+            reference_count: user.reference_count || 0,
+          },
+          verified_dealers_global: verifiedDealersCount,
+        },
+      },
+      requestId: req.headers["x-request-id"] as string,
+    };
+
+    res.json(response);
+  } catch (error: any) {
+    if (
+      error instanceof MissingUserContextError ||
+      error instanceof NotFoundError
+    ) {
+      next(error);
+      return;
+    }
+    next(
+      new DatabaseError(
+        "Failed to fetch consolidated networks user profile",
+        error,
+      ),
+    );
   }
 };
 

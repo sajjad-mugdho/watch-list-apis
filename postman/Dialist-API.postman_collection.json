@@ -2200,14 +2200,14 @@
           }
         },
         {
-          "name": "Get Dashboard Stats",
+          "name": "Get Consolidated Networks Profile",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/user/dashboard/stats",
+              "raw": "{{baseUrl}}/api/v1/networks/user/profile",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "user", "dashboard", "stats"]
+              "path": ["api", "v1", "networks", "user", "profile"]
             }
           }
         },
@@ -3415,9 +3415,9 @@
               "raw": "{\n  \"type\": \"transfer.succeeded\",\n  \"data\": {}\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/webhooks/finix",
+              "raw": "{{baseUrl}}/api/v1/marketplace/webhooks/finix",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "webhooks", "finix"]
+              "path": ["api", "v1", "marketplace", "webhooks", "finix"]
             }
           }
         },
@@ -3453,6 +3453,1636 @@
               "path": ["api", "v1", "webhooks", "clerk"]
             }
           }
+        }
+      ]
+    },
+    {
+      "name": "✅ Batch 2 - Screen Integration (Aligned Payloads)",
+      "description": "Canonical screen-by-screen Batch 2 flow requests aligned with implementation and payload docs.\nUses x-test-user when authMode=mock, or Bearer token when authMode=jwt.\nRelated docs:\n- docs/BATCH_2_API_REQUEST_RESPONSE_ALIGNMENT.md\n- docs/BATCH_2_API_PAYLOADS.md\n- docs/BATCH_2_SCREEN_BY_SCREEN_INTEGRATION_GUIDE.md",
+      "item": [
+        {
+          "name": "Screen 1 - Home Dashboard",
+          "description": "Dashboard and cross-domain dependencies used by home cards and quick actions.",
+          "item": [
+            {
+              "name": "Get Consolidated Networks Profile",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/profile",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "user", "profile"]
+                }
+              }
+            },
+            {
+              "name": "Get Offers (Received Active)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/offers?type=received&status=active&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "offers"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "received"
+                    },
+                    {
+                      "key": "status",
+                      "value": "active"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"offerId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Social Inbox (Inquiries)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/social/inbox?filter=inquiries&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "social", "inbox"],
+                  "query": [
+                    {
+                      "key": "filter",
+                      "value": "inquiries"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Open Tickets Count",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/user/support/tickets/count/open",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "user",
+                    "support",
+                    "tickets",
+                    "count",
+                    "open"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Orders (Buy Reserved)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/orders?type=buy&status=reserved&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "orders"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "buy"
+                    },
+                    {
+                      "key": "status",
+                      "value": "reserved"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"orderId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get News",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/news?limit=10",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "news"],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Screen 2 - Search and Discovery",
+          "description": "Unified search, listings filter/sort, and recent searches lifecycle.",
+          "item": [
+            {
+              "name": "Search Networks (Listing)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/search?type=listing&q=rolex&page=1&limit=10&sort_by=relevance&allow_offers=true&year_min=2020&year_max=2025",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "search"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "listing"
+                    },
+                    {
+                      "key": "q",
+                      "value": "rolex"
+                    },
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "sort_by",
+                      "value": "relevance"
+                    },
+                    {
+                      "key": "allow_offers",
+                      "value": "true"
+                    },
+                    {
+                      "key": "year_min",
+                      "value": "2020"
+                    },
+                    {
+                      "key": "year_max",
+                      "value": "2025"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Listings (Filtered)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/listings?page=1&limit=10&sort_by=popularity&sort_order=desc&allow_offers=true&contents=box&year_min=2019&year_max=2025",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "listings"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "10"
+                    },
+                    {
+                      "key": "sort_by",
+                      "value": "popularity"
+                    },
+                    {
+                      "key": "sort_order",
+                      "value": "desc"
+                    },
+                    {
+                      "key": "allow_offers",
+                      "value": "true"
+                    },
+                    {
+                      "key": "contents",
+                      "value": "box"
+                    },
+                    {
+                      "key": "year_min",
+                      "value": "2019"
+                    },
+                    {
+                      "key": "year_max",
+                      "value": "2025"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"listingId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Popular Brands",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/search/popular-brands",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "search", "popular-brands"]
+                }
+              }
+            },
+            {
+              "name": "Get Recent Searches",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "user",
+                    "searches",
+                    "recent"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"recentSearchId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Save Recent Search",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "user",
+                    "searches",
+                    "recent"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"query\": \"rolex gmt\",\n  \"context\": \"listing\",\n  \"filters\": {\n    \"year_min\": 2020,\n    \"allow_offers\": true\n  },\n  \"result_count\": 14\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data._id;",
+                      "  if (value) pm.environment.set(\"recentSearchId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Delete Recent Search By Id",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent/{{recentSearchId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "user",
+                    "searches",
+                    "recent",
+                    "{{recentSearchId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Clear Recent Searches",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/searches/recent",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "user",
+                    "searches",
+                    "recent"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Screen 3 - Listing Detail and Actions",
+          "description": "Listing details, offer/inquiry actions, reserve flow, and listing maintenance calls.",
+          "item": [
+            {
+              "name": "Get Listing By Id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
+                }
+              }
+            },
+            {
+              "name": "Send Offer On Listing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/offers",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "listings",
+                    "{{listingId}}",
+                    "offers"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 5800,\n  \"message\": \"Can close today\",\n  \"shipping_region\": \"US\",\n  \"request_free_shipping\": false\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data._id;",
+                      "  if (value) pm.environment.set(\"offerId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Listing Offers (Seller)",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/offers",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "listings",
+                    "{{listingId}}",
+                    "offers"
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"offerId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Inquire Listing",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/inquire",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "listings",
+                    "{{listingId}}",
+                    "inquire"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"message\": \"Is service history available?\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data.channel_id;",
+                      "  if (value) pm.environment.set(\"channelId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Reserve Listing (Buy Now)",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/reserve",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "listings",
+                    "{{listingId}}",
+                    "reserve"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"shipping_region\": \"US\",\n  \"note\": \"Please hold for wire transfer\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data._id;",
+                      "  if (value) pm.environment.set(\"orderId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Patch Listing (Draft Only)",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"price\": 5900,\n  \"description\": \"Updated draft description\",\n  \"allow_offers\": true\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete Listing",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Screen 4 - Offers and Orders",
+          "description": "Offer channel operations and order lifecycle endpoints.",
+          "item": [
+            {
+              "name": "Get Offers",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/offers?type=received&status=active&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "offers"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "received"
+                    },
+                    {
+                      "key": "status",
+                      "value": "active"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"offerId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Offer Channel By Id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/offers/{{offerId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "offers", "{{offerId}}"]
+                }
+              }
+            },
+            {
+              "name": "Counter Offer",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/offers/{{offerId}}/counter",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "offers",
+                    "{{offerId}}",
+                    "counter"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"amount\": 6000,\n  \"note\": \"Meet in the middle\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Accept Offer",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/offers/{{offerId}}/accept",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "offers",
+                    "{{offerId}}",
+                    "accept"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Reject Offer",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/offers/{{offerId}}/reject",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "offers",
+                    "{{offerId}}",
+                    "reject"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Orders",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/orders?type=buy&status=reserved&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "orders"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "buy"
+                    },
+                    {
+                      "key": "status",
+                      "value": "reserved"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"orderId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Order By Id",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/orders/{{orderId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "orders", "{{orderId}}"]
+                }
+              }
+            },
+            {
+              "name": "Complete Order",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/orders/{{orderId}}/complete",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "orders",
+                    "{{orderId}}",
+                    "complete"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Screen 5 - Other User Profile and Connections",
+          "description": "Incoming/outgoing requests, connection actions, and other-user public APIs.",
+          "item": [
+            {
+              "name": "Get Incoming Connections",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/connections/my-incoming?limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "connections",
+                    "my-incoming"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0].id;",
+                      "  if (value) pm.environment.set(\"connectionId\", value);",
+                      "} catch (e) {}",
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0].requester && res.data[0].requester.user_id;",
+                      "  if (value) pm.environment.set(\"targetUserId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Outgoing Connections",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/connections/my-outgoing?limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "connections",
+                    "my-outgoing"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Send Connection Request",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/connections/send-request",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "connections",
+                    "send-request"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"target_user_id\": \"{{targetUserId}}\"\n}"
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data._id;",
+                      "  if (value) pm.environment.set(\"connectionId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Accept Connection Request",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/connections/{{connectionId}}/accept",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "connections",
+                    "{{connectionId}}",
+                    "accept"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Reject Connection Request",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/connections/{{connectionId}}/reject",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "connections",
+                    "{{connectionId}}",
+                    "reject"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Accepted Connections",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/connections?page=1&limit=50",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "connections"],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "50"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Remove Connection",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/connections/{{targetUserId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "connections",
+                    "{{targetUserId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Other User Profile",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/users/{{targetUserId}}/profile",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "users",
+                    "{{targetUserId}}",
+                    "profile"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Other User Listings",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/users/{{targetUserId}}/listings?page=1&limit=20&status=active",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "users",
+                    "{{targetUserId}}",
+                    "listings"
+                  ],
+                  "query": [
+                    {
+                      "key": "page",
+                      "value": "1"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "status",
+                      "value": "active"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Other User Reviews",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/users/{{targetUserId}}/reviews?role=seller&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "users",
+                    "{{targetUserId}}",
+                    "reviews"
+                  ],
+                  "query": [
+                    {
+                      "key": "role",
+                      "value": "seller"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Other User Review Summary",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/users/{{targetUserId}}/review-summary",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "users",
+                    "{{targetUserId}}",
+                    "review-summary"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get Connection Status",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/users/{{targetUserId}}/connection-status",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "users",
+                    "{{targetUserId}}",
+                    "connection-status"
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Screen 6 - Favorites, ISOs, and Profile",
+          "description": "Current user favorites, ISO list, reviews, profile edit, and account controls.",
+          "item": [
+            {
+              "name": "Get Favorites",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/favorites?type=listing&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "user", "favorites"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "listing"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Add Favorite",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/favorites",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "user", "favorites"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"item_type\": \"listing\",\n  \"item_id\": \"{{listingId}}\"\n}"
+                }
+              }
+            },
+            {
+              "name": "Remove Favorite",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/favorites/listing/{{listingId}}",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "user",
+                    "favorites",
+                    "listing",
+                    "{{listingId}}"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get My Reviews",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/reviews?role=seller&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "user", "reviews"],
+                  "query": [
+                    {
+                      "key": "role",
+                      "value": "seller"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Get My ISOs",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/isos/my?status=all",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "user", "isos", "my"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "all"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"isoId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Feed Timeline",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/user/feeds/timeline?limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "user",
+                    "feeds",
+                    "timeline"
+                  ],
+                  "query": [
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Patch User Profile",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/user/profile",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "user", "profile"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"first_name\": \"Sam\",\n  \"last_name\": \"Dealer\",\n  \"display_name\": \"Sam Dealer\",\n  \"bio\": \"Independent watch dealer\",\n  \"social_links\": {\n    \"instagram\": \"dealer_handle\",\n    \"twitter\": \"dealerx\",\n    \"website\": \"https://dealer.example.com\"\n  }\n}"
+                }
+              }
+            },
+            {
+              "name": "Upload Avatar (multipart)",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/user/avatar",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "user", "avatar"]
+                },
+                "body": {
+                  "mode": "formdata",
+                  "formdata": [
+                    {
+                      "key": "avatar",
+                      "type": "file",
+                      "src": ""
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Deactivate/Reactivate Account",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/user/deactivate",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "user", "deactivate"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"active\": true\n}"
+                }
+              }
+            },
+            {
+              "name": "Delete Account (Use With Caution)",
+              "request": {
+                "method": "DELETE",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/user",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "user"]
+                }
+              },
+              "description": "Irreversible anonymization endpoint. Run only in disposable test data environments."
+            }
+          ]
+        },
+        {
+          "name": "Screen 7 - Notifications",
+          "description": "Networks notification tabs, unread count, read single, and mark all read.",
+          "item": [
+            {
+              "name": "Get Notifications",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/notifications?tab=buying&unread_only=false&limit=20&offset=0&types=offer_received%2Ccounter_offer",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "notifications"],
+                  "query": [
+                    {
+                      "key": "tab",
+                      "value": "buying"
+                    },
+                    {
+                      "key": "unread_only",
+                      "value": "false"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    },
+                    {
+                      "key": "types",
+                      "value": "offer_received,counter_offer"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = (res.data && res.data[0] && (res.data[0].id || res.data[0]._id));",
+                      "  if (value) pm.environment.set(\"notificationId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Unread Count",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/notifications/unread-count",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "notifications",
+                    "unread-count"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mark Notification Read",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/notifications/{{notificationId}}/read",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "notifications",
+                    "{{notificationId}}",
+                    "read"
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mark All Notifications Read",
+              "request": {
+                "method": "POST",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/notifications/mark-all-read?tab=buying",
+                  "host": ["{{baseUrl}}"],
+                  "path": [
+                    "api",
+                    "v1",
+                    "networks",
+                    "notifications",
+                    "mark-all-read"
+                  ],
+                  "query": [
+                    {
+                      "key": "tab",
+                      "value": "buying"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "Screen 8 - Onboarding and Reference Checks",
+          "description": "Onboarding status/complete and reference checks + support list endpoints.",
+          "item": [
+            {
+              "name": "Get Onboarding Status",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/onboarding/status",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "onboarding", "status"]
+                }
+              }
+            },
+            {
+              "name": "Complete Onboarding",
+              "request": {
+                "method": "PATCH",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/onboarding/complete",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "onboarding", "complete"]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"location\": {\n    \"country\": \"US\",\n    \"region\": \"NY\",\n    \"postal_code\": \"10001\",\n    \"city\": \"New York\",\n    \"line1\": \"123 Main St\",\n    \"line2\": null,\n    \"currency\": \"USD\"\n  },\n  \"profile\": {\n    \"first_name\": \"Sam\",\n    \"last_name\": \"Dealer\"\n  },\n  \"avatar\": {\n    \"type\": \"monogram\",\n    \"monogram_initials\": \"SD\",\n    \"monogram_color\": \"#0B3D91\",\n    \"monogram_style\": \"classic\"\n  }\n}"
+                }
+              }
+            },
+            {
+              "name": "Get Reference Checks",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/networks/reference-checks?type=requested",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "networks", "reference-checks"],
+                  "query": [
+                    {
+                      "key": "type",
+                      "value": "requested"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"referenceCheckId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Get Support Tickets",
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/api/v1/user/support/tickets?status=open&limit=20&offset=0",
+                  "host": ["{{baseUrl}}"],
+                  "path": ["api", "v1", "user", "support", "tickets"],
+                  "query": [
+                    {
+                      "key": "status",
+                      "value": "open"
+                    },
+                    {
+                      "key": "limit",
+                      "value": "20"
+                    },
+                    {
+                      "key": "offset",
+                      "value": "0"
+                    }
+                  ]
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "try {",
+                      "  const res = pm.response.json();",
+                      "  const value = res.data && res.data[0] && res.data[0]._id;",
+                      "  if (value) pm.environment.set(\"ticketId\", value);",
+                      "} catch (e) {}"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
         }
       ]
     }

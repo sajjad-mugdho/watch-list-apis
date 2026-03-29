@@ -13,6 +13,7 @@ import { User } from "../../models/User";
 import { feedService } from "../FeedService";
 import logger from "../../utils/logger";
 import { Block } from "../../networks/models/Block";
+import { networksNotificationService } from "../../networks/services/NotificationService";
 
 const FEED_SYNC_RETRY_MAX_ATTEMPTS = 3;
 const FEED_SYNC_RETRY_BASE_DELAY_MS = 300;
@@ -369,10 +370,21 @@ export class ConnectionService {
     targetId: string,
   ): Promise<void> {
     try {
-      // TODO: Use platform-specific notification service
-      logger.debug("[ConnectionService] notifyTargetOfRequest placeholder", {
-        requesterId,
-        targetId,
+      const requester = await User.findById(requesterId).select(
+        "display_name first_name last_name",
+      );
+      const requesterName =
+        requester?.display_name ||
+        `${requester?.first_name || ""} ${requester?.last_name || ""}`.trim() ||
+        "Someone";
+
+      await networksNotificationService.create({
+        userId: targetId,
+        type: "friend_request_received",
+        title: "Friend Request",
+        body: `${requesterName} sent you a friend request`,
+        actionUrl: "/networks/friend-requests",
+        data: { requester_id: requesterId },
       });
     } catch (err) {
       logger.warn("[ConnectionService] Failed to create request notification", {
@@ -386,10 +398,21 @@ export class ConnectionService {
     targetId: string,
   ): Promise<void> {
     try {
-      // TODO: Use platform-specific notification service
-      logger.debug("[ConnectionService] notifyRequesterAccepted placeholder", {
-        requesterId,
-        targetId,
+      const target = await User.findById(targetId).select(
+        "display_name first_name last_name",
+      );
+      const targetName =
+        target?.display_name ||
+        `${target?.first_name || ""} ${target?.last_name || ""}`.trim() ||
+        "Someone";
+
+      await networksNotificationService.create({
+        userId: requesterId,
+        type: "friend_request_accepted",
+        title: "Friend Request Accepted",
+        body: `${targetName} accepted your friend request`,
+        actionUrl: "/networks/connections",
+        data: { accepted_by_user_id: targetId },
       });
     } catch (err) {
       logger.warn(

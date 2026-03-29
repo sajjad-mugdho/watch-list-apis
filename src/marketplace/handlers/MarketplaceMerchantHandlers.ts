@@ -8,6 +8,7 @@ import { User } from "../../models/User";
 import { MerchantOnboarding } from "../models/MerchantOnboarding";
 import { ApiResponse } from "../../types";
 import {
+  ConflictError,
   DatabaseError,
   MissingUserContextError,
   ValidationError,
@@ -49,6 +50,12 @@ export async function ensureMerchantOnboardingSession(params: {
   });
 
   if (existingOnboarding) {
+    if (existingOnboarding.onboarding_state === "APPROVED") {
+      throw new ConflictError(
+        "Merchant onboarding is already approved for this account",
+      );
+    }
+
     merchantLogger.info(`User already has onboarding record`, {
       user_id: user._id.toString(),
       form_id: existingOnboarding.form_id,
@@ -249,6 +256,7 @@ export const marketplace_merchant_onboard_post = async (
     });
   } catch (error: any) {
     if (
+      error instanceof ConflictError ||
       error instanceof ValidationError ||
       error instanceof MissingUserContextError
     ) {
@@ -448,6 +456,12 @@ export const marketplace_merchant_refresh_link_post = async (
       throw new ValidationError("No onboarding form found. Create one first.");
     }
 
+    if (merchantOnboarding.onboarding_state === "APPROVED") {
+      throw new ConflictError(
+        "Merchant onboarding is already approved for this account",
+      );
+    }
+
     // Create new link for existing form
     merchantLogger.info(`Refreshing link for onboarding form`, {
       user_id: (req as any).user.dialist_id,
@@ -476,6 +490,7 @@ export const marketplace_merchant_refresh_link_post = async (
     });
   } catch (error: any) {
     if (
+      error instanceof ConflictError ||
       error instanceof ValidationError ||
       error instanceof MissingUserContextError
     ) {
