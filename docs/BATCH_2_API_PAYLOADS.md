@@ -728,7 +728,98 @@ Response 200:
 
 ## 4) User Features in Networks Namespace
 
+### GET /api/v1/networks/user/profile
+
+Request:
+
+```json
+{}
+```
+
+Response 200:
+
+```json
+{
+  "data": {
+    "profile": {
+      "_id": "67ea00000000000000000a01",
+      "first_name": "Sam",
+      "last_name": "Dealer",
+      "display_name": "Sam Dealer",
+      "email": "sam@example.com",
+      "bio": "Independent watch dealer",
+      "avatar_url": "https://cdn.example.com/avatar.jpg",
+      "location": {
+        "city": "New York",
+        "region": "NY",
+        "country": "US"
+      },
+      "social_links": {
+        "instagram": "dealer_handle",
+        "twitter": "dealerx",
+        "website": "https://dealer.example.com"
+      },
+      "joined_at": "2024-03-01T10:00:00.000Z"
+    },
+    "verification": {
+      "status": "approved",
+      "identity_verified": true,
+      "verified_at": "2026-03-01T10:00:00.000Z",
+      "verification_status": "SUCCEEDED"
+    },
+    "onboarding": {
+      "completed_count": 4,
+      "total_count": 5,
+      "percentage": 80,
+      "items": [
+        { "id": "display_name", "completed": true },
+        { "id": "avatar", "completed": true },
+        { "id": "location", "completed": true },
+        { "id": "first_listing", "completed": true },
+        { "id": "first_iso", "completed": false }
+      ]
+    },
+    "stats": {
+      "listings": {
+        "all": 4,
+        "draft": 2,
+        "active": 1,
+        "reserved": 0,
+        "sold": 1,
+        "inactive": 0
+      },
+      "offers": { "pending": 2 },
+      "orders": { "active": 3 },
+      "isos": { "active": 1 },
+      "reference_checks": { "pending": 0 },
+      "favorites": { "total": 18 },
+      "support": { "open_tickets": 1 },
+      "social": {
+        "followers": 14,
+        "following": 9
+      },
+      "rating": {
+        "average": 4.8,
+        "count": 37,
+        "reference_count": 26
+      },
+      "verified_dealers_global": 87
+    }
+  },
+  "requestId": "req_139"
+}
+```
+
+Note:
+
+- This is now the primary read endpoint for Networks home/profile summary composition.
+- It consolidates fields previously fetched through multiple calls.
+
 ### GET /api/v1/networks/user/dashboard/stats
+
+Note:
+
+- Legacy compatibility endpoint. For Networks home/profile summary screens, use GET /api/v1/networks/user/profile.
 
 Request:
 
@@ -1667,6 +1758,10 @@ Response 200:
 ## 7) Cross Domain Dependencies
 
 ### GET /api/v1/user/profile
+
+Note:
+
+- Legacy compatibility endpoint. For Networks home/profile summary screens, use GET /api/v1/networks/user/profile.
 
 Request:
 

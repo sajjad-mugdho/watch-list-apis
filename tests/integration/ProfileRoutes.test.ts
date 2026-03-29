@@ -91,6 +91,21 @@ describe("Profile and Wishlist Endpoints Integration", () => {
       expect(response.body.data.bio).toBe("Bio Test");
       expect(response.body.data.stats).toBeDefined();
     });
+
+    it("should get consolidated networks user profile payload", async () => {
+      const response = await request(app)
+        .get("/api/v1/networks/user/profile")
+        .set("x-test-user", "buyer_us_complete");
+
+      expect(response.status).toBe(200);
+      expect(response.body.data).toBeDefined();
+      expect(response.body.data.profile).toBeDefined();
+      expect(response.body.data.verification).toBeDefined();
+      expect(response.body.data.onboarding).toBeDefined();
+      expect(response.body.data.stats).toBeDefined();
+      expect(response.body.data.profile.display_name).toBe("User A");
+      expect(response.body.data.stats.support.open_tickets).toBeDefined();
+    });
   });
 
   describe("Wishlist Management", () => {

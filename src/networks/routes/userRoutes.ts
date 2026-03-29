@@ -10,6 +10,7 @@
 import { Router, Request, Response, NextFunction } from "express";
 import {
   networks_user_get,
+  networks_user_profile_get,
   networks_user_inventory_get,
   networks_user_blocks_get,
 } from "../handlers/NetworksUserHandlers";
@@ -31,6 +32,7 @@ const router = Router();
 // ──────────────────────────────────────────────────────────────────────
 
 router.get("/", networks_user_get as any);
+router.get("/profile", networks_user_profile_get as any);
 router.get(
   "/listings",
   validateRequest(getUserInventorySchema),

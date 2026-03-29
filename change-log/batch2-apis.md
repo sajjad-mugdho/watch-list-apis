@@ -43,6 +43,30 @@ Last verified: 2026-03-29
 
 ---
 
+## Consolidated Profile API Update (2026-03-29)
+
+**Status:** Implemented in backend and promoted for frontend integration
+
+### New Primary Endpoint
+
+- GET /api/v1/networks/user/profile
+
+### Purpose
+
+- Reduce profile/home page fan-out calls by consolidating:
+  - profile identity fields
+  - verification state
+  - onboarding progress
+  - top activity/stat counts (orders/offers/wishlist/reference checks/tickets)
+
+### Migration Guidance
+
+- Frontend home/profile screens should use GET /api/v1/networks/user/profile as the primary source.
+- Keep /api/v1/user/profile and /api/v1/networks/user/dashboard/stats as legacy compatibility endpoints during transition.
+- Other-user routes remain separate and unchanged under /api/v1/networks/users/:id/\*.
+
+---
+
 ## Purpose
 
 This file is the persistent change log and contract tracker for Batch 2 non-onboarding APIs.
@@ -104,39 +128,40 @@ Coverage result on 2026-03-27:
 19. GET /api/v1/networks/search
 20. GET /api/v1/networks/search/popular-brands
 21. GET /api/v1/networks/social/inbox
-22. GET /api/v1/networks/user/dashboard/stats
-23. GET /api/v1/networks/user/favorites
-24. GET /api/v1/networks/user/isos/my
-25. GET /api/v1/networks/user/listings
-26. GET /api/v1/networks/user/reviews
-27. GET /api/v1/networks/user/searches/recent
-28. GET /api/v1/networks/users/:id/connection-status
-29. GET /api/v1/networks/users/:id/listings
-30. GET /api/v1/networks/users/:id/profile
-31. GET /api/v1/networks/users/:id/reviews
-32. GET /api/v1/networks/users/:id/review-summary
-33. GET /api/v1/news
-34. GET /api/v1/user/profile
-35. GET /api/v1/user/support/tickets/count/open
-36. GET /api/v1/user/verification
-37. PATCH /api/v1/networks/listings/:id
-38. PATCH /api/v1/user/deactivate
-39. PATCH /api/v1/user/profile
-40. POST /api/v1/networks/connections/:id/accept
-41. POST /api/v1/networks/connections/:id/reject
-42. POST /api/v1/networks/connections/send-request
-43. POST /api/v1/networks/listings/:id/inquire
-44. POST /api/v1/networks/listings/:id/offers
-45. POST /api/v1/networks/listings/:id/reserve
-46. POST /api/v1/networks/notifications/:id/read
-47. POST /api/v1/networks/notifications/mark-all-read
-48. POST /api/v1/networks/offers/:id/accept
-49. POST /api/v1/networks/offers/:id/counter
-50. POST /api/v1/networks/offers/:id/reject
-51. POST /api/v1/networks/orders/:id/complete
-52. POST /api/v1/networks/user/favorites
-53. POST /api/v1/networks/user/searches/recent
-54. POST /api/v1/user/avatar
+22. GET /api/v1/networks/user/dashboard/stats (legacy compatibility)
+23. GET /api/v1/networks/user/profile
+24. GET /api/v1/networks/user/favorites
+25. GET /api/v1/networks/user/isos/my
+26. GET /api/v1/networks/user/listings
+27. GET /api/v1/networks/user/reviews
+28. GET /api/v1/networks/user/searches/recent
+29. GET /api/v1/networks/users/:id/connection-status
+30. GET /api/v1/networks/users/:id/listings
+31. GET /api/v1/networks/users/:id/profile
+32. GET /api/v1/networks/users/:id/reviews
+33. GET /api/v1/networks/users/:id/review-summary
+34. GET /api/v1/news
+35. GET /api/v1/user/profile (legacy compatibility)
+36. GET /api/v1/user/support/tickets/count/open
+37. GET /api/v1/user/verification
+38. PATCH /api/v1/networks/listings/:id
+39. PATCH /api/v1/user/deactivate
+40. PATCH /api/v1/user/profile
+41. POST /api/v1/networks/connections/:id/accept
+42. POST /api/v1/networks/connections/:id/reject
+43. POST /api/v1/networks/connections/send-request
+44. POST /api/v1/networks/listings/:id/inquire
+45. POST /api/v1/networks/listings/:id/offers
+46. POST /api/v1/networks/listings/:id/reserve
+47. POST /api/v1/networks/notifications/:id/read
+48. POST /api/v1/networks/notifications/mark-all-read
+49. POST /api/v1/networks/offers/:id/accept
+50. POST /api/v1/networks/offers/:id/counter
+51. POST /api/v1/networks/offers/:id/reject
+52. POST /api/v1/networks/orders/:id/complete
+53. POST /api/v1/networks/user/favorites
+54. POST /api/v1/networks/user/searches/recent
+55. POST /api/v1/user/avatar
 
 ## 500 Status Failure
 

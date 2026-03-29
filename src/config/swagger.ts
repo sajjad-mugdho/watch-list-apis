@@ -10697,6 +10697,20 @@ Once approved:
       },
     },
   },
+  "/api/v1/networks/user/profile": {
+    get: {
+      tags: ["Networks - User"],
+      summary: "Get consolidated current-user profile payload",
+      description:
+        "Returns profile identity, verification, onboarding progress, and activity stats in one response for Networks Home/Profile screens.",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: { description: "Consolidated profile payload retrieved" },
+        401: { description: "Unauthorized" },
+        404: { description: "User not found" },
+      },
+    },
+  },
   "/api/v1/networks/user/{id}/profile": {
     get: {
       tags: ["Networks - User"],
