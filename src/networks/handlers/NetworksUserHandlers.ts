@@ -495,6 +495,7 @@ export const networks_user_listings_get = async (
   try {
     const { id } = req.params;
     const status = (req.query?.status as string) ?? "active";
+    const listingType = req.query?.type as string | undefined;
     const search = (req.query?.search as string | undefined)?.trim();
     const page = Number(req.query?.page) || 1;
     const limit = Number(req.query?.limit) || 30;
@@ -517,6 +518,10 @@ export const networks_user_listings_get = async (
       throw new ValidationError(
         "Can only view active or sold listings publicly",
       );
+    }
+
+    if (listingType) {
+      filters.type = listingType;
     }
 
     if (search) {

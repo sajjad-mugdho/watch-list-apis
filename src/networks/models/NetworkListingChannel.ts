@@ -94,7 +94,9 @@ export interface INetworkListingChannel {
   // Instance methods
   isOfferExpired(): boolean;
   hasActiveOffer(): boolean;
-  getUserRole(userId: string | Schema.Types.ObjectId): "buyer" | "seller" | null;
+  getUserRole(
+    userId: string | Schema.Types.ObjectId,
+  ): "buyer" | "seller" | null;
   supersedeLastOffer(): void;
   resolveLastOffer(status: "accepted" | "declined"): Promise<void>;
 
@@ -105,16 +107,16 @@ export interface INetworkListingChannel {
 export interface INetworkListingChannelModel extends Model<INetworkListingChannel> {
   findByListingAndBuyer(
     listingId: string,
-    buyerId: string
+    buyerId: string,
   ): Promise<INetworkListingChannel | null>;
 
   findByUserId(
     userId: string,
-    role?: "buyer" | "seller"
+    role?: "buyer" | "seller",
   ): Promise<INetworkListingChannel[]>;
 
   findActiveOffersForSeller(
-    sellerId: string
+    sellerId: string,
   ): Promise<INetworkListingChannel[]>;
 }
 
@@ -127,7 +129,7 @@ const InquirySchema = new Schema<IInquiry>(
     message: { type: String, required: true, trim: true },
     createdAt: { type: Date, default: Date.now },
   },
-  { _id: true }
+  { _id: true },
 );
 
 const OfferSchema = new Schema<IOffer>(
@@ -135,12 +137,25 @@ const OfferSchema = new Schema<IOffer>(
     sender_id: { type: Schema.Types.ObjectId, ref: "User", required: true },
     amount: { type: Number, required: true, min: 0 },
     message: { type: String, default: null, trim: true },
-    offer_type: { type: String, enum: OFFER_TYPE_VALUES, default: "initial", required: true },
-    status: { type: String, enum: OFFER_STATUS_VALUES, default: "sent", required: true },
+    shipping_region: { type: String, default: null, trim: true },
+    request_free_shipping: { type: Boolean, default: false },
+    reservation_terms_snapshot: { type: Schema.Types.Mixed, default: null },
+    offer_type: {
+      type: String,
+      enum: OFFER_TYPE_VALUES,
+      default: "initial",
+      required: true,
+    },
+    status: {
+      type: String,
+      enum: OFFER_STATUS_VALUES,
+      default: "sent",
+      required: true,
+    },
     expiresAt: { type: Date },
     createdAt: { type: Date, default: Date.now },
   },
-  { _id: true }
+  { _id: true },
 );
 
 const UserSnapshotSchema = new Schema<IUserSnapshot>(
@@ -149,7 +164,7 @@ const UserSnapshotSchema = new Schema<IUserSnapshot>(
     name: { type: String, required: true, trim: true },
     avatar: { type: String, trim: true },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const ListingSnapshotSchema = new Schema<IListingSnapshot>(
@@ -163,15 +178,35 @@ const ListingSnapshotSchema = new Schema<IListingSnapshot>(
     thumbnail: { type: String, trim: true },
     year: { type: Number, min: 1800 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const networkListingChannelSchema = new Schema<INetworkListingChannel>(
   {
-    listing_id: { type: Schema.Types.ObjectId, ref: "NetworkListing", required: true, index: true },
-    buyer_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    seller_id: { type: Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    status: { type: String, enum: CHANNEL_STATUS_VALUES, default: "open", index: true },
+    listing_id: {
+      type: Schema.Types.ObjectId,
+      ref: "NetworkListing",
+      required: true,
+      index: true,
+    },
+    buyer_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    seller_id: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
+    status: {
+      type: String,
+      enum: CHANNEL_STATUS_VALUES,
+      default: "open",
+      index: true,
+    },
     created_from: { type: String, enum: EVENT_TYPE_VALUES, required: true },
     last_event_type: { type: String, enum: EVENT_TYPE_VALUES, default: null },
     buyer_snapshot: { type: UserSnapshotSchema, required: true },
@@ -183,13 +218,21 @@ const networkListingChannelSchema = new Schema<INetworkListingChannel>(
     last_offer: { type: OfferSchema, default: null },
     getstream_channel_id: { type: String, default: null, index: true },
     getstream_channel_type: { type: String, default: "messaging" },
-    order_id: { type: Schema.Types.ObjectId, ref: "NetworkOrder", default: null, index: true },
+    order_id: {
+      type: Schema.Types.ObjectId,
+      ref: "NetworkOrder",
+      default: null,
+      index: true,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // Indexes
-networkListingChannelSchema.index({ buyer_id: 1, seller_id: 1 }, { unique: true });
+networkListingChannelSchema.index(
+  { buyer_id: 1, seller_id: 1 },
+  { unique: true },
+);
 
 // Methods
 networkListingChannelSchema.methods.isOfferExpired = function (): boolean {
@@ -198,10 +241,16 @@ networkListingChannelSchema.methods.isOfferExpired = function (): boolean {
 };
 
 networkListingChannelSchema.methods.hasActiveOffer = function (): boolean {
-  return this.last_offer != null && this.last_offer.status === "sent" && !this.isOfferExpired();
+  return (
+    this.last_offer != null &&
+    this.last_offer.status === "sent" &&
+    !this.isOfferExpired()
+  );
 };
 
-networkListingChannelSchema.methods.getUserRole = function (userId: string | Schema.Types.ObjectId): "buyer" | "seller" | null {
+networkListingChannelSchema.methods.getUserRole = function (
+  userId: string | Schema.Types.ObjectId,
+): "buyer" | "seller" | null {
   const uid = String(userId);
   if (String(this.buyer_id) === uid) return "buyer";
   if (String(this.seller_id) === uid) return "seller";
@@ -219,7 +268,7 @@ networkListingChannelSchema.methods.supersedeLastOffer = function (): void {
 };
 
 networkListingChannelSchema.methods.resolveLastOffer = async function (
-  status: "accepted" | "declined"
+  status: "accepted" | "declined",
 ): Promise<void> {
   if (!this.last_offer) throw new Error("No active offer to resolve");
   const resolved = {
@@ -234,14 +283,14 @@ networkListingChannelSchema.methods.resolveLastOffer = async function (
 
 networkListingChannelSchema.statics.findByListingAndBuyer = function (
   listingId: string | Schema.Types.ObjectId,
-  buyerId: string | Schema.Types.ObjectId
+  buyerId: string | Schema.Types.ObjectId,
 ) {
   return this.findOne({ listing_id: listingId, buyer_id: buyerId });
 };
 
 networkListingChannelSchema.statics.findByUserId = function (
   userId: string | Schema.Types.ObjectId,
-  role?: "buyer" | "seller"
+  role?: "buyer" | "seller",
 ) {
   if (role === "buyer")
     return this.find({ buyer_id: userId }).sort({ updatedAt: -1 });
@@ -253,7 +302,7 @@ networkListingChannelSchema.statics.findByUserId = function (
 };
 
 networkListingChannelSchema.statics.findActiveOffersForSeller = function (
-  sellerId: string | Schema.Types.ObjectId
+  sellerId: string | Schema.Types.ObjectId,
 ) {
   return this.find({
     seller_id: sellerId,
@@ -266,8 +315,11 @@ networkListingChannelSchema.statics.findActiveOffersForSeller = function (
   }).sort({ updatedAt: -1 });
 };
 
-export const NetworkListingChannel = mongoose.model<INetworkListingChannel, INetworkListingChannelModel>(
+export const NetworkListingChannel = mongoose.model<
+  INetworkListingChannel,
+  INetworkListingChannelModel
+>(
   "NetworkListingChannel",
   networkListingChannelSchema,
-  "network_listing_channels"
+  "network_listing_channels",
 );

@@ -11,14 +11,6 @@ const sortAliasMap: Record<
   newest: { sort_by: "created", sort_order: "desc" },
 };
 
-const parsePositiveInt = (value: unknown, fallback: number): number => {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return fallback;
-  }
-  return Math.floor(parsed);
-};
-
 const parseNonNegativeInt = (value: unknown, fallback: number): number => {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 0) {

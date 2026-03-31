@@ -185,6 +185,32 @@ export const networks_offer_send = async (
 
       await existingChannel.save();
 
+      await networksOfferService.sendOffer({
+        channelId: (existingChannel._id as any).toString(),
+        listingId,
+        senderId: String(buyerId),
+        receiverId: String(sellerId),
+        amount,
+        ...(message != null && { note: message }),
+      });
+
+      // Preserve networks-specific offer metadata on the channel mirror.
+      existingChannel.last_offer = {
+        sender_id: buyerId as any,
+        amount,
+        message: message || null,
+        shipping_region: shipping_region || null,
+        request_free_shipping: !!request_free_shipping,
+        reservation_terms_snapshot:
+          reservation_terms_snapshot || listing.reservation_terms || null,
+        offer_type: "initial",
+        status: "sent",
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+      };
+      existingChannel.last_event_type = "offer";
+      await existingChannel.save();
+
       // Send system message to Stream Chat channel if it exists
       if (existingChannel.getstream_channel_id) {
         try {
@@ -317,6 +343,32 @@ export const networks_offer_send = async (
         error: chatError,
       });
     }
+
+    await networksOfferService.sendOffer({
+      channelId: (channel._id as any).toString(),
+      listingId,
+      senderId: String(buyerId),
+      receiverId: String(sellerId),
+      amount,
+      ...(message != null && { note: message }),
+    });
+
+    // Preserve networks-specific offer metadata on the channel mirror.
+    channel.last_offer = {
+      sender_id: buyerId as any,
+      amount,
+      message: message || null,
+      shipping_region: shipping_region || null,
+      request_free_shipping: !!request_free_shipping,
+      reservation_terms_snapshot:
+        reservation_terms_snapshot || listing.reservation_terms || null,
+      offer_type: "initial",
+      status: "sent",
+      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      createdAt: new Date(),
+    };
+    channel.last_event_type = "offer";
+    await channel.save();
 
     // Create in-app notification for seller
     try {

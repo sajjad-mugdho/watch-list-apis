@@ -7,6 +7,7 @@ import {
   networks_offer_counter,
 } from "../handlers/NetworksOfferHandlers";
 import { validateRequest } from "../../middleware/validation";
+import { counterOfferSchema } from "../../validation/schemas";
 import { z } from "zod";
 
 const router = Router();
@@ -15,16 +16,6 @@ const router = Router();
 const offerIdParamSchema = z.object({
   params: z.object({
     id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid channel ID"),
-  }),
-});
-
-const counterOfferSchema = z.object({
-  params: z.object({
-    id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid channel ID"),
-  }),
-  body: z.object({
-    amount: z.number().positive(),
-    note: z.string().optional(),
   }),
 });
 
@@ -43,7 +34,7 @@ const getOffersSchema = z.object({
 router.get(
   "/",
   validateRequest(getOffersSchema),
-  networks_user_offers_get as any
+  networks_user_offers_get as any,
 );
 
 /**
@@ -52,7 +43,7 @@ router.get(
 router.get(
   "/:id",
   validateRequest(offerIdParamSchema),
-  networks_offer_get as any
+  networks_offer_get as any,
 );
 
 /**
@@ -61,7 +52,7 @@ router.get(
 router.post(
   "/:id/accept",
   validateRequest(offerIdParamSchema),
-  networks_offer_accept as any
+  networks_offer_accept as any,
 );
 
 /**
@@ -70,7 +61,7 @@ router.post(
 router.post(
   "/:id/reject",
   validateRequest(offerIdParamSchema),
-  networks_offer_reject as any
+  networks_offer_reject as any,
 );
 
 /**
@@ -79,7 +70,7 @@ router.post(
 router.post(
   "/:id/counter",
   validateRequest(counterOfferSchema),
-  networks_offer_counter as any
+  networks_offer_counter as any,
 );
 
 export default router;

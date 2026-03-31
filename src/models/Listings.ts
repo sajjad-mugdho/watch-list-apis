@@ -8,6 +8,7 @@ export const LISTING_STATUS_VALUES = [
   "active",
   "reserved",
   "sold",
+  "inactive",
 ] as const;
 export type ListingStatus = (typeof LISTING_STATUS_VALUES)[number];
 
