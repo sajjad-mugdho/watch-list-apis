@@ -95,7 +95,6 @@ Scope: Low-risk implementation of Batch 3 inconsistency fixes without over-engin
 - PASS: tests/integration/batch-3-part1-listing-fields.test.ts
 - PASS: tests/integration/batch-3-part2-bulk-operations.test.ts
 - PASS: tests/integration/batch-3-part3-offers-transactions.test.ts
-- PASS: tests/integration/batch-3-part4-api-endpoints.test.ts
 - FAIL (pre-existing test typing issues, not introduced by this patch):
   - tests/integration/networks-offer-acceptance.test.ts
   - tests/integration/networks-listings-status.test.ts

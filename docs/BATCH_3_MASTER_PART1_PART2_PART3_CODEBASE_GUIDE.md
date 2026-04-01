@@ -97,6 +97,8 @@ Main endpoints:
 
 1. Offer lifecycle split-brain.
 
+- Status: Resolved in implementation branch.
+
 - Initial offer send updates NetworkListingChannel.last_offer.
 - Accept/reject/counter paths depend on canonical Offer model records.
 - Risk: channel shows active offer while Offer lookup fails downstream.
@@ -105,16 +107,22 @@ Main endpoints:
 
 2. NetworkListingChannel last_offer schema missing fields.
 
+- Status: Resolved in implementation branch.
+
 - Handler writes shipping_region, request_free_shipping, reservation_terms_snapshot.
 - Offer subdocument schema does not define those fields.
 - Result: fields are dropped from persisted payload and read APIs.
 
 3. Counter route contract mismatch.
 
+- Status: Resolved in implementation branch.
+
 - Route-local schema accepts amount + note.
 - Handler expects amount + message + reservation_terms.
 
 4. Report-account bridge mismatch.
+
+- Status: Resolved in implementation branch.
 
 - /users/:id/report bridge injects target_id only.
 - Validation requires target_type and reason.
@@ -123,6 +131,8 @@ Main endpoints:
 ### P2 Medium
 
 5. Shipping region parity gaps.
+
+- Status: Resolved in implementation branch.
 
 - Listing update schema supports only US and CA while reservation UI includes International.
 - Offer send schema uses free-form shipping_region and does not enforce listing shipping availability.
@@ -133,6 +143,8 @@ Main endpoints:
 - Publish completeness does not currently require subtitle.
 
 7. Public profile listing tab parity.
+
+- Status: Resolved in implementation branch.
 
 - For Sale vs WTB tabs need type-level filtering.
 - Public listings endpoint currently centers on status/search only.

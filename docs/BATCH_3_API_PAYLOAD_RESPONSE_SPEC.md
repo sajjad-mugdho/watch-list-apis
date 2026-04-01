@@ -13,6 +13,7 @@ Scope: Networks APIs used by Batch 3 Part 1, Part 2, and Part 3 screens
   - data: primary payload
   - requestId: request correlation id
   - \_metadata: optional paging/summary object
+- Exception: connection mutation endpoints intentionally return lightweight legacy payloads ({ message, connection } or { message }) and do not include requestId/data wrapper.
 
 ## Part 1: Listings Creation and Management
 

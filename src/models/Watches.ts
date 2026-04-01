@@ -18,7 +18,7 @@ export interface IWatch {
   model: string;
   reference: string;
   diameter: string;
-  color: string;
+  color?: string;
   bezel: string;
   materials: string;
   bracelet: string;

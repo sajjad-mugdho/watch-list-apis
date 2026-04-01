@@ -154,22 +154,22 @@ export const networks_offer_send = async (
         );
       }
 
+      // Keep historical timeline, but do not persist it until canonical offer creation succeeds.
       existingChannel.supersedeLastOffer();
 
-      existingChannel.last_offer = {
-        sender_id: buyerId as any,
+      const { offer } = await networksOfferService.sendOffer({
+        channelId: (existingChannel._id as any).toString(),
+        listingId,
+        senderId: String(buyerId),
+        receiverId: String(sellerId),
         amount,
-        message: message || null,
-        shipping_region: shipping_region || null,
-        request_free_shipping: !!request_free_shipping,
-        reservation_terms_snapshot:
-          reservation_terms_snapshot || listing.reservation_terms || null,
-        offer_type: "initial",
-        status: "sent",
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      };
-      // For reused channels, update the listing snapshot to the current inquiry
+        ...(message != null && { note: message }),
+        ...(existingChannel.getstream_channel_id && {
+          getstreamChannelId: existingChannel.getstream_channel_id,
+        }),
+      });
+
+      // For reused channels, update the listing snapshot to the current inquiry.
       existingChannel.listing_id = listingId as any;
       existingChannel.listing_snapshot = {
         brand: listing.brand || "Unknown",
@@ -181,21 +181,10 @@ export const networks_offer_send = async (
         ...(listing.thumbnail && { thumbnail: listing.thumbnail }),
         ...(listing.year && { year: listing.year }),
       };
-      existingChannel.last_event_type = "offer";
 
-      await existingChannel.save();
-
-      await networksOfferService.sendOffer({
-        channelId: (existingChannel._id as any).toString(),
-        listingId,
-        senderId: String(buyerId),
-        receiverId: String(sellerId),
-        amount,
-        ...(message != null && { note: message }),
-      });
-
-      // Preserve networks-specific offer metadata on the channel mirror.
+      // Preserve canonical offer identity/timestamps and only merge networks-specific fields.
       existingChannel.last_offer = {
+        _id: (offer._id as any) || undefined,
         sender_id: buyerId as any,
         amount,
         message: message || null,
@@ -205,30 +194,11 @@ export const networks_offer_send = async (
           reservation_terms_snapshot || listing.reservation_terms || null,
         offer_type: "initial",
         status: "sent",
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
+        expiresAt: (offer.expires_at as any) || null,
+        createdAt: (offer.createdAt as any) || new Date(),
       };
       existingChannel.last_event_type = "offer";
       await existingChannel.save();
-
-      // Send system message to Stream Chat channel if it exists
-      if (existingChannel.getstream_channel_id) {
-        try {
-          await chatService.sendSystemMessage(
-            existingChannel.getstream_channel_id,
-            {
-              type: "offer",
-              amount,
-              offer_id: (existingChannel._id as any).toString(),
-            },
-            buyerId,
-          );
-        } catch (chatError) {
-          logger.warn("Failed to send networks offer message to Stream", {
-            chatError,
-          });
-        }
-      }
 
       // Create in-app notification for seller
       try {
@@ -289,19 +259,7 @@ export const networks_offer_send = async (
       },
       inquiry: null,
       offer_history: [],
-      last_offer: {
-        sender_id: buyerId as any,
-        amount,
-        message: message || null,
-        shipping_region: shipping_region || null,
-        request_free_shipping: !!request_free_shipping,
-        reservation_terms_snapshot:
-          reservation_terms_snapshot || listing.reservation_terms || null,
-        offer_type: "initial",
-        status: "sent",
-        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-        createdAt: new Date(),
-      },
+      last_offer: null,
       order_id: null,
     });
 
@@ -322,14 +280,6 @@ export const networks_offer_send = async (
 
       // Store the Stream channel ID in our channel document
       channel.getstream_channel_id = getstreamChannelId;
-      await channel.save();
-
-      // Send initial offer as system message
-      await chatService.sendSystemMessage(
-        getstreamChannelId,
-        { type: "offer", amount, offer_id: (channel._id as any).toString() },
-        buyerId,
-      );
 
       logger.info("Stream Chat channel created for offer", {
         channelId: channel._id,
@@ -344,31 +294,41 @@ export const networks_offer_send = async (
       });
     }
 
-    await networksOfferService.sendOffer({
-      channelId: (channel._id as any).toString(),
-      listingId,
-      senderId: String(buyerId),
-      receiverId: String(sellerId),
-      amount,
-      ...(message != null && { note: message }),
-    });
+    try {
+      const { offer } = await networksOfferService.sendOffer({
+        channelId: (channel._id as any).toString(),
+        listingId,
+        senderId: String(buyerId),
+        receiverId: String(sellerId),
+        amount,
+        ...(message != null && { note: message }),
+        ...(channel.getstream_channel_id && {
+          getstreamChannelId: channel.getstream_channel_id,
+        }),
+      });
 
-    // Preserve networks-specific offer metadata on the channel mirror.
-    channel.last_offer = {
-      sender_id: buyerId as any,
-      amount,
-      message: message || null,
-      shipping_region: shipping_region || null,
-      request_free_shipping: !!request_free_shipping,
-      reservation_terms_snapshot:
-        reservation_terms_snapshot || listing.reservation_terms || null,
-      offer_type: "initial",
-      status: "sent",
-      expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      createdAt: new Date(),
-    };
-    channel.last_event_type = "offer";
-    await channel.save();
+      // Preserve canonical offer identity/timestamps and merge networks-specific fields.
+      channel.last_offer = {
+        _id: (offer._id as any) || undefined,
+        sender_id: buyerId as any,
+        amount,
+        message: message || null,
+        shipping_region: shipping_region || null,
+        request_free_shipping: !!request_free_shipping,
+        reservation_terms_snapshot:
+          reservation_terms_snapshot || listing.reservation_terms || null,
+        offer_type: "initial",
+        status: "sent",
+        expiresAt: (offer.expires_at as any) || null,
+        createdAt: (offer.createdAt as any) || new Date(),
+      };
+      channel.last_event_type = "offer";
+      await channel.save();
+    } catch (offerError) {
+      // Avoid leaving orphaned channels without a canonical offer.
+      await channel.deleteOne();
+      throw offerError;
+    }
 
     // Create in-app notification for seller
     try {

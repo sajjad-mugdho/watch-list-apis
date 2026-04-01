@@ -10237,13 +10237,13 @@ Once approved:
                 },
                 shipping_region: {
                   type: "string",
-                  enum: ["US", "CA"],
+                  enum: ["US", "CA", "International"],
                   description: "Shipping region",
                 },
-                note: {
+                message: {
                   type: "string",
                   maxLength: 500,
-                  description: "Optional note with the offer",
+                  description: "Optional message with the offer",
                 },
               },
             },

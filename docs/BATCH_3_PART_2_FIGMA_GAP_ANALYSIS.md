@@ -18,7 +18,7 @@ This document traces the screen-by-screen integration for Batch 3 Part 2 Figma s
    - **Backend:** `validateListingCompleteness` does not enforce the existence of `subtitle`. A user could technically publish a complete listing without a subtitle directly via API.
 2. **Shipping Region Options:**
    - **UI:** The "Confirm Reservation" mockups (Screen 7) indicate support for "United States", "Canada", and "International".
-   - **Backend:** In `src/validation/schemas.ts`, the `updateListingSchema` requires `region: z.enum(["US", "CA"])`. It lacks `"International"`, meaning sellers cannot natively configure an international shipping tier without throwing a validation error, even though `createReservationSchema` supports it on the buyer's end.
+   - **Backend:** Resolved. `updateListingSchema` now includes `"International"` in the shipping region enum.
 
 ---
 
@@ -75,12 +75,12 @@ This document traces the screen-by-screen integration for Batch 3 Part 2 Figma s
 
 ### 🚨 Gaps & Discrepancies
 
-- As mentioned in Screen 1, the seller needs to be able to set `"International"` as their original listing's schema payload. Since `networks_reservation_create` validates the requested region against `listing.shipping.region`, if `"International"` cannot be created on a listing, a buyer can never actually checkout with `"International"`.
+- The direct reservation path now supports `"International"` end-to-end when the listing includes that configured tier.
 
 ---
 
 ## 📝 Implementation Action Plan
 
-1. **Update `src/validation/schemas.ts`:** Append `"International"` to the `region` enum inside `updateListingSchema`.
-2. **Update `src/utils/listingValidation.ts`:** Add `subtitle` to the array of required fields in `validateListingCompleteness` to correctly mirror the design mandates.
+1. **Status complete:** Shipping enum alignment (`International`) is implemented in schemas.
+2. **Pending product decision:** Decide whether subtitle becomes a hard publish requirement in shared listing completeness logic.
 3. Establish clear frontend binding notes to point the "Reference Checks History" to `Review` data payloads rather than `ReferenceCheck` endpoints.

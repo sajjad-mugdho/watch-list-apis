@@ -238,6 +238,8 @@ Not included:
 
 3. Channel schema persistence caveat
 
+- Status: Resolved in current implementation.
+
 - NetworkListingChannel OfferSchema does not define shipping_region, request_free_shipping, reservation_terms_snapshot
 - handler writes these fields on last_offer during send offer
 - schema omission can drop these fields from persisted channel offer payload
@@ -322,6 +324,8 @@ Status legend:
 
 3. Counter/Accept/Reject lifecycle: Not Aligned (critical consistency risk)
 
+- Status: Resolved in current implementation.
+
 - accept/reject/counter require active canonical Offer by channel_id
 - initial send-offer handler does not create canonical Offer via OfferService
 - this can produce channel-visible offer with no canonical active Offer for follow-up actions
@@ -332,6 +336,8 @@ Status legend:
 - listings endpoint has no type filter for for_sale vs wtb tab split
 
 5. Profile overflow actions (report/block): Partial
+
+- Status note: report target_type normalization is now resolved; block/unblock remained aligned.
 
 - block/unblock flows are wired
 - report bridge misses target_type normalization

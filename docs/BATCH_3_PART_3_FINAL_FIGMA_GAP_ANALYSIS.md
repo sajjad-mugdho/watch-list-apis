@@ -164,8 +164,8 @@ Scope covered:
 
 1. Missing type filter for For Sale vs WTB tab split.
 
-- Public listings schema/handler has status and search, but no explicit type filter (for_sale vs wtb).
-- UI tab-level split cannot be cleanly server-driven.
+- Status: Resolved.
+- Public listings supports explicit type filtering (for_sale|wtb).
 
 2. Pagination contract drift.
 
@@ -197,10 +197,8 @@ Scope covered:
 
 1. Report bridge does not inject target_type.
 
-- createReportSchema requires target_type and reason.
-- Route bridge injects target_id only.
-- Unless client explicitly sends target_type=User, request fails validation.
-- For account-report UX this should be normalized server-side.
+- Status: Resolved.
+- Route bridge injects target_id and defaults target_type=User.
 
 ---
 
@@ -208,13 +206,13 @@ Scope covered:
 
 P0 Critical
 
-- Initial offer send does not create canonical Offer document, while accept/reject/counter require it.
+- Initial offer send split-brain risk is resolved by canonical Offer creation via OfferService.
 
 P1 High
 
-- last_offer schema missing shipping_region, request_free_shipping, reservation_terms_snapshot.
-- Report user bridge missing target_type normalization.
-- Counter-offer route schema mismatch (note vs message/reservation_terms).
+- last_offer schema persistence parity: resolved.
+- report user bridge target_type normalization: resolved.
+- counter-offer route schema mismatch: resolved.
 
 P2 Medium
 
@@ -248,6 +246,9 @@ P2 Medium
 
 - Align /networks/offers/:id/counter route schema with handler fields message and reservation_terms.
 - In /networks/users/:id/report bridge, inject target_type=User by default.
+
+Status:
+- Both route/schema fixes are implemented.
 
 5. Profile tab support
 

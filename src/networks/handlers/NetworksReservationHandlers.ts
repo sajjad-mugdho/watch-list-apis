@@ -149,7 +149,7 @@ export const networks_reservation_create = async (
             buyer_id: buyerId,
             seller_id: listing.dialist_id,
             status: "open",
-            created_from: "reservation",
+            created_from: "order",
             last_event_type: "order",
             buyer_snapshot: {
               _id: buyerId,
