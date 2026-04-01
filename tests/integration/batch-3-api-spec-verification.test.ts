@@ -96,7 +96,14 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
     const r6 = await asUser(sellerExternal)
       .post("/api/v1/networks/listings")
       .send({ watch: String((watch as any)._id), type: "for_sale" });
-    record(6, "POST", "/networks/listings", r6.status, [201], "create draft listing");
+    record(
+      6,
+      "POST",
+      "/networks/listings",
+      r6.status,
+      [201],
+      "create draft listing",
+    );
     const draftListingId = r6.body?.data?._id;
     expect(draftListingId).toBeDefined();
 
@@ -139,7 +146,14 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
         ],
         reservation_terms: "Verified buyers only",
       });
-    record(7, "PATCH", "/networks/listings/:id", r7.status, [200], "update draft details");
+    record(
+      7,
+      "PATCH",
+      "/networks/listings/:id",
+      r7.status,
+      [200],
+      "update draft details",
+    );
 
     // 8) POST /networks/listings/:id/publish
     const r8 = await asUser(sellerExternal).post(
@@ -171,19 +185,40 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
     const r9 = await asUser(buyerExternal).get(
       `/api/v1/networks/listings/${draftListingId}`,
     );
-    record(9, "GET", "/networks/listings/:id", r9.status, [200], "listing detail");
+    record(
+      9,
+      "GET",
+      "/networks/listings/:id",
+      r9.status,
+      [200],
+      "listing detail",
+    );
 
     // 10) GET /networks/users/:id/profile
     const r10 = await asUser(buyerExternal).get(
       `/api/v1/networks/users/${(seller as any)._id}/profile`,
     );
-    record(10, "GET", "/networks/users/:id/profile", r10.status, [200], "public profile");
+    record(
+      10,
+      "GET",
+      "/networks/users/:id/profile",
+      r10.status,
+      [200],
+      "public profile",
+    );
 
     // 11) GET /networks/users/:id/reviews
     const r11 = await asUser(buyerExternal).get(
       `/api/v1/networks/users/${(seller as any)._id}/reviews?role=seller&limit=20&offset=0`,
     );
-    record(11, "GET", "/networks/users/:id/reviews", r11.status, [200], "reviews list");
+    record(
+      11,
+      "GET",
+      "/networks/users/:id/reviews",
+      r11.status,
+      [200],
+      "reviews list",
+    );
 
     // 12) GET /networks/users/:id/references
     const r12 = await asUser(buyerExternal).get(
@@ -215,7 +250,14 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
     const r14 = await asUser(buyerExternal)
       .post(`/api/v1/networks/listings/${draftListingId}/reserve`)
       .send({ shipping_region: "US" });
-    record(14, "POST", "/networks/listings/:id/reserve", r14.status, [201], "reserve listing");
+    record(
+      14,
+      "POST",
+      "/networks/listings/:id/reserve",
+      r14.status,
+      [201],
+      "reserve listing",
+    );
     const orderId = r14.body?.data?._id;
     expect(orderId).toBeDefined();
 
@@ -223,11 +265,27 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
     const r15 = await asUser(buyerExternal).get(
       `/api/v1/networks/reservations/${orderId}`,
     );
-    record(15, "GET", "/networks/reservations/:id", r15.status, [200], "reservation detail");
+    record(
+      15,
+      "GET",
+      "/networks/reservations/:id",
+      r15.status,
+      [200],
+      "reservation detail",
+    );
 
     // 16) GET /networks/orders/:id
-    const r16 = await asUser(buyerExternal).get(`/api/v1/networks/orders/${orderId}`);
-    record(16, "GET", "/networks/orders/:id", r16.status, [200], "order detail");
+    const r16 = await asUser(buyerExternal).get(
+      `/api/v1/networks/orders/${orderId}`,
+    );
+    record(
+      16,
+      "GET",
+      "/networks/orders/:id",
+      r16.status,
+      [200],
+      "order detail",
+    );
 
     // 17) POST /networks/orders/:id/complete
     const r17 = await asUser(buyerExternal).post(
@@ -243,13 +301,16 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
     );
 
     // Separate active listing for offer lifecycle
-    const offerListing = await TestFactory.createNetworkListing((seller as any)._id, {
-      status: "active",
-      allow_offers: true,
-      price: 20000,
-      author: { _id: (seller as any)._id, name: sellerName },
-      ships_from: { country: "US" },
-    });
+    const offerListing = await TestFactory.createNetworkListing(
+      (seller as any)._id,
+      {
+        status: "active",
+        allow_offers: true,
+        price: 20000,
+        author: { _id: (seller as any)._id, name: sellerName },
+        ships_from: { country: "US" },
+      },
+    );
 
     // 18) POST /networks/listings/:id/offers
     const r18 = await asUser(buyerExternal)
@@ -261,7 +322,14 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
         reservation_terms_snapshot: "Verified buyers only",
         message: "Can you do 13k?",
       });
-    record(18, "POST", "/networks/listings/:id/offers", r18.status, [201], "send initial offer");
+    record(
+      18,
+      "POST",
+      "/networks/listings/:id/offers",
+      r18.status,
+      [201],
+      "send initial offer",
+    );
     const channelId = r18.body?.data?._id;
     expect(channelId).toBeDefined();
 
@@ -272,8 +340,17 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
     record(19, "GET", "/networks/offers", r19.status, [200], "offers list");
 
     // 20) GET /networks/offers/:id
-    const r20 = await asUser(buyerExternal).get(`/api/v1/networks/offers/${channelId}`);
-    record(20, "GET", "/networks/offers/:id", r20.status, [200], "offer channel detail");
+    const r20 = await asUser(buyerExternal).get(
+      `/api/v1/networks/offers/${channelId}`,
+    );
+    record(
+      20,
+      "GET",
+      "/networks/offers/:id",
+      r20.status,
+      [200],
+      "offer channel detail",
+    );
 
     // 21) POST /networks/offers/:id/counter
     const r21 = await asUser(sellerExternal)
@@ -283,20 +360,39 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
         message: "Counter at 13.8k",
         reservation_terms: "Verified buyers only",
       });
-    record(21, "POST", "/networks/offers/:id/counter", r21.status, [201], "counter offer");
+    record(
+      21,
+      "POST",
+      "/networks/offers/:id/counter",
+      r21.status,
+      [201],
+      "counter offer",
+    );
 
     // 22) POST /networks/offers/:id/accept
-    const r22 = await asUser(buyerExternal).post(`/api/v1/networks/offers/${channelId}/accept`);
-    record(22, "POST", "/networks/offers/:id/accept", r22.status, [200], "accept offer");
+    const r22 = await asUser(buyerExternal).post(
+      `/api/v1/networks/offers/${channelId}/accept`,
+    );
+    record(
+      22,
+      "POST",
+      "/networks/offers/:id/accept",
+      r22.status,
+      [200],
+      "accept offer",
+    );
 
     // Create a second channel to validate reject path independently
-    const rejectListing = await TestFactory.createNetworkListing((seller as any)._id, {
-      status: "active",
-      allow_offers: true,
-      price: 18000,
-      author: { _id: (seller as any)._id, name: sellerName },
-      ships_from: { country: "US" },
-    });
+    const rejectListing = await TestFactory.createNetworkListing(
+      (seller as any)._id,
+      {
+        status: "active",
+        allow_offers: true,
+        price: 18000,
+        author: { _id: (seller as any)._id, name: sellerName },
+        ships_from: { country: "US" },
+      },
+    );
 
     const rOfferRejectSeed = await asUser(rejectBuyerExternal)
       .post(`/api/v1/networks/listings/${(rejectListing as any)._id}/offers`)
@@ -361,32 +457,66 @@ describe("Batch 3 API Spec Verification (29 endpoints)", () => {
     // 27) POST /networks/users/:id/report
     const r27 = await asUser(buyerExternal)
       .post(`/api/v1/networks/users/${(target as any)._id}/report`)
-      .send({ reason: "fraud", description: "Suspicious behavior during transaction." });
-    record(27, "POST", "/networks/users/:id/report", r27.status, [201], "report user");
+      .send({
+        reason: "fraud",
+        description: "Suspicious behavior during transaction.",
+      });
+    record(
+      27,
+      "POST",
+      "/networks/users/:id/report",
+      r27.status,
+      [201],
+      "report user",
+    );
 
     // 28) POST /networks/users/:id/block
     const r28 = await asUser(buyerExternal)
       .post(`/api/v1/networks/users/${(target as any)._id}/block`)
       .send({ reason: "safety" });
-    record(28, "POST", "/networks/users/:id/block", r28.status, [200], "block user");
+    record(
+      28,
+      "POST",
+      "/networks/users/:id/block",
+      r28.status,
+      [200],
+      "block user",
+    );
 
     // 29) DELETE /networks/users/:id/block
     const r29 = await asUser(buyerExternal).delete(
       `/api/v1/networks/users/${(target as any)._id}/block`,
     );
-    record(29, "DELETE", "/networks/users/:id/block", r29.status, [200], "unblock user");
+    record(
+      29,
+      "DELETE",
+      "/networks/users/:id/block",
+      r29.status,
+      [200],
+      "unblock user",
+    );
 
     // 4) DELETE /networks/listings/:id (use standalone draft listing)
-    const deleteCandidate = await TestFactory.createNetworkListing((seller as any)._id, {
-      status: "draft",
-      author: { _id: (seller as any)._id, name: sellerName },
-      ships_from: { country: "US" },
-    });
+    const deleteCandidate = await TestFactory.createNetworkListing(
+      (seller as any)._id,
+      {
+        status: "draft",
+        author: { _id: (seller as any)._id, name: sellerName },
+        ships_from: { country: "US" },
+      },
+    );
 
     const r4 = await asUser(sellerExternal).delete(
       `/api/v1/networks/listings/${(deleteCandidate as any)._id}`,
     );
-    record(4, "DELETE", "/networks/listings/:id", r4.status, [200], "delete listing");
+    record(
+      4,
+      "DELETE",
+      "/networks/listings/:id",
+      r4.status,
+      [200],
+      "delete listing",
+    );
 
     const passCount = results.filter((r) => r.ok).length;
     const failCount = results.length - passCount;

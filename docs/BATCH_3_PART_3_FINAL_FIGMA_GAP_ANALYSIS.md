@@ -248,6 +248,7 @@ P2 Medium
 - In /networks/users/:id/report bridge, inject target_type=User by default.
 
 Status:
+
 - Both route/schema fixes are implemented.
 
 5. Profile tab support

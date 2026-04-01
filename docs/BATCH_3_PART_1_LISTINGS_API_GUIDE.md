@@ -116,14 +116,21 @@ Once everything is patched successfully, trigger the publish action. The backend
 _Frontend should be aware of these status-tracked notes._
 
 1. **Watch color persistence:**
-  - **Status:** Resolved.
-  - **Notes:** `color` is now present in the schema; strict mode dropping occurs at write/casting time, not at query read time.
+
+- **Status:** Resolved.
+- **Notes:** `color` is now present in the schema; strict mode dropping occurs at write/casting time, not at query read time.
+
 2. **Shipping regions include International:**
-  - **Status:** Resolved.
-  - **Notes:** Listing/update and offer validation now use the canonical token `International`.
+
+- **Status:** Resolved.
+- **Notes:** Listing/update and offer validation now use the canonical token `International`.
+
 3. **Publish validation for Subtitle:**
-  - **Status:** Open by product decision.
-  - **Notes:** UI marks subtitle required, but backend publish completeness intentionally does not enforce subtitle to avoid shared-flow regression until product confirms hard requirement.
+
+- **Status:** Open by product decision.
+- **Notes:** UI marks subtitle required, but backend publish completeness intentionally does not enforce subtitle to avoid shared-flow regression until product confirms hard requirement.
+
 4. **"Boost Listing" Feature Non-Existent (Screens 1/2):**
-  - **Status:** Open.
-  - **Notes:** The overflow menu has "Boost Listing", but there is no underlying architecture, pricing model, or model flag (`is_boosted`). UI should hide this action until a dedicated backend flow exists.
+
+- **Status:** Open.
+- **Notes:** The overflow menu has "Boost Listing", but there is no underlying architecture, pricing model, or model flag (`is_boosted`). UI should hide this action until a dedicated backend flow exists.

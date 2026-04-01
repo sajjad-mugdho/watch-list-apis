@@ -21,7 +21,9 @@ const RUN_MUTATION_TESTS = process.env.RUN_MUTATION_TESTS === "true";
 const RETRY_ON_429 = process.env.RETRY_ON_429 !== "false";
 const MAX_429_RETRIES = Number(process.env.MAX_429_RETRIES || 4);
 const RETRY_BASE_DELAY_MS = Number(process.env.RETRY_BASE_DELAY_MS || 400);
-const INTER_REQUEST_DELAY_MS = Number(process.env.INTER_REQUEST_DELAY_MS || 5000); // 5s by default for low-rate pacing
+const INTER_REQUEST_DELAY_MS = Number(
+  process.env.INTER_REQUEST_DELAY_MS || 5000,
+); // 5s by default for low-rate pacing
 const ENABLE_CHECKPOINT = process.env.ENABLE_CHECKPOINT !== "false";
 
 if (!SELLER_TOKEN || !BUYER_TOKEN) {
@@ -32,13 +34,19 @@ if (!SELLER_TOKEN || !BUYER_TOKEN) {
 }
 
 // Checkpoint file for resume support
-const checkpointFile = path.join(process.cwd(), "logs", "batch3-token-probe-checkpoint.json");
+const checkpointFile = path.join(
+  process.cwd(),
+  "logs",
+  "batch3-token-probe-checkpoint.json",
+);
 let checkpoint = {};
 function loadCheckpoint() {
   if (ENABLE_CHECKPOINT && fs.existsSync(checkpointFile)) {
     try {
       checkpoint = JSON.parse(fs.readFileSync(checkpointFile, "utf-8"));
-      console.log(`[Checkpoint] Loaded ${Object.keys(checkpoint).length} completed endpoints`);
+      console.log(
+        `[Checkpoint] Loaded ${Object.keys(checkpoint).length} completed endpoints`,
+      );
     } catch (_e) {
       checkpoint = {};
     }
@@ -73,7 +81,9 @@ async function waitForRateLimitReset(resetEpochMs) {
   const now = Date.now();
   const waitMs = Math.max(0, resetEpochMs - now);
   if (waitMs > 0) {
-    console.log(`[Rate-Limit] Window expires in ${(waitMs / 1000).toFixed(1)}s, waiting...`);
+    console.log(
+      `[Rate-Limit] Window expires in ${(waitMs / 1000).toFixed(1)}s, waiting...`,
+    );
     await sleep(waitMs + 100); // +100ms buffer
   }
 }
@@ -141,7 +151,11 @@ async function callApi({
         const retryAfterMs = retryAfterRaw
           ? Number(retryAfterRaw) * 1000
           : RETRY_BASE_DELAY_MS * attempts;
-        await sleep(Number.isFinite(retryAfterMs) ? retryAfterMs : RETRY_BASE_DELAY_MS * attempts);
+        await sleep(
+          Number.isFinite(retryAfterMs)
+            ? retryAfterMs
+            : RETRY_BASE_DELAY_MS * attempts,
+        );
       }
     }
 
@@ -189,8 +203,13 @@ async function callApi({
 
   results.push(row);
   const statusIndicator = ok ? "PASS" : "FAIL";
-  const rateInfo = rateLimitRemaining !== null ? ` [RateLimit: ${rateLimitRemaining}/100]` : "";
-  console.log(`${statusIndicator} ${method} ${urlPath} (${status}) ${durationMs}ms attempts=${attempts}${rateInfo} - ${name}`);
+  const rateInfo =
+    rateLimitRemaining !== null
+      ? ` [RateLimit: ${rateLimitRemaining}/100]`
+      : "";
+  console.log(
+    `${statusIndicator} ${method} ${urlPath} (${status}) ${durationMs}ms attempts=${attempts}${rateInfo} - ${name}`,
+  );
   if (!ok && error) console.log(`  -> ${error}`);
 
   // Save to checkpoint
@@ -217,8 +236,12 @@ function requireArray(value) {
   console.log("Batch 3 token probe starting...");
   console.log(`Base URL: ${API_BASE_URL}`);
   console.log(`Mutation tests: ${RUN_MUTATION_TESTS ? "enabled" : "disabled"}`);
-  console.log(`Checkpoint support: ${ENABLE_CHECKPOINT ? "enabled" : "disabled"}`);
-  console.log(`Inter-request delay: ${INTER_REQUEST_DELAY_MS}ms (rate-limit aware)`);
+  console.log(
+    `Checkpoint support: ${ENABLE_CHECKPOINT ? "enabled" : "disabled"}`,
+  );
+  console.log(
+    `Inter-request delay: ${INTER_REQUEST_DELAY_MS}ms (rate-limit aware)`,
+  );
 
   // Load any prior checkpoint
   loadCheckpoint();
@@ -231,7 +254,8 @@ function requireArray(value) {
     token: SELLER_TOKEN,
     expected: 200,
     validate: (json) => {
-      if (!requireObject(json) || !requireArray(json.data)) return "missing data array";
+      if (!requireObject(json) || !requireArray(json.data))
+        return "missing data array";
       return null;
     },
   });
@@ -244,7 +268,8 @@ function requireArray(value) {
     token: SELLER_TOKEN,
     expected: 200,
     validate: (json) => {
-      if (!requireObject(json) || !requireObject(json.data)) return "missing data object";
+      if (!requireObject(json) || !requireObject(json.data))
+        return "missing data object";
       return null;
     },
   });
@@ -340,7 +365,8 @@ function requireArray(value) {
     token: SELLER_TOKEN,
     expected: 200,
     validate: (json) => {
-      if (!requireObject(json) || !requireArray(json.data)) return "missing data array";
+      if (!requireObject(json) || !requireArray(json.data))
+        return "missing data array";
       return null;
     },
   });
@@ -353,7 +379,8 @@ function requireArray(value) {
     token: BUYER_TOKEN,
     expected: 200,
     validate: (json) => {
-      if (!requireObject(json) || !requireArray(json.data)) return "missing data array";
+      if (!requireObject(json) || !requireArray(json.data))
+        return "missing data array";
       return null;
     },
   });
@@ -413,7 +440,9 @@ function requireArray(value) {
   const sellerOwnedListing = sellerOwnListings.responseJson?.data?.find(
     (x) => x && x._id,
   );
-  const buyerListing = buyerListings.responseJson?.data?.find((x) => x && x._id);
+  const buyerListing = buyerListings.responseJson?.data?.find(
+    (x) => x && x._id,
+  );
 
   if (sellerOwnedListing?._id) {
     await callApi({
@@ -444,7 +473,9 @@ function requireArray(value) {
   }
 
   const candidateUserId =
-    sellerListing?.author?._id || sellerListing?.dialist_id || sellerListing?.user_id;
+    sellerListing?.author?._id ||
+    sellerListing?.dialist_id ||
+    sellerListing?.user_id;
 
   if (candidateUserId) {
     await callApi({
