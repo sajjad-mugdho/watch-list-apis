@@ -613,8 +613,8 @@ Batch 2 intentionally uses two pagination families. Frontend should not assume o
 
 1. GET /api/v1/networks/user/home
 
-- Alignment: Gap
-- Reason: proposed aggregate endpoint, not implemented.
+- Alignment: Clarified
+- Reason: this was a proposed aggregate path. The implemented canonical aggregate endpoint is GET /api/v1/networks/user/profile. GET /api/v1/networks/user is a minimal platform endpoint and intentionally different.
 
 2. Recommendation listing APIs under networks for home cards
 

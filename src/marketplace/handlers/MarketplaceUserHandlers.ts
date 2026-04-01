@@ -427,7 +427,7 @@ export const marketplace_onboarding_complete_patch = async (
       postal_code: location.postal_code ?? null,
       city: location.city ?? null,
       line1: location.line1 ?? null,
-      line2: location.line2 || null,
+      line2: location.line2 ?? null,
       currency: location.currency,
     };
 
@@ -455,7 +455,7 @@ export const marketplace_onboarding_complete_patch = async (
           postal_code: location.postal_code ?? null,
           city: location.city ?? null,
           line1: location.line1 ?? null,
-          line2: location.line2 || null,
+          line2: location.line2 ?? null,
           currency: location.currency,
           confirmed: true,
           updated_at: new Date(),

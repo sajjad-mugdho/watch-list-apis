@@ -72,6 +72,61 @@ describe("Platform onboarding integration", () => {
     expect(marketplaceStatus.body.data.requires).not.toContain("location");
   });
 
+  it("allows Networks onboarding without currency and normalizes empty optional location fields", async () => {
+    await User.create({
+      _id: "aad111111111111111111111",
+      external_id: "new_user_no_currency",
+      email: "networks-no-currency@test.com",
+      first_name: "Initial",
+      last_name: "User",
+      onboarding: {
+        status: "incomplete",
+        version: "2.0",
+        steps: {},
+      },
+      marketplace_onboarding: {
+        status: "incomplete",
+        version: "1.0",
+        steps: {},
+      },
+    });
+
+    const networksComplete = await request(app)
+      .patch("/api/v1/networks/onboarding/complete")
+      .set("x-test-user", "new_user_no_currency")
+      .send({
+        profile: {
+          first_name: "Nora",
+          last_name: "NoCurrency",
+        },
+        location: {
+          country: "CA",
+          region: "Ontario",
+          city: "",
+          line1: "",
+          line2: "",
+          postal_code: "",
+        },
+        avatar: {
+          type: "upload",
+          url: "https://example.com/networks-no-currency-avatar.jpg",
+        },
+      });
+
+    expect(networksComplete.status).toBe(200);
+
+    const user = await User.findOne({
+      external_id: "new_user_no_currency",
+    }).select("+location");
+    expect(user).toBeTruthy();
+    expect(user?.onboarding?.steps?.location?.currency).toBeNull();
+    expect(user?.location?.currency).toBeNull();
+    expect(user?.onboarding?.steps?.location?.city).toBeNull();
+    expect(user?.onboarding?.steps?.location?.line1).toBeNull();
+    expect(user?.onboarding?.steps?.location?.line2).toBeNull();
+    expect(user?.onboarding?.steps?.location?.postal_code).toBeNull();
+  });
+
   it("allows Marketplace-first flow and pre-fills Networks status", async () => {
     await User.create({
       _id: "aaa222222222222222222222",
