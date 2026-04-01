@@ -1425,35 +1425,51 @@ export const completeOnboardingSchema = z.object({
         .trim()
         .min(1, "Region cannot be empty")
         .max(100, "Region too long"),
-      postal_code: z
-        .string({
-          invalid_type_error: "Postal code must be a string",
-        })
-        .trim()
-        .min(3, "Postal code too short")
-        .max(12, "Postal code too long")
-        .refine(
-          (val) => /^[A-Za-z0-9\s-]+$/.test(val),
-          "Postal code may only contain letters, numbers, spaces, and hyphens",
-        )
-        .optional(),
-      city: z
-        .string()
-        .trim()
-        .min(1, "City cannot be empty")
-        .max(100, "City too long")
-        .optional(),
-      line1: z
-        .string()
-        .trim()
-        .min(1, "Address line 1 cannot be empty")
-        .max(255, "Address line 1 too long")
-        .optional(),
-      line2: z.string().trim().max(255, "Address line 2 too long").optional(),
-      currency: z.enum(["USD", "CAD"], {
-        required_error: "Currency is required",
-        invalid_type_error: "Currency must be either 'USD' or 'CAD'",
-      }),
+      postal_code: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z
+          .string({
+            invalid_type_error: "Postal code must be a string",
+          })
+          .trim()
+          .min(3, "Postal code too short")
+          .max(12, "Postal code too long")
+          .refine(
+            (val) => /^[A-Za-z0-9\s-]+$/.test(val),
+            "Postal code may only contain letters, numbers, spaces, and hyphens",
+          )
+          .optional(),
+      ),
+      city: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z
+          .string()
+          .trim()
+          .min(1, "City cannot be empty")
+          .max(100, "City too long")
+          .optional(),
+      ),
+      line1: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z
+          .string()
+          .trim()
+          .min(1, "Address line 1 cannot be empty")
+          .max(255, "Address line 1 too long")
+          .optional(),
+      ),
+      line2: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z.string().trim().max(255, "Address line 2 too long").optional(),
+      ),
+      currency: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z
+          .enum(["USD", "CAD"], {
+            invalid_type_error: "Currency must be either 'USD' or 'CAD'",
+          })
+          .optional(),
+      ),
     }),
     profile: z.object({
       first_name: z
@@ -1542,31 +1558,43 @@ export const marketplaceOnboardingCompleteSchema = z.object({
         .trim()
         .min(1, "Region cannot be empty")
         .max(100, "Region too long"),
-      postal_code: z
-        .string({
-          invalid_type_error: "Postal code must be a string",
-        })
-        .trim()
-        .min(3, "Postal code too short")
-        .max(12, "Postal code too long")
-        .refine(
-          (val) => /^[A-Za-z0-9\s-]+$/.test(val),
-          "Postal code may only contain letters, numbers, spaces, and hyphens",
-        )
-        .optional(),
-      city: z
-        .string()
-        .trim()
-        .min(1, "City cannot be empty")
-        .max(100, "City too long")
-        .optional(),
-      line1: z
-        .string()
-        .trim()
-        .min(1, "Address line 1 cannot be empty")
-        .max(255, "Address line 1 too long")
-        .optional(),
-      line2: z.string().trim().max(255, "Address line 2 too long").optional(),
+      postal_code: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z
+          .string({
+            invalid_type_error: "Postal code must be a string",
+          })
+          .trim()
+          .min(3, "Postal code too short")
+          .max(12, "Postal code too long")
+          .refine(
+            (val) => /^[A-Za-z0-9\s-]+$/.test(val),
+            "Postal code may only contain letters, numbers, spaces, and hyphens",
+          )
+          .optional(),
+      ),
+      city: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z
+          .string()
+          .trim()
+          .min(1, "City cannot be empty")
+          .max(100, "City too long")
+          .optional(),
+      ),
+      line1: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z
+          .string()
+          .trim()
+          .min(1, "Address line 1 cannot be empty")
+          .max(255, "Address line 1 too long")
+          .optional(),
+      ),
+      line2: z.preprocess(
+        (val) => (val === "" || val === null ? undefined : val),
+        z.string().trim().max(255, "Address line 2 too long").optional(),
+      ),
       currency: z.enum(["USD", "CAD"], {
         required_error: "Currency is required",
         invalid_type_error: "Currency must be either 'USD' or 'CAD'",

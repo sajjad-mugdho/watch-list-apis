@@ -2,7 +2,7 @@
 
 Status: Frozen baseline  
 Owner: Backend API team  
-Last verified: 2026-03-29
+Last verified: 2026-04-02
 
 **Security Update (2026-03-29):** FINIX_WEBHOOK_SECRET now required in production (blocks unsigned webhook forgery)
 
@@ -90,7 +90,6 @@ Required body fields:
 - profile.last_name
 - location.country (CA or US)
 - location.region
-- location.currency (USD or CAD)
 - avatar
 
 Optional location fields:
@@ -99,6 +98,7 @@ Optional location fields:
 - location.city
 - location.line1
 - location.line2
+- location.currency (USD or CAD when provided)
 
 Avatar rules:
 
@@ -109,6 +109,7 @@ Notes:
 
 - Atomic write in a transaction
 - Re-completion returns conflict
+- Optional location fields may be omitted or sent as empty values; server normalizes empty optional values during validation.
 
 ### PATCH /api/v1/marketplace/onboarding/complete
 
@@ -220,7 +221,7 @@ Notes:
 
 - No payment fields in Networks onboarding
 - No acknowledgements field in Networks onboarding
-- currency is required and must be USD or CAD
+- currency is optional; when provided it must be USD or CAD
 
 ### 2) Marketplace user onboarding body (buyer)
 
@@ -461,6 +462,11 @@ Expected baseline:
 - scripts/test_all_endpoints.sh
 
 ## Change Log
+
+### 2026-04-02
+
+- Updated Networks onboarding contract: location.currency is optional (still constrained to USD/CAD when provided).
+- Clarified optional location normalization behavior so UI can omit non-collected fields without onboarding failure.
 
 ### 2026-03-24
 

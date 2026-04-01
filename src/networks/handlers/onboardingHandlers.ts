@@ -230,8 +230,8 @@ export const networks_onboarding_complete_patch = async (
       postal_code: location.postal_code ?? null,
       city: location.city ?? null,
       line1: location.line1 ?? null,
-      line2: location.line2 || null,
-      currency: location.currency,
+      line2: location.line2 ?? null,
+      currency: location.currency ?? null,
       updated_at: new Date(),
     };
 
@@ -242,8 +242,8 @@ export const networks_onboarding_complete_patch = async (
       postal_code: location.postal_code ?? null,
       city: location.city ?? null,
       line1: location.line1 ?? null,
-      line2: location.line2 || null,
-      currency: location.currency,
+      line2: location.line2 ?? null,
+      currency: location.currency ?? null,
     };
 
     // Update avatar

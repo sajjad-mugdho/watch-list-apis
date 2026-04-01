@@ -54,18 +54,47 @@ export interface InventoryMetadata {
 // ----------------------------------------------------------
 
 /**
- * Get networks user info
+ * Get networks user info with minimal user details
  * GET /api/v1/networks/user
+ * Returns: platform, display_name, first_name, last_name, email (lightweight alternative to /profile)
  */
 export const networks_user_get = async (
   req: Request,
-  res: Response<ApiResponse<{ platform: "networks" }>>,
+  res: Response<
+    ApiResponse<{
+      platform: "networks";
+      display_name?: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+      email?: string | null;
+    }>
+  >,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const response: ApiResponse<{ platform: "networks" }> = {
+    const userId = (req as any).user?.dialist_id;
+    if (!userId) {
+      throw new MissingUserContextError();
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new NotFoundError("User");
+    }
+
+    const response: ApiResponse<{
+      platform: "networks";
+      display_name?: string | null;
+      first_name?: string | null;
+      last_name?: string | null;
+      email?: string | null;
+    }> = {
       data: {
         platform: "networks",
+        display_name: user.display_name || null,
+        first_name: user.first_name || null,
+        last_name: user.last_name || null,
+        email: user.email || null,
       } as any,
       requestId: req.headers["x-request-id"] as string,
     };

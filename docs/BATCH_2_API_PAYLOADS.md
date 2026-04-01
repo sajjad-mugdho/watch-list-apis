@@ -820,6 +820,7 @@ Note:
 Note:
 
 - Legacy compatibility endpoint. For Networks home/profile summary screens, use GET /api/v1/networks/user/profile.
+- GET /api/v1/networks/user is a lightweight platform endpoint and is intentionally different from GET /api/v1/networks/user/profile.
 
 Request:
 
@@ -1762,6 +1763,7 @@ Response 200:
 Note:
 
 - Legacy compatibility endpoint. For Networks home/profile summary screens, use GET /api/v1/networks/user/profile.
+- GET /api/v1/networks/user is a lightweight platform endpoint and is intentionally different from GET /api/v1/networks/user/profile.
 
 Request:
 
