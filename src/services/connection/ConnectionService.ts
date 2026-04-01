@@ -219,7 +219,18 @@ export class ConnectionService {
 
     if (connection.status === "accepted") {
       await this.syncConnectionCounts(requesterId, targetId);
-      await this.syncFeedUnfollowWithRetry(requesterId, targetId, "remove");
+      try {
+        await this.syncFeedUnfollowWithRetry(requesterId, targetId, "remove");
+      } catch (err) {
+        logger.error(
+          "[ConnectionService] Connection removed but feed unfollow sync failed",
+          {
+            requesterId,
+            targetId,
+            err,
+          },
+        );
+      }
     }
 
     logger.info("[ConnectionService] Connection removed", {

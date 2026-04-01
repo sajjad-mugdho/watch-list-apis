@@ -176,6 +176,10 @@ export const networks_listing_create = async (
 
     const user = (req as any).user;
     const { watch, type = "for_sale" } = req.body;
+    const country =
+      (typeof user.location_country === "string" &&
+        user.location_country.trim()) ||
+      "US";
 
     const fetchedProduct = await Watch.findById(watch).lean();
     if (!fetchedProduct) {
@@ -213,7 +217,7 @@ export const networks_listing_create = async (
         location: user.location,
       },
       ships_from: {
-        country: user.location_country,
+        country,
       },
     });
 

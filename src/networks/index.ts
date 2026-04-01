@@ -10,6 +10,7 @@ import searchRoutes from "./routes/searchRoutes";
 import connectionRoutes from "./routes/connectionRoutes";
 import socialRoutes from "./routes/socialRoutes";
 import orderRoutes from "./routes/orderRoutes";
+import reservationRoutes from "./routes/reservationRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import { usersRoutes } from "./routes/usersRoutes";
 import onboardingRoutes from "./routes/onboardingRoutes";
@@ -34,6 +35,7 @@ router.use("/search", searchRoutes);
 router.use("/connections", connectionRoutes);
 router.use("/social", socialRoutes);
 router.use("/orders", orderRoutes);
+router.use("/reservations", reservationRoutes);
 router.use("/notifications", notificationRoutes);
 
 export default router;

@@ -18,7 +18,7 @@ export interface IWatch {
   model: string;
   reference: string;
   diameter: string;
-  color: string;
+  color?: string;
   bezel: string;
   materials: string;
   bracelet: string;
@@ -38,6 +38,7 @@ const watchSchema = new Schema<IWatch>(
     model: { type: String, required: true },
     reference: { type: String, required: true },
     diameter: { type: String, required: true },
+    color: { type: String },
     bezel: { type: String, required: true },
     materials: { type: String, required: true },
     bracelet: { type: String, required: true },

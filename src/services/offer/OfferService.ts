@@ -427,10 +427,10 @@ export class OfferService {
     try {
       // 1. Get offer
       offer = await Offer.findById(offerId).session(session);
-      if (!offer) throw new Error("Offer not found");
+      if (!offer) throw new NotFoundError("Offer");
 
       if (!offer.canBeAccepted()) {
-        throw new Error(
+        throw new ValidationError(
           `Offer cannot be accepted in state: ${offer.state}${offer.isExpired() ? " (expired)" : ""}`,
         );
       }
@@ -438,17 +438,17 @@ export class OfferService {
       // 2. Verify acceptor is the correct party
       latestRevision = await OfferRevision.getLatestRevision(offerId);
       if (!latestRevision) {
-        throw new Error("No revision found for this offer");
+        throw new NotFoundError("Offer revision");
       }
 
       if (latestRevision.created_by.toString() === acceptorId) {
-        throw new Error("Cannot accept your own offer/counter");
+        throw new ValidationError("Cannot accept your own offer/counter");
       }
 
       const isBuyer = offer.buyer_id.toString() === acceptorId;
       const isSeller = offer.seller_id.toString() === acceptorId;
       if (!isBuyer && !isSeller) {
-        throw new Error("Only buyer or seller can accept this offer");
+        throw new ValidationError("Only buyer or seller can accept this offer");
       }
 
       // 3. Update offer state

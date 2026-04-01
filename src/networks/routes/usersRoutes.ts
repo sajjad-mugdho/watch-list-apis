@@ -599,7 +599,11 @@ router.delete(
 router.post(
   "/:id/report",
   (req: Request, _res: Response, next: NextFunction) => {
-    req.body = { ...req.body, target_id: req.params.id };
+    req.body = {
+      ...req.body,
+      target_id: req.params.id,
+      target_type: req.body?.target_type || "User",
+    };
     next();
   },
   validateRequest(createReportSchema),

@@ -281,7 +281,7 @@ export const updateListingSchema = z.object({
       shipping: z
         .array(
           z.object({
-            region: z.enum(["US", "CA"]),
+            region: z.enum(["US", "CA", "International"]),
             shippingIncluded: z.boolean(),
             shippingCost: z.number().min(0),
           }),
@@ -372,7 +372,7 @@ export const sendOfferSchema = z.object({
       .positive("Amount must be positive")
       .int("Amount must be an integer")
       .min(1, "Amount must be at least 1"),
-    shipping_region: z.string().min(1, "Shipping region is required"),
+    shipping_region: z.enum(["US", "CA", "International"]),
     request_free_shipping: z.boolean().optional(),
     reservation_terms_snapshot: z.string().optional(),
     message: z
@@ -439,6 +439,7 @@ export const getUserPublicProfileSchema = z.object({
   query: z
     .object({
       status: z.enum(["active", "sold", "all"]).optional(),
+      type: z.enum(["for_sale", "wtb"]).optional(),
       search: z.string().optional(),
       page: z.string().regex(/^\d+$/).optional(),
       limit: z.string().regex(/^\d+$/).optional(),
