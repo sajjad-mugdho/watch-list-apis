@@ -439,7 +439,7 @@ export const networks_user_public_profile_get = async (
 
     const user = await User.findById(id)
       .select(
-        "display_name avatar first_name last_name location bio website createdAt",
+        "display_name avatar first_name last_name location bio website createdAt email",
       )
       .lean();
     if (!user) {
@@ -772,8 +772,20 @@ export const networks_user_references_get = async (
       throw new ValidationError("Invalid user ID");
     }
 
-    const limit = Math.min(parseInt(limitStr || "20") || 20, 50);
-    const offset = Math.max(parseInt(offsetStr || "0") || 0, 0);
+    if (limitStr !== undefined && !/^\d+$/.test(limitStr)) {
+      throw new ValidationError("Invalid limit");
+    }
+    if (offsetStr !== undefined && !/^\d+$/.test(offsetStr)) {
+      throw new ValidationError("Invalid offset");
+    }
+
+    const limit = Math.min(parseInt(limitStr || "20", 10), 50);
+    const offset = Math.max(parseInt(offsetStr || "0", 10), 0);
+
+    const targetUser = await User.findById(userId).select("_id").lean();
+    if (!targetUser) {
+      throw new NotFoundError("User not found");
+    }
 
     let filter: any = {
       status: "completed",

@@ -2,6 +2,7 @@ import { Router } from "express";
 import {
   networks_user_offers_get,
   networks_offer_get,
+  networks_offer_terms_history_get,
   networks_offer_accept,
   networks_offer_reject,
   networks_offer_counter,
@@ -15,7 +16,7 @@ const router = Router();
 // Validation Schemas
 const offerIdParamSchema = z.object({
   params: z.object({
-    id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid channel ID"),
+    id: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid offer ID"),
   }),
 });
 
@@ -47,6 +48,15 @@ router.get(
 );
 
 /**
+ * GET /api/v1/networks/offers/:id/terms-history
+ */
+router.get(
+  "/:id/terms-history",
+  validateRequest(offerIdParamSchema),
+  networks_offer_terms_history_get as any,
+);
+
+/**
  * POST /api/v1/networks/offers/:id/accept
  */
 router.post(
@@ -60,6 +70,16 @@ router.post(
  */
 router.post(
   "/:id/reject",
+  validateRequest(offerIdParamSchema),
+  networks_offer_reject as any,
+);
+
+/**
+ * POST /api/v1/networks/offers/:id/decline
+ * Compatibility alias for reject
+ */
+router.post(
+  "/:id/decline",
   validateRequest(offerIdParamSchema),
   networks_offer_reject as any,
 );

@@ -1,145 +1,145 @@
-import { EventEmitter as NodeEventEmitter } from 'events';
-import logger from './logger';
+import { EventEmitter as NodeEventEmitter } from "events";
+import logger from "./logger";
 
 /**
  * Event Map defining all system events and their payloads
  */
 export interface EventMap {
-  'channel:created': { 
-    channelId: string; 
+  "channel:created": {
+    channelId: string;
     getstreamChannelId: string;
-    buyerId: string; 
-    sellerId: string; 
+    buyerId: string;
+    sellerId: string;
     listingId: string;
-    platform: 'marketplace' | 'networks';
-    createdFrom: 'inquiry' | 'offer' | 'order';
+    platform: "marketplace" | "networks";
+    createdFrom: "inquiry" | "offer" | "order";
   };
-  'message:sent': {
+  "message:sent": {
     messageId: string;
     channelId: string;
     senderId: string;
     text?: string;
     type: string;
-    platform: 'marketplace' | 'networks';
+    platform: "marketplace" | "networks";
   };
-  'message:read': {
+  "message:read": {
     channelId: string;
     userId: string;
     messageCount?: number;
   };
-  'offer:sent': { 
-    offerId: string; 
-    channelId: string; 
+  "offer:sent": {
+    offerId: string;
+    channelId: string;
     senderId: string;
     receiverId: string;
     amount: number;
     listingId: string;
-    platform: 'marketplace' | 'networks';
+    platform: "marketplace" | "networks";
   };
-  'offer:accepted': { 
-    offerId: string; 
-    channelId: string;
+  "offer:accepted": {
+    offerId?: string;
+    channelId?: string;
     buyerId: string;
     sellerId: string;
     amount: number;
     orderId: string;
-    platform: 'marketplace' | 'networks';
+    platform: "marketplace" | "networks";
   };
-  'offer:rejected': {
-    offerId: string;
-    channelId: string;
+  "offer:rejected": {
+    offerId?: string;
+    channelId?: string;
     buyerId: string;
     sellerId: string;
     amount: number;
-    platform: 'marketplace' | 'networks';
+    platform: "marketplace" | "networks";
   };
-  'offer:countered': {
-    offerId: string;
-    channelId: string;
+  "offer:countered": {
+    offerId?: string;
+    channelId?: string;
     senderId: string;
     receiverId: string;
     amount: number;
     previousAmount: number;
-    platform: 'marketplace' | 'networks';
+    platform: "marketplace" | "networks";
   };
-  'offer:expired': { 
-    offerId: string; 
-    channelId: string;
+  "offer:expired": {
+    offerId?: string;
+    channelId?: string;
     buyerId: string;
     sellerId: string;
     amount: number;
   };
-  'notification:created': {
+  "notification:created": {
     notificationId: string;
     userId: string;
     type: string;
   };
-  'user:registered': {
+  "user:registered": {
     userId: string;
     email: string;
     firstName: string;
   };
-  'user:onboarding_complete': {
+  "user:onboarding_complete": {
     userId: string;
   };
-  
+
   // Listing Events
-  'listing:created': {
+  "listing:created": {
     userId: string;
     listingId: string;
     title: string;
   };
-  'listing:favorited': {
+  "listing:favorited": {
     sellerId: string;
     buyerName: string;
     listingId: string;
   };
 
   // GetStream Events
-  'getstream:message.new': {
+  "getstream:message.new": {
     listingId: string;
   };
 
   // Order Lifecycle Events
-  'order:created': {
+  "order:created": {
     buyerId: string;
     sellerId: string;
     orderId: string;
     amount: number;
-    platform: 'marketplace'; // Orders currently marketplace only
+    platform: "marketplace"; // Orders currently marketplace only
   };
-  'order:shipped': {
+  "order:shipped": {
     buyerId: string;
     orderId: string;
     trackingNumber?: string;
   };
-  'order:delivered': {
+  "order:delivered": {
     buyerId: string;
     orderId: string;
   };
-  
+
   // Social Events
-  'user:followed': {
+  "user:followed": {
     followedUserId: string;
     followerName: string;
   };
-  
+
   // ISO Events
-  'iso:matched': {
+  "iso:matched": {
     userId: string;
     isoId: string;
     matchedListingId: string;
   };
 
   // ===== Vouch Events =====
-  'vouch:added': {
+  "vouch:added": {
     vouchId: string;
     voucherId: string;
     vouchedUserId: string;
     referenceCheckId: string;
     voucherName?: string;
   };
-  'vouch:removed': {
+  "vouch:removed": {
     vouchId: string;
     voucherId: string;
     vouchedUserId: string;
@@ -147,7 +147,7 @@ export interface EventMap {
   };
 
   // ===== Trust Case Events =====
-  'trustCase:created': {
+  "trustCase:created": {
     caseId: string;
     caseNumber: string;
     reportedUserId: string;
@@ -155,24 +155,24 @@ export interface EventMap {
     category: string;
     priority: string;
   };
-  'trustCase:escalated': {
+  "trustCase:escalated": {
     caseId: string;
     caseNumber: string;
     escalatedTo: string;
     reason: string;
   };
-  'trustCase:resolved': {
+  "trustCase:resolved": {
     caseId: string;
     caseNumber: string;
     resolvedBy: string;
     resolution: string;
   };
-  'trustCase:closed': {
+  "trustCase:closed": {
     caseId: string;
     caseNumber: string;
     closedBy: string;
   };
-  'user:suspended': {
+  "user:suspended": {
     userId: string;
     suspendedById: string;
     caseId: string;
@@ -191,7 +191,7 @@ export class TypedEventEmitter {
    * Emit an event with its typed payload
    */
   emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
-    logger.debug('Event emitted', { event, data });
+    logger.debug("Event emitted", { event, data });
     this.emitter.emit(event, data);
   }
 
@@ -200,17 +200,17 @@ export class TypedEventEmitter {
    * Supports both sync and async handlers with automatic error isolation
    */
   on<K extends keyof EventMap>(
-    event: K, 
-    handler: (data: EventMap[K]) => void | Promise<void>
+    event: K,
+    handler: (data: EventMap[K]) => void | Promise<void>,
   ): void {
     this.emitter.on(event, async (data) => {
       try {
         await handler(data);
       } catch (error) {
-        logger.error(`Error in event handler for "${event}"`, { 
-          event, 
-          data, 
-          error: error instanceof Error ? error.message : error 
+        logger.error(`Error in event handler for "${event}"`, {
+          event,
+          data,
+          error: error instanceof Error ? error.message : error,
         });
       }
     });
@@ -219,8 +219,23 @@ export class TypedEventEmitter {
   /**
    * Remove a specific listener
    */
-  off<K extends keyof EventMap>(event: K, handler: (data: EventMap[K]) => void): void {
+  off<K extends keyof EventMap>(
+    event: K,
+    handler: (data: EventMap[K]) => void,
+  ): void {
     this.emitter.off(event, handler);
+  }
+
+  /**
+   * Alias for compatibility with existing tests that call `removeListener`
+   */
+  removeListener<K extends keyof EventMap>(
+    event: K,
+    handler: (data: EventMap[K]) => void,
+  ): void {
+    // Node EventEmitter provides removeListener; forward to it for compatibility
+    // (keeps semantics identical to `off`)
+    (this.emitter as any).removeListener(event as any, handler as any);
   }
 
   /**

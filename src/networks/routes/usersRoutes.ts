@@ -15,6 +15,11 @@ import {
   networks_user_unblock,
   networks_user_report,
 } from "../handlers/NetworksUserHandlers";
+import {
+  networks_user_appeal_create,
+  networks_user_appeal_status_get,
+  networks_user_appeals_list,
+} from "../handlers/AppealHandlers";
 import { social_common_groups_get } from "../handlers/SocialHubHandlers";
 import {
   getUserPublicProfileSchema,
@@ -609,5 +614,89 @@ router.post(
   validateRequest(createReportSchema),
   networks_user_report as any,
 );
+
+// ──────────────────────────────────────────────────────────────────────
+// Appeals
+// ──────────────────────────────────────────────────────────────────────
+
+/**
+ * @swagger
+ * /api/v1/networks/users/{id}/appeals:
+ *   get:
+ *     summary: List user appeals
+ *     tags: [Networks - Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, under_review, approved, denied, closed]
+ *     responses:
+ *       200:
+ *         description: List of user appeals
+ *       403:
+ *         description: Can only view your own appeals
+ *   post:
+ *     summary: Create an appeal
+ *     tags: [Networks - Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               reason:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               appealType:
+ *                 type: string
+ *                 enum: [account_suspension, account_restriction, transaction_dispute, other]
+ *     responses:
+ *       201:
+ *         description: Appeal created
+ *       400:
+ *         description: Already has active appeal
+ */
+router.get("/:id/appeals", networks_user_appeals_list as any);
+router.post("/:id/appeals", networks_user_appeal_create as any);
+
+/**
+ * @swagger
+ * /api/v1/networks/users/{id}/appeal-status:
+ *   get:
+ *     summary: Get user appeal status
+ *     tags: [Networks - Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Current appeal status
+ *       403:
+ *         description: Can only view your own appeal status
+ */
+router.get("/:id/appeal-status", networks_user_appeal_status_get as any);
 
 export { router as usersRoutes };

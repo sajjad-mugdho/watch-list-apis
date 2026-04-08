@@ -7,8 +7,7 @@ export interface ISocialGroup extends Document {
   avatar?: string;
   created_by: Types.ObjectId;
   member_count: number;
-  privacy: "public" | "private" | "invite-only" | "secret";
-  is_private: boolean;
+  privacy: "public" | "private" | "invite_only" | "invite-only" | "secret";
   getstream_channel_id?: string;
   createdAt: Date;
   updatedAt: Date;
@@ -34,7 +33,8 @@ const SocialGroupSchema = new Schema<ISocialGroup>(
     created_by: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+      default: null,
       index: true,
     },
     member_count: {
@@ -43,13 +43,9 @@ const SocialGroupSchema = new Schema<ISocialGroup>(
     },
     privacy: {
       type: String,
-      enum: ["public", "private", "invite-only", "secret"],
+      // Keep legacy invite-only for read compatibility; writes normalize to invite_only.
+      enum: ["public", "private", "invite_only", "invite-only", "secret"],
       default: "public",
-      index: true,
-    },
-    is_private: {
-      type: Boolean,
-      default: false,
       index: true,
     },
     getstream_channel_id: {

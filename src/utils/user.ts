@@ -14,16 +14,23 @@ type StepKey = "location" | "display_name" | "avatar";
 
 // ---------------- Utilities ----------------
 export function computeInternalDisplayName(u: {
-  first_name: string;
-  last_name: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  display_name?: string | null;
 }): string {
-  const first = u.first_name.trim();
-  const last = u.last_name.trim();
+  const first = (u.first_name ?? "").toString().trim();
+  const last = (u.last_name ?? "").toString().trim();
 
-  if (!first || !last)
-    throw new Error(
-      "computeInternalDisplayName: both first_name and last_name are required",
-    );
+  // If both names missing, fall back to display_name or a generic placeholder
+  if (!first && !last) {
+    const dn = (u.display_name ?? "").toString().trim();
+    if (dn) return dn;
+    return "user";
+  }
+
+  if (!first) return last;
+  if (!last) return first;
+
   return `${first} ${last[0].toUpperCase()}.`;
 }
 

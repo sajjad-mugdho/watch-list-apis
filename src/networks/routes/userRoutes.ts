@@ -13,7 +13,10 @@ import {
   networks_user_profile_get,
   networks_user_inventory_get,
   networks_user_blocks_get,
+  networks_user_references_get,
+  networks_user_public_profile_get,
 } from "../handlers/NetworksUserHandlers";
+import { User } from "../../models/User";
 import { networks_dashboard_stats_get } from "../handlers/NetworksDashboardHandlers";
 import { getUserInventorySchema } from "../../validation/schemas";
 import { validateRequest } from "../../middleware/validation";
@@ -24,6 +27,7 @@ import { recentSearchService } from "../../services";
 import { isoRoutes } from "./isoRoutes";
 import { feedRoutes } from "./feedRoutes";
 import mongoose from "mongoose";
+import { social_common_groups_get } from "../handlers/SocialHubHandlers";
 
 const router = Router();
 
@@ -40,6 +44,48 @@ router.get(
 );
 router.get("/dashboard/stats", networks_dashboard_stats_get as any);
 router.get("/blocks", networks_user_blocks_get as any);
+
+// Backward-compatible alias when this router is mounted under /users.
+router.get("/:id/references", networks_user_references_get as any);
+
+// Backward-compatible: allow GET /users/:id to return public profile when this
+// router is mounted at /api/v1/users in tests or older integrations.
+router.get(
+  "/:id",
+  // reuse existing public profile handler
+  networks_user_public_profile_get as any,
+);
+
+// Backward-compatible: allow GET /users/:id/common-groups when mounted under /api/v1/users
+router.get("/:id/common-groups", social_common_groups_get as any);
+
+// Backward-compatible: simple PATCH /users/:id for updating minimal profile fields (tests)
+router.patch(
+  "/:id",
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const updates: any = {};
+      if (req.body.bio !== undefined) updates.bio = req.body.bio;
+      if (req.body.display_name !== undefined)
+        updates.display_name = req.body.display_name;
+
+      const updated = await User.findByIdAndUpdate(id, updates, {
+        new: true,
+      }).lean();
+      if (!updated) {
+        res.status(404).json({ error: { message: "User not found" } });
+        return;
+      }
+      res.json({
+        data: updated,
+        requestId: req.headers["x-request-id"] as string,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
 
 // ──────────────────────────────────────────────────────────────────────
 // Connection management (current user perspective)

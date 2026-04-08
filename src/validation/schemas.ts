@@ -534,7 +534,7 @@ export const merchantRefreshLinkSchema = z.object({
  */
 export const counterOfferSchema = z.object({
   params: z.object({
-    id: z.string().regex(objectIdRegex, "Invalid channel ID"),
+    id: z.string().regex(objectIdRegex, "Invalid offer ID"),
   }),
   body: z.object({
     amount: z
@@ -560,7 +560,7 @@ export const counterOfferSchema = z.object({
  */
 export const channelActionSchema = z.object({
   params: z.object({
-    id: z.string().regex(objectIdRegex, "Invalid channel ID"),
+    id: z.string().regex(objectIdRegex, "Invalid offer ID"),
   }),
 });
 
@@ -1359,6 +1359,8 @@ export const createGroupSchema = z.object({
     name: z.string().min(3).max(50).trim(),
     description: z.string().max(200).optional(),
     avatar: z.string().url().optional(),
+    privacy: z.enum(["public", "private", "invite_only", "secret"]).optional(),
+    // Deprecated fallback for backward compatibility.
     is_private: z.boolean().optional(),
     members: z.array(z.string().regex(objectIdRegex)).optional(),
   }),
@@ -1382,14 +1384,18 @@ export const getSocialInboxSchema = z.object({
       .enum(["all", "unread", "offers", "inquiries", "reference_checks"])
       .optional()
       .default("all"),
-    limit: z
-      .string()
-      .regex(/^\d+$/)
-      .transform(Number)
-      .refine((n) => n > 0, "Limit must be at least 1")
-      .optional()
-      .default("20"),
-    offset: z.string().regex(/^\d+$/).transform(Number).optional().default("0"),
+    limit: z.preprocess(
+      (val) => (val === undefined ? "20" : val),
+      z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .refine((n: number) => n > 0, "Limit must be at least 1"),
+    ),
+    offset: z.preprocess(
+      (val) => (val === undefined ? "0" : val),
+      z.string().regex(/^\d+$/).transform(Number),
+    ),
   }),
 });
 
@@ -1403,6 +1409,49 @@ export const searchSocialSchema = z.object({
       .enum(["all", "people", "groups", "messages"])
       .optional()
       .default("all"),
+  }),
+});
+
+/**
+ * Schema for listing reference checks with frozen filter taxonomy.
+ * Canonical: all | you | connections | active | suspended | completed
+ * Legacy compatibility: requested | pending | about-me
+ */
+export const getReferenceChecksSchema = z.object({
+  query: z.object({
+    filter: z
+      .enum([
+        "all",
+        "you",
+        "connections",
+        "active",
+        "suspended",
+        "completed",
+        "requested",
+        "pending",
+        "about-me",
+      ])
+      .optional()
+      .default("all"),
+    limit: z.preprocess(
+      (val) => (val === undefined ? "20" : val),
+      z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .refine(
+          (n: number) => n > 0 && n <= 100,
+          "Limit must be between 1 and 100",
+        ),
+    ),
+    offset: z.preprocess(
+      (val) => (val === undefined ? "0" : val),
+      z
+        .string()
+        .regex(/^\d+$/)
+        .transform(Number)
+        .refine((n: number) => n >= 0, "Offset must be non-negative"),
+    ),
   }),
 });
 

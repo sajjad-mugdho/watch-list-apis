@@ -1,0 +1,20 @@
+{
+  "seller": {
+    "token": "eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDIyMkFBQSIsImtpZCI6Imluc18zNTkxTUdYSGhZRTFxWHhKWVBoekNWUWtmZlUiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAiLCJleHAiOjE3NzU3NTAxNjEsImlhdCI6MTc3NTY1MDE2MSwiaXNzIjoiaHR0cHM6Ly9yZWxldmFudC1sYW1iLTE4LmNsZXJrLmFjY291bnRzLmRldiIsImp0aSI6ImM4MzA0MWI2MWQyNjk1Yzk4MGViIiwibmJmIjoxNzc1NjUwMTMxLCJzdWIiOiJ1c2VyXzM2SWNDM3VvN0NoMUdvNHFZVFpleFVlV29aTSJ9.o9P5TR_Mb9yKTIlintwthpl6MovRYoasa0vHs0dtGIhbSElM8_seWhtgD-VThDIBLIoB7p2wnHaJWZbhpPudPiMkD6S2US4EfV93tq1DLUDJZIeaVP7BtplMH4PNjgvu4Plegc6ueAEMH38fPdzGlnnZGRYNgZMpAH-VRLMSzdMTnWeE834FaQ-52qpQdbWrbH_yBFuV8MfdPcbxhsI9ZKUHroUYNgHgW2xdgM2lpgEf-UYpdCukpWMHkGvI__DaB1_3MRLY5TEnURYGhhXb2jL_Chi7XUm6Wrhdx-HQvtXONN_dAYO9CbgnganmTMxtbUNws3CUtyyotybJrIUq3Q",
+    "user_id": "",
+    "group_id": "69d562a89f198eb7ba33d117",
+    "conversation_id": "",
+    "offer_id": "69cc5159cf0fca3e239f7808",
+    "order_id": "69cc515bcf0fca3e239f7811",
+    "reference_check_id": "69d55b179f198eb7ba33ce7f"
+  },
+  "buyer": {
+    "token": "eyJhbGciOiJSUzI1NiIsImNhdCI6ImNsX0I3ZDRQRDIyMkFBQSIsImtpZCI6Imluc18zNTkxTUdYSGhZRTFxWHhKWVBoekNWUWtmZlUiLCJ0eXAiOiJKV1QifQ.eyJhenAiOiJodHRwOi8vbG9jYWxob3N0OjMwMDAiLCJleHAiOjE3NzU3NTAyNjksImlhdCI6MTc3NTY1MDI2OSwiaXNzIjoiaHR0cHM6Ly9yZWxldmFudC1sYW1iLTE4LmNsZXJrLmFjY291bnRzLmRldiIsImp0aSI6ImM5ZTJiOTVmZDM0NGFmM2U4ZTAxIiwibmJmIjoxNzc1NjUwMjM5LCJzdWIiOiJ1c2VyXzM2SWR0amVtRTBBQ3hZelVGZnBQOFFVRmp5ZiJ9.mpxOsYUF-h0yDfehJ4_xhT9MqLtdg_Eml2MVnt64hTQq1mYSzxJgKa9p2e_Su9RGB41Ozd3rxOa4RGj_FwdMV00MysIP9OmoUCl_f1kNu3_cKPIQvGrCHhmbEzW7sZnCDiujmpmIL0znhLVjE9hGreqKZ-Oiq4SlqIYNPK3xKzBvR7PL5x6zcdw3YzpcwfOW0Xq3hHb9zvL1Wvp98gQ_LpUzpJymsdlj5NLJ9fxSy1l9qyw4W8T7tiEEEmLBQ-tqzTq2hBpmMYA8DKHYXZLttYzvxMXI6aPls793OdTFzyj3O-T-9Tylcwlw6WTPbRxHsM7IC29yXe_9wHe19DVzBA",
+    "user_id": "",
+    "group_id": "69d562a89f198eb7ba33d117",
+    "conversation_id": "",
+    "offer_id": "",
+    "order_id": "699ef02c65dda0db7a73771b",
+    "reference_check_id": "69d45214eb790d48e9a669ed"
+  }
+}

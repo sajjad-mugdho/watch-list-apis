@@ -30,6 +30,7 @@ import {
 import { INetworkListing, NetworkListing } from "../models/NetworkListing";
 import { networksOfferService } from "./../../networks/services/NetworksOfferService";
 import { Offer } from "../../models/Offer";
+import { OfferRevision } from "../../models/OfferRevision";
 import { networksNotificationService } from "../services/NotificationService";
 
 // ----------------------------------------------------------
@@ -79,6 +80,44 @@ function validateCounterAmount(
   if (userRole === "seller" && newAmount < lastOffer.amount) {
     throw new ValidationError("Seller counter must not be below current offer");
   }
+}
+
+async function resolveOfferAndChannelByRouteId(
+  routeId: string,
+  activeOnly: boolean = false,
+): Promise<{ offer: any; channel: any }> {
+  if (!mongoose.Types.ObjectId.isValid(routeId)) {
+    throw new ValidationError("Invalid offer ID");
+  }
+
+  const stateFilter = activeOnly
+    ? { state: { $in: ["CREATED", "COUNTERED"] as const } }
+    : {};
+
+  // Canonical path: treat route id as offer id.
+  let offer = await Offer.findOne({
+    _id: new mongoose.Types.ObjectId(routeId),
+    platform: "networks",
+    ...stateFilter,
+  });
+
+  // Backward compatibility: old clients may still send channel id.
+  if (!offer) {
+    offer = await Offer.findOne({
+      channel_id: new mongoose.Types.ObjectId(routeId),
+      platform: "networks",
+      ...stateFilter,
+    }).sort({ updatedAt: -1 });
+  }
+
+  if (!offer) {
+    throw new NotFoundError("Offer");
+  }
+
+  const channel = await NetworkListingChannel.findById(offer.channel_id);
+  if (!channel) throw new NotFoundError("Channel");
+
+  return { offer, channel };
 }
 
 // ----------------------------------------------------------
@@ -207,9 +246,10 @@ export const networks_offer_send = async (
           type: "offer_received",
           title: "Offer Received",
           body: `You received an offer of $${amount.toLocaleString()} for ${listing.brand} ${listing.model}`,
-          actionUrl: `/networks/offers/${(existingChannel._id as any).toString()}`,
+          actionUrl: `/networks/offers/${(offer._id as any).toString()}`,
           data: {
             listing_id: listingId,
+            offer_id: (offer._id as any).toString(),
             channel_id: (existingChannel._id as any).toString(),
             amount,
           },
@@ -337,9 +377,10 @@ export const networks_offer_send = async (
         type: "offer_received",
         title: "Offer Received",
         body: `You received an offer of $${amount.toLocaleString()} for ${listing.brand} ${listing.model}`,
-        actionUrl: `/networks/offers/${(channel._id as any).toString()}`,
+        actionUrl: `/networks/offers/${(channel.last_offer?._id as any)?.toString?.() || (channel._id as any).toString()}`,
         data: {
           listing_id: listingId,
+          offer_id: (channel.last_offer?._id as any)?.toString?.(),
           channel_id: (channel._id as any).toString(),
           amount,
         },
@@ -351,7 +392,7 @@ export const networks_offer_send = async (
     }
 
     const response: ApiResponse<INetworkListingChannel> = {
-      data: channel.toJSON() as any,
+      data: ((channel as any).toJSON?.() ?? channel) as any,
       requestId: req.headers["x-request-id"] as string,
     };
 
@@ -378,7 +419,7 @@ export const networks_offer_counter = async (
   try {
     if (!(req as any).user) throw new MissingUserContextError();
 
-    const { id: channelId } = req.params;
+    const { id: routeId } = req.params;
     const { amount, message, reservation_terms } = req.body;
 
     const dialist_id = (req as any).user.dialist_id;
@@ -386,12 +427,10 @@ export const networks_offer_counter = async (
       throw new ValidationError("Invalid dialist_id");
     }
 
-    if (!mongoose.Types.ObjectId.isValid(channelId)) {
-      throw new ValidationError("Invalid channel ID");
-    }
-
-    const channel = await NetworkListingChannel.findById(channelId);
-    if (!channel) throw new NotFoundError("Channel");
+    const { offer, channel } = await resolveOfferAndChannelByRouteId(
+      routeId,
+      true,
+    );
 
     if (channel.status === "closed") {
       throw new ValidationError("Channel is closed");
@@ -420,14 +459,6 @@ export const networks_offer_counter = async (
 
     // Validate counter amount
     validateCounterAmount(channel, dialist_id, amount);
-
-    // Look up the formal Offer by channel_id and delegate to OfferService
-    const offer = await Offer.findOne({
-      channel_id: new mongoose.Types.ObjectId(channelId),
-      state: { $in: ["CREATED", "COUNTERED"] },
-    });
-    if (!offer)
-      throw new NotFoundError("No active offer found for this channel");
 
     await networksOfferService.counterOffer({
       offerId: offer._id.toString(),
@@ -461,9 +492,10 @@ export const networks_offer_counter = async (
         type: "counter_offer",
         title: "Counter Offer Received",
         body: `You received a counter offer of $${amount.toLocaleString()} for ${channel.listing_snapshot.brand} ${channel.listing_snapshot.model}`,
-        actionUrl: `/networks/offers/${(channel._id as any).toString()}`,
+        actionUrl: `/networks/offers/${offer._id.toString()}`,
         data: {
           listing_id: channel.listing_id.toString(),
+          offer_id: offer._id.toString(),
           channel_id: (channel._id as any).toString(),
           amount,
         },
@@ -502,30 +534,23 @@ export const networks_offer_accept = async (
   try {
     if (!(req as any).user) throw new MissingUserContextError();
 
-    const { id: channelId } = req.params;
+    const { id: routeId } = req.params;
     const userId = (req as any).user.dialist_id;
 
-    if (!mongoose.Types.ObjectId.isValid(channelId)) {
-      throw new ValidationError("Invalid channel ID");
-    }
-
-    // Look up active offer by channel ID
-    const offer = await Offer.findOne({
-      channel_id: new mongoose.Types.ObjectId(channelId),
-      state: { $in: ["CREATED", "COUNTERED"] },
-    });
-    if (!offer)
-      throw new NotFoundError("No active offer found for this channel");
+    const { offer, channel } = await resolveOfferAndChannelByRouteId(
+      routeId,
+      true,
+    );
 
     // Delegate to service layer - handles all state transitions, EventOutbox, notifications
     await networksOfferService.acceptOffer(offer._id.toString(), userId);
 
     // Fetch updated channel
-    const channel = await NetworkListingChannel.findById(channelId);
-    if (!channel) throw new NotFoundError("Channel");
+    const updatedChannel =
+      (await NetworkListingChannel.findById(channel._id)) || channel;
 
     const response: ApiResponse<INetworkListingChannel> = {
-      data: channel.toJSON() as any,
+      data: ((updatedChannel as any).toJSON?.() ?? updatedChannel) as any,
       requestId: req.headers["x-request-id"] as string,
     };
 
@@ -552,30 +577,23 @@ export const networks_offer_reject = async (
   try {
     if (!(req as any).user) throw new MissingUserContextError();
 
-    const { id: channelId } = req.params;
+    const { id: routeId } = req.params;
     const userId = (req as any).user.dialist_id;
 
-    if (!mongoose.Types.ObjectId.isValid(channelId)) {
-      throw new ValidationError("Invalid channel ID");
-    }
-
-    // Look up active offer by channel ID
-    const offer = await Offer.findOne({
-      channel_id: new mongoose.Types.ObjectId(channelId),
-      state: { $in: ["CREATED", "COUNTERED"] },
-    });
-    if (!offer)
-      throw new NotFoundError("No active offer found for this channel");
+    const { offer, channel } = await resolveOfferAndChannelByRouteId(
+      routeId,
+      true,
+    );
 
     // Delegate to service layer - handles state transitions, notifications, EventOutbox
     await networksOfferService.declineOffer(offer._id.toString(), userId);
 
     // Fetch updated channel
-    const channel = await NetworkListingChannel.findById(channelId);
-    if (!channel) throw new NotFoundError("Channel");
+    const updatedChannel =
+      (await NetworkListingChannel.findById(channel._id)) || channel;
 
     const response: ApiResponse<INetworkListingChannel> = {
-      data: channel.toJSON() as any,
+      data: ((updatedChannel as any).toJSON?.() ?? updatedChannel) as any,
       requestId: req.headers["x-request-id"] as string,
     };
 
@@ -591,7 +609,7 @@ export const networks_offer_reject = async (
 };
 
 /**
- * Get channel details
+ * Get offer/channel details
  * GET /api/v1/networks/offers/:id
  */
 export const networks_offer_get = async (
@@ -602,15 +620,10 @@ export const networks_offer_get = async (
   try {
     if (!(req as any).user) throw new MissingUserContextError();
 
-    const { id: channelId } = req.params;
+    const { id: routeId } = req.params;
     const userId = (req as any).user.dialist_id;
 
-    if (!mongoose.Types.ObjectId.isValid(channelId)) {
-      throw new ValidationError("Invalid channel ID");
-    }
-
-    const channel = await NetworkListingChannel.findById(channelId);
-    if (!channel) throw new NotFoundError("Channel");
+    const { offer, channel } = await resolveOfferAndChannelByRouteId(routeId);
 
     // Must be member
     const role = channel.getUserRole(userId);
@@ -620,7 +633,8 @@ export const networks_offer_get = async (
 
     const response: ApiResponse<INetworkListingChannel & { role: string }> = {
       data: {
-        ...(channel.toJSON() as any),
+        ...(((channel as any).toJSON?.() ?? channel) as any),
+        offer_id: offer._id.toString(),
         role,
       } as any,
       requestId: req.headers["x-request-id"] as string,
@@ -633,6 +647,66 @@ export const networks_offer_get = async (
       next(err);
     } else {
       next(new DatabaseError("Failed to fetch channel", err));
+    }
+  }
+};
+
+/**
+ * Get offer terms history
+ * GET /api/v1/networks/offers/:id/terms-history
+ */
+export const networks_offer_terms_history_get = async (
+  req: Request<ChannelActionInput["params"], {}, {}>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+
+    const { id: routeId } = req.params;
+    const userId = (req as any).user.dialist_id;
+
+    const { offer, channel } = await resolveOfferAndChannelByRouteId(routeId);
+
+    // Must be member of the conversation to read terms history.
+    const role = channel.getUserRole(userId);
+    if (!role) {
+      throw new AuthorizationError("Not authorized to view this offer", {});
+    }
+
+    const limit = Math.min(Number(req.query.limit) || 20, 100);
+    const offset = Math.max(Number(req.query.offset) || 0, 0);
+
+    const [revisions, total] = await Promise.all([
+      OfferRevision.find({ offer_id: offer._id })
+        .sort({ revision_number: -1 })
+        .skip(offset)
+        .limit(limit)
+        .lean(),
+      OfferRevision.countDocuments({ offer_id: offer._id }),
+    ]);
+
+    const response: ApiResponse<any> = {
+      data: {
+        offer_id: offer._id.toString(),
+        channel_id: channel._id.toString(),
+        revisions,
+      },
+      requestId: req.headers["x-request-id"] as string,
+      _metadata: {
+        total,
+        limit,
+        offset,
+      },
+    };
+
+    res.json(response);
+  } catch (err: any) {
+    logger.error("Error fetching offer terms history", { error: err });
+    if (err instanceof AppError) {
+      next(err);
+    } else {
+      next(new DatabaseError("Failed to fetch offer terms history", err));
     }
   }
 };

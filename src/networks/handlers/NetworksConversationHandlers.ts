@@ -2,8 +2,19 @@ import { Request, Response, NextFunction } from "express";
 import { channelContextService } from "../../services/ChannelContextService";
 import { User } from "../../models/User";
 import logger from "../../utils/logger";
+import { ApiResponse } from "../../types";
+
+/**
+ * NetworksConversationHandlers
+ * All successful responses follow ApiResponse envelope: { data, _metadata, requestId }
+ * All list endpoints include pagination metadata: { limit, offset, total }
+ * Error responses are handled via error middleware and standardized globally
+ */
 
 const PLATFORM = "networks";
+
+const getRequestId = (req: Request): string =>
+  (req.headers["x-request-id"] as string) || "";
 
 export const getConversations = async (
   req: Request,
@@ -48,6 +59,12 @@ export const getConversations = async (
       limit,
       offset,
       total,
+      _metadata: {
+        limit,
+        offset,
+        total,
+      },
+      requestId: getRequestId(req),
     });
   } catch (error: any) {
     logger.error("[NetworksConversationHandlers] Failed to get conversations", {
@@ -96,6 +113,11 @@ export const searchConversations = async (
       data: conversations,
       query: q,
       total: conversations.length,
+      _metadata: {
+        query: q,
+        total: conversations.length,
+      },
+      requestId: getRequestId(req),
     });
   } catch (error: any) {
     logger.error("[NetworksConversationHandlers] Search failed", { error });
@@ -136,7 +158,7 @@ export const getConversationContext = async (
       return;
     }
 
-    res.json({ data: context });
+    res.json({ data: context, requestId: getRequestId(req) });
   } catch (error: any) {
     logger.error("[NetworksConversationHandlers] Failed to get conversation", {
       error,
@@ -169,12 +191,31 @@ export const getConversationMedia = async (
       "video",
       "file",
       "url_enrichment",
+      "media",
+      "files",
+      "links",
       "all",
     ] as const;
     const rawType = req.query.type as string;
+    const normalizedType =
+      rawType === "media"
+        ? "image"
+        : rawType === "files"
+          ? "file"
+          : rawType === "links"
+            ? "url_enrichment"
+            : rawType;
     const type = (
-      VALID_MEDIA_TYPES.includes(rawType as any) ? rawType : "all"
+      VALID_MEDIA_TYPES.includes(normalizedType as any) ? normalizedType : "all"
     ) as "image" | "video" | "file" | "url_enrichment" | "all";
+    const canonicalType =
+      type === "image"
+        ? "media"
+        : type === "file"
+          ? "files"
+          : type === "url_enrichment"
+            ? "links"
+            : type;
     const parsedMediaLimit = parseInt(req.query.limit as string, 10);
     const limit = Math.min(
       !isNaN(parsedMediaLimit) ? Math.max(1, parsedMediaLimit) : 20,
@@ -200,7 +241,33 @@ export const getConversationMedia = async (
       { type, limit, next: nextToken },
     );
 
-    res.json(mediaResponse);
+    const responseData =
+      mediaResponse &&
+      typeof mediaResponse === "object" &&
+      "data" in mediaResponse
+        ? (mediaResponse as any).data
+        : mediaResponse;
+
+    const compatibilityMeta =
+      mediaResponse && typeof mediaResponse === "object"
+        ? Object.fromEntries(
+            Object.entries(mediaResponse as any).filter(([k]) => k !== "data"),
+          )
+        : {};
+
+    // Standardized response envelope for shared-content with canonical type
+    const response: ApiResponse<any> = {
+      data: responseData,
+      _metadata: {
+        type: canonicalType,
+        canonical_type: canonicalType,
+        limit,
+        next: compatibilityMeta.next || undefined,
+        ...compatibilityMeta,
+      },
+      requestId: getRequestId(req),
+    };
+    res.json(response);
   } catch (error: any) {
     logger.error("[NetworksConversationHandlers] Failed to get shared media", {
       error,

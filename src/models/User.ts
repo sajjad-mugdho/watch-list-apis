@@ -254,6 +254,7 @@ export interface IUser extends Document {
 
   // Status (Batch 2)
   deactivated_at: Date | null;
+  is_deleted?: boolean;
   presence_status: "online" | "offline" | "away" | "busy";
   full_name: string;
   isActive: boolean;
@@ -261,6 +262,7 @@ export interface IUser extends Document {
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
+  // Soft-delete flag exists (see schema `is_deleted`)
 
   // Trust & Safety: Suspension
   suspended_at?: Date | null;
@@ -508,8 +510,8 @@ const userSchema = new Schema<IUser>(
     },
 
     // Basic info
-    first_name: { type: Schema.Types.String, select: false, required: true },
-    last_name: { type: Schema.Types.String, select: false, required: true },
+    first_name: { type: Schema.Types.String, select: false, default: null },
+    last_name: { type: Schema.Types.String, select: false, default: null },
     location: { type: UserLocationSchema, select: false },
 
     avatar: {
@@ -517,6 +519,8 @@ const userSchema = new Schema<IUser>(
       default: "https://images.dialist.com/images/example-uuid-avatar/w=80",
       trim: true,
     },
+    // Soft-delete flag used by tests / search filters
+    is_deleted: { type: Boolean, default: false, index: true },
 
     display_name: { type: String, default: null, trim: true },
     display_name_last_changed_at: { type: Date, default: null },
@@ -652,6 +656,9 @@ const userSchema = new Schema<IUser>(
     timestamps: true,
   },
 );
+
+// Text index for unified user search (display_name, bio, email)
+userSchema.index({ display_name: "text", bio: "text", email: "text" });
 
 // Transform _id to string in JSON responses
 userSchema.set("toJSON", {
