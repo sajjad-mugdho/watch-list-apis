@@ -14,6 +14,8 @@ import mongoose, { Document, Schema, Types } from "mongoose";
 export const REFERENCE_STATUS_VALUES = [
   "pending",
   "active",
+  "waiting_requester_confirm",
+  "waiting_target_confirm",
   "suspended",
   "approved",
   "declined",
@@ -68,6 +70,8 @@ export interface IReferenceCheck extends Document {
 
   // Timestamps
   expires_at?: Date;
+  requester_confirmed_at?: Date;
+  target_confirmed_at?: Date;
   completed_at?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -176,6 +180,14 @@ const ReferenceCheckSchema = new Schema<IReferenceCheck>(
     expires_at: {
       type: Date,
       default: () => new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    },
+    requester_confirmed_at: {
+      type: Date,
+      default: null,
+    },
+    target_confirmed_at: {
+      type: Date,
+      default: null,
     },
     completed_at: {
       type: Date,

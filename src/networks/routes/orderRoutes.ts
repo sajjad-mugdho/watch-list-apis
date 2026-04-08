@@ -3,6 +3,9 @@ import {
   networks_order_get,
   networks_user_orders_get,
   networks_order_complete,
+  networks_order_completion_status_get,
+  networks_order_reference_check_initiate,
+  networks_order_audit_trail_get,
 } from "../handlers/NetworksOrderHandlers";
 import { validateRequest } from "../../middleware/validation";
 import { z } from "zod";
@@ -79,6 +82,33 @@ router.post(
   "/:id/complete",
   validateRequest(orderIdParamSchema),
   networks_order_complete as any,
+);
+
+/**
+ * GET /api/v1/networks/orders/:id/completion-status
+ */
+router.get(
+  "/:id/completion-status",
+  validateRequest(orderIdParamSchema),
+  networks_order_completion_status_get as any,
+);
+
+/**
+ * POST /api/v1/networks/orders/:id/reference-check/initiate
+ */
+router.post(
+  "/:id/reference-check/initiate",
+  validateRequest(orderIdParamSchema),
+  networks_order_reference_check_initiate as any,
+);
+
+/**
+ * GET /api/v1/networks/orders/:id/audit-trail
+ */
+router.get(
+  "/:id/audit-trail",
+  validateRequest(orderIdParamSchema),
+  networks_order_audit_trail_get as any,
 );
 
 export default router;

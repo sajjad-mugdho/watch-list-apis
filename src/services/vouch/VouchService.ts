@@ -31,6 +31,7 @@ export interface CreateVouchParams {
   voucherId: string;
   comment?: string;
   legal_consent_accepted: boolean;
+  legal_policy_version?: string;
 }
 
 export interface VouchEligibility {
@@ -45,6 +46,7 @@ export interface VouchDTO {
   vouchedByUserId: string;
   comment?: string;
   weight: number;
+  legalPolicyVersion?: string;
   voucherSnapshot: {
     displayName: string;
     avatar?: string;
@@ -143,6 +145,7 @@ export class VouchService {
       voucherId,
       comment,
       legal_consent_accepted,
+      legal_policy_version,
     } = params;
 
     logger.info("[VouchService] Creating vouch", {
@@ -194,6 +197,7 @@ export class VouchService {
           reputation_score: (voucher as any).reputation_score,
         },
         legal_consent_accepted,
+        legal_policy_version,
       });
       await vouch.save({ session });
 
@@ -362,6 +366,9 @@ export class VouchService {
     };
     if (vouch.comment !== undefined) {
       dto.comment = vouch.comment;
+    }
+    if (vouch.legal_policy_version !== undefined) {
+      dto.legalPolicyVersion = vouch.legal_policy_version;
     }
     if (vouch.voucher_snapshot.avatar !== undefined) {
       dto.voucherSnapshot.avatar = vouch.voucher_snapshot.avatar;

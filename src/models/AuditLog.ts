@@ -106,6 +106,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
         "DISPUTE_CREATED",
         "DISPUTE_UPDATED",
         "ORDER_CANCELLED",
+        "ORDER_CREATED",
         "ORDER_STATUS_CHANGED",
         // Offer actions
         "OFFER_CREATED",
@@ -134,7 +135,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
     actor_role: {
       type: String,
       enum: ["buyer", "seller", "admin", "system"],
-      required: true,
+      default: "system",
       index: true,
     },
     actor_email: { type: String, default: null },
@@ -189,7 +190,7 @@ const AuditLogSchema = new Schema<IAuditLog>(
   {
     timestamps: { createdAt: true, updatedAt: false },
     collection: "audit_logs",
-  }
+  },
 );
 
 // Compound indexes for common queries
@@ -222,7 +223,7 @@ export interface CreateAuditLogParams {
 }
 
 export async function createAuditLog(
-  params: CreateAuditLogParams
+  params: CreateAuditLogParams,
 ): Promise<IAuditLog> {
   const {
     action,

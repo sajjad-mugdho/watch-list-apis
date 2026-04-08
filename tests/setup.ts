@@ -1,5 +1,29 @@
 /// <reference types="jest" />
 
+// add jest-extended matchers
+import "jest-extended";
+
+// Fallback: ensure a minimal `toBeEmpty` matcher exists if jest-extended didn't register (robustness for CI variations)
+if (!(expect as any).toBeEmpty) {
+  expect.extend({
+    toBeEmpty(received: any) {
+      const isEmpty =
+        received === null ||
+        received === undefined ||
+        (typeof received === "string" && received.length === 0) ||
+        (Array.isArray(received) && received.length === 0) ||
+        (typeof received === "object" &&
+          Object.keys(received || {}).length === 0);
+
+      return {
+        pass: isEmpty,
+        message: () =>
+          `expected ${this.utils.printReceived(received)} to be empty`,
+      } as any;
+    },
+  } as any);
+}
+
 import { MongoMemoryReplSet } from "mongodb-memory-server";
 import mongoose from "mongoose";
 
@@ -117,28 +141,46 @@ jest.mock("ioredis", () => {
   return jest.fn(() => mockIoredis);
 });
 
-// Mock Clerk globally to avoid initialization hangs/network calls
+// Mock Clerk globally but delegate test-user behavior to our custom mock users
 jest.mock("@clerk/express", () => {
+  // Import the test mock helpers from our middleware so tests use the same
+  // mock user definitions as `customClerkMw` (x-test-user header names).
+  const custom = jest.requireActual("../src/middleware/customClerkMw");
+
   return {
     clerkMiddleware: jest
       .fn()
-      .mockImplementation(() => (req: any, res: any, next: any) => {
-        req.auth = {
-          userId: req.headers["x-test-user"] || null,
-          sessionClaims: {},
-        };
-        next();
+      .mockImplementation(() => (req: any, _res: any, next: any) => {
+        const testUserId = req.headers["x-test-user"] as string | undefined;
+        const mock = testUserId ? custom.getMockUser(testUserId) : undefined;
+
+        if (mock) {
+          req.auth = {
+            userId: mock.auth.userId,
+            sessionClaims: mock.auth.sessionClaims,
+          };
+        } else {
+          req.auth = {
+            userId: testUserId || null,
+            sessionClaims: {},
+          };
+        }
+
+        return next();
       }),
     requireAuth: jest
       .fn()
-      .mockImplementation(() => (req: any, res: any, next: any) => next()),
+      .mockImplementation(() => (req: any, _res: any, next: any) => next()),
     getAuth: jest.fn().mockImplementation((req: any) => {
-      const auth = {
-        userId: req.headers["x-test-user"] || null,
-        sessionClaims: {},
-      };
-      if (!req.auth) req.auth = auth;
-      return auth;
+      if (req.auth) return req.auth;
+      const testUserId = req.headers["x-test-user"] as string | undefined;
+      const mock = testUserId ? custom.getMockUser(testUserId) : undefined;
+      if (mock)
+        return {
+          userId: mock.auth.userId,
+          sessionClaims: mock.auth.sessionClaims,
+        };
+      return { userId: testUserId || null, sessionClaims: {} };
     }),
     clerkClient: {
       users: {

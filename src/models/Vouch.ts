@@ -33,6 +33,7 @@ export interface IVouch extends Document {
   voucher_snapshot: IVoucherSnapshot;
 
   legal_consent_accepted: boolean;
+  legal_policy_version?: string;
 
   // Timestamps
   createdAt: Date;
@@ -40,21 +41,19 @@ export interface IVouch extends Document {
 
 export interface IVouchModel extends Model<IVouch> {
   findByReferenceCheck(
-    referenceCheckId: string | Types.ObjectId
+    referenceCheckId: string | Types.ObjectId,
   ): Promise<IVouch[]>;
 
-  findByVouchedForUser(
-    userId: string | Types.ObjectId
-  ): Promise<IVouch[]>;
+  findByVouchedForUser(userId: string | Types.ObjectId): Promise<IVouch[]>;
 
   findByVoucher(userId: string | Types.ObjectId): Promise<IVouch[]>;
 
   countForReferenceCheck(
-    referenceCheckId: string | Types.ObjectId
+    referenceCheckId: string | Types.ObjectId,
   ): Promise<number>;
 
   getTotalWeightForReferenceCheck(
-    referenceCheckId: string | Types.ObjectId
+    referenceCheckId: string | Types.ObjectId,
   ): Promise<number>;
 }
 
@@ -72,7 +71,7 @@ const VoucherSnapshotSchema = new Schema<IVoucherSnapshot>(
     },
     reputation_score: { type: Number, min: 0 },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // ----------------------------------------------------------
@@ -123,10 +122,15 @@ const VouchSchema = new Schema<IVouch>(
       required: true,
       default: false,
     },
+    legal_policy_version: {
+      type: String,
+      trim: true,
+      maxlength: 64,
+    },
   },
   {
     timestamps: { createdAt: true, updatedAt: false }, // Vouches are immutable
-  }
+  },
 );
 
 // ----------------------------------------------------------
@@ -136,7 +140,7 @@ const VouchSchema = new Schema<IVouch>(
 // Unique: one vouch per user per reference check
 VouchSchema.index(
   { reference_check_id: 1, vouched_by_user_id: 1 },
-  { unique: true, name: "unique_vouch_per_check" }
+  { unique: true, name: "unique_vouch_per_check" },
 );
 
 // User's received vouches
@@ -164,7 +168,7 @@ VouchSchema.pre("updateMany", function () {
 // Static Methods
 // ----------------------------------------------------------
 VouchSchema.statics.findByReferenceCheck = function (
-  referenceCheckId: string | Types.ObjectId
+  referenceCheckId: string | Types.ObjectId,
 ) {
   return this.find({ reference_check_id: referenceCheckId }).sort({
     createdAt: -1,
@@ -172,7 +176,7 @@ VouchSchema.statics.findByReferenceCheck = function (
 };
 
 VouchSchema.statics.findByVouchedForUser = function (
-  userId: string | Types.ObjectId
+  userId: string | Types.ObjectId,
 ) {
   return this.find({ vouched_for_user_id: userId }).sort({ createdAt: -1 });
 };
@@ -182,16 +186,20 @@ VouchSchema.statics.findByVoucher = function (userId: string | Types.ObjectId) {
 };
 
 VouchSchema.statics.countForReferenceCheck = function (
-  referenceCheckId: string | Types.ObjectId
+  referenceCheckId: string | Types.ObjectId,
 ) {
   return this.countDocuments({ reference_check_id: referenceCheckId });
 };
 
 VouchSchema.statics.getTotalWeightForReferenceCheck = async function (
-  referenceCheckId: string | Types.ObjectId
+  referenceCheckId: string | Types.ObjectId,
 ): Promise<number> {
   const result = await this.aggregate([
-    { $match: { reference_check_id: new Types.ObjectId(String(referenceCheckId)) } },
+    {
+      $match: {
+        reference_check_id: new Types.ObjectId(String(referenceCheckId)),
+      },
+    },
     { $group: { _id: null, totalWeight: { $sum: "$weight" } } },
   ]);
   return result[0]?.totalWeight || 0;
@@ -203,7 +211,7 @@ VouchSchema.statics.getTotalWeightForReferenceCheck = async function (
 export const Vouch = mongoose.model<IVouch, IVouchModel>(
   "Vouch",
   VouchSchema,
-  "vouches"
+  "vouches",
 );
 
 export default Vouch;

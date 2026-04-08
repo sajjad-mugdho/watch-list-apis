@@ -5,10 +5,12 @@ import mongoose, { Schema, Types } from "mongoose";
 // ----------------------------------------------------------
 export const ORDER_STATUS_VALUES = [
   "pending",
+  "processing",
   "reserved",
   "paid", // Marketplace only
   "shipped",
   "delivered",
+  "refunded",
   "completed",
   "cancelled",
   "disputed",
@@ -97,13 +99,14 @@ const orderSchema = new Schema<IOrder>(
       type: String,
       enum: ["MarketplaceListing", "NetworkListing"],
       required: true,
+      default: "NetworkListing",
     },
     listing_id: { type: Schema.Types.ObjectId, required: true, index: true },
     listing_snapshot: {
-      brand: { type: String, required: true },
-      model: { type: String, required: true },
-      reference: { type: String, required: true },
-      price: { type: Number, required: true },
+      brand: { type: String, required: false, default: "" },
+      model: { type: String, required: false, default: "" },
+      reference: { type: String, required: false, default: "" },
+      price: { type: Number, required: false, default: 0 },
       thumbnail: { type: String },
     },
     buyer_id: {

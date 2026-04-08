@@ -27,7 +27,16 @@ export const social_group_create = async (
   try {
     if (!(req as any).user) throw new MissingUserContextError();
     const creatorId = (req as any).user.dialist_id;
-    const { name, description, avatar, is_private, members = [] } = req.body;
+    const {
+      name,
+      description,
+      avatar,
+      privacy,
+      members = [],
+    } = req.body as any;
+
+    // Canonical privacy field usage (public | invite_only | secret)
+    const canonicalPrivacy = privacy || "public";
 
     // 1. Create group in DB
     const [group] = await SocialGroup.create(
@@ -36,7 +45,7 @@ export const social_group_create = async (
           name,
           description,
           avatar,
-          is_private,
+          privacy: canonicalPrivacy,
           created_by: creatorId,
           member_count: members.length + 1,
         },
@@ -51,7 +60,7 @@ export const social_group_create = async (
         user_id: creatorId,
         role: "admin",
       },
-      ...members.map((mId) => ({
+      ...members.map((mId: string | mongoose.Types.ObjectId) => ({
         group_id: group._id,
         user_id: mId,
         role: "member",
@@ -465,6 +474,352 @@ export const social_group_member_role_update = async (
 };
 
 /**
+ * List all members of a group
+ * GET /api/v1/networks/social/groups/:id/members
+ */
+export const social_group_members_list = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = (req as any).user.dialist_id;
+    const { id } = req.params;
+
+    // Verify user is member of group
+    const group = await SocialGroup.findById(id);
+    if (!group) throw new NotFoundError("Group not found");
+
+    if (group.privacy !== "public") {
+      const membership = await SocialGroupMember.findOne({
+        group_id: id,
+        user_id: userId,
+      });
+      if (!membership) {
+        res.status(403).json({
+          error: { message: "Not a member of this group" },
+          requestId: req.headers["x-request-id"] as string,
+        });
+        return;
+      }
+    }
+
+    // Get all members
+    const members = await SocialGroupMember.find({ group_id: id }).lean();
+
+    const membersList = members.map((m: any) => ({
+      user_id: String(m.user_id),
+      role: m.role,
+      joined_at: (m as any).createdAt,
+      muted: m.muted || false,
+    }));
+
+    res.json({
+      data: membersList,
+      _metadata: {
+        total: membersList.length,
+      },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get shared links from a group
+ * GET /api/v1/networks/social/groups/:id/shared-links
+ */
+export const social_group_shared_links_get = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = (req as any).user.dialist_id;
+    const { id } = req.params;
+    const { limit: limitQ = "50", offset: offsetQ = "0" } = req.query;
+
+    // Verify membership
+    const group = await SocialGroup.findById(id);
+    if (!group) throw new NotFoundError("Group not found");
+
+    const membership = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: userId,
+    });
+
+    if (!membership && group.privacy !== "public") {
+      res.status(403).json({
+        error: { message: "Not authorized to view group content" },
+        requestId: req.headers["x-request-id"] as string,
+      });
+      return;
+    }
+
+    // Get shared links from this group's GetStream channel
+    const query: any = {
+      stream_channel_id: group.getstream_channel_id,
+      type: "link",
+      is_deleted: { $ne: true },
+    };
+
+    const offset = Number(offsetQ);
+    const limit = Number(limitQ);
+
+    const { ChatMessage } = require("../../models/ChatMessage");
+    const links = await ChatMessage.find(query)
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .lean();
+
+    const data = links.map((msg: any) => ({
+      link_id: msg._id,
+      url: msg.text || msg.attachments?.[0]?.url,
+      title: msg.attachments?.[0]?.title || "",
+      description: msg.attachments?.[0]?.description || "",
+      shared_by: msg.senderId,
+      shared_at: msg.createdAt,
+    }));
+
+    res.json({
+      data,
+      _metadata: {
+        type: "links",
+        total: data.length,
+        offset,
+        limit,
+      },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Add a shared link to a group
+ * POST /api/v1/networks/social/groups/:id/shared-links
+ */
+export const social_group_shared_links_post = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = (req as any).user.dialist_id;
+    const { id } = req.params;
+    const { url, title, description } = req.body;
+
+    if (!url) {
+      throw new ValidationError("URL is required");
+    }
+
+    // Verify membership
+    const group = await SocialGroup.findById(id);
+    if (!group) throw new NotFoundError("Group not found");
+
+    const membership = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: userId,
+    });
+
+    if (!membership) {
+      res.status(403).json({
+        error: { message: "Not a member of this group" },
+        requestId: req.headers["x-request-id"] as string,
+      });
+      return;
+    }
+
+    // Create a message with link attachment in GetStream
+    try {
+      await chatService.ensureConnected();
+      const client = chatService.getClient();
+      const channel = client.channel("messaging", group.getstream_channel_id);
+
+      const message = await channel.sendMessage({
+        // Cast types to any to avoid strict third-party typings conflicts in tests
+        text: url,
+        user_id: String(userId),
+        type: "link" as any,
+        attachments: [
+          {
+            type: "link" as any,
+            url: url as any,
+            title: title || "",
+            description: description || "",
+          } as any,
+        ] as any,
+      } as any);
+
+      res.status(201).json({
+        data: {
+          link_id: message.message.id,
+          url,
+          title: title || "",
+          description: description || "",
+          shared_at: new Date().toISOString(),
+        },
+        requestId: req.headers["x-request-id"] as string,
+      });
+    } catch (err) {
+      logger.error("Failed to add shared link", { err, groupId: id });
+      throw err;
+    }
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get shared media (images) from a group
+ * GET /api/v1/networks/social/groups/:id/shared-media
+ */
+export const social_group_shared_media_get = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = (req as any).user.dialist_id;
+    const { id } = req.params;
+    const { limit: limitQ = "50", offset: offsetQ = "0" } = req.query;
+
+    // Verify membership
+    const group = await SocialGroup.findById(id);
+    if (!group) throw new NotFoundError("Group not found");
+
+    const membership = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: userId,
+    });
+
+    if (!membership && group.privacy !== "public") {
+      res.status(403).json({
+        error: { message: "Not authorized to view group content" },
+        requestId: req.headers["x-request-id"] as string,
+      });
+      return;
+    }
+
+    const query: any = {
+      stream_channel_id: group.getstream_channel_id,
+      type: "image",
+      is_deleted: { $ne: true },
+    };
+
+    const offset = Number(offsetQ);
+    const limit = Number(limitQ);
+
+    const { ChatMessage } = require("../../models/ChatMessage");
+    const mediaMessages = await ChatMessage.find(query)
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .lean();
+
+    const data = mediaMessages.map((msg: any) => ({
+      media_id: msg._id,
+      url: msg.attachments?.[0]?.url || "",
+      caption: msg.text || "",
+      shared_by: msg.senderId,
+      shared_at: msg.createdAt,
+    }));
+
+    res.json({
+      data,
+      _metadata: {
+        type: "media",
+        total: data.length,
+        offset,
+        limit,
+      },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Get shared files from a group
+ * GET /api/v1/networks/social/groups/:id/shared-files
+ */
+export const social_group_shared_files_get = async (
+  req: Request<{ id: string }>,
+  res: Response<ApiResponse<any>>,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (!(req as any).user) throw new MissingUserContextError();
+    const userId = (req as any).user.dialist_id;
+    const { id } = req.params;
+    const { limit: limitQ = "50", offset: offsetQ = "0" } = req.query;
+
+    // Verify membership
+    const group = await SocialGroup.findById(id);
+    if (!group) throw new NotFoundError("Group not found");
+
+    const membership = await SocialGroupMember.findOne({
+      group_id: id,
+      user_id: userId,
+    });
+
+    if (!membership && group.privacy !== "public") {
+      res.status(403).json({
+        error: { message: "Not authorized to view group content" },
+        requestId: req.headers["x-request-id"] as string,
+      });
+      return;
+    }
+
+    const query: any = {
+      stream_channel_id: group.getstream_channel_id,
+      type: "file",
+      is_deleted: { $ne: true },
+    };
+
+    const offset = Number(offsetQ);
+    const limit = Number(limitQ);
+
+    const { ChatMessage } = require("../../models/ChatMessage");
+    const fileMessages = await ChatMessage.find(query)
+      .sort({ createdAt: -1 })
+      .skip(offset)
+      .limit(limit)
+      .lean();
+
+    const data = fileMessages.map((msg: any) => ({
+      file_id: msg._id,
+      filename: msg.attachments?.[0]?.title || "file",
+      url: msg.attachments?.[0]?.url || "",
+      size: msg.attachments?.[0]?.size || 0,
+      shared_by: msg.senderId,
+      shared_at: msg.createdAt,
+    }));
+
+    res.json({
+      data,
+      _metadata: {
+        type: "files",
+        total: data.length,
+        offset,
+        limit,
+      },
+      requestId: req.headers["x-request-id"] as string,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
  * List social groups (public + groups the current user belongs to)
  * GET /api/v1/networks/social/groups
  */
@@ -536,8 +891,28 @@ export const social_group_get = async (
       group_id: id,
     });
 
+    // Fetch group members with role information
+    const members = await SocialGroupMember.find({ group_id: id }).lean();
+    const membersList = members.map((m) => ({
+      user_id: m.user_id.toString(),
+      role: m.role, // owner, admin, member
+      // createdAt isn't guaranteed on the flattened/lean type, fall back to ObjectId timestamp or now
+      joined_at:
+        (m as any).createdAt ||
+        ((m as any)._id && (m as any)._id.getTimestamp
+          ? (m as any)._id.getTimestamp()
+          : new Date()),
+      // follow_status will be populated when follow service is integrated
+      // For now: placeholder for follow_status as 'not_following' | 'following' | 'pending_request'
+      follow_status: "not_following",
+      can_remove:
+        userId ===
+        ((group as any).created_by?.toString?.() ||
+          (group as any).creator_id?.toString?.()),
+    }));
+
     res.json({
-      data: { ...group, member_count: memberCount },
+      data: { ...group, member_count: memberCount, members: membersList },
       requestId: req.headers["x-request-id"] as string,
     });
   } catch (err) {

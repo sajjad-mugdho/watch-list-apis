@@ -83,6 +83,7 @@ export interface UploadOptions {
   optimize?: boolean;
   maxWidth?: number;
   maxHeight?: number;
+  minImages?: number; // Optional: customize minimum images (default: IMAGE_CONSTRAINTS.MIN_LISTING_IMAGES for LISTING context)
 }
 
 /**
@@ -162,7 +163,7 @@ class ImageService {
         return {
           valid: false,
           error: `Unsupported image format. Supported: ${SUPPORTED_MIME_TYPES.join(
-            ", "
+            ", ",
           )}`,
         };
       }
@@ -214,7 +215,7 @@ class ImageService {
    */
   private async optimizeImage(
     buffer: Buffer,
-    options: { maxWidth?: number; maxHeight?: number } = {}
+    options: { maxWidth?: number; maxHeight?: number } = {},
   ): Promise<{ buffer: Buffer; format: string }> {
     const maxWidth = options.maxWidth || IMAGE_CONSTRAINTS.MAX_WIDTH;
     const maxHeight = options.maxHeight || IMAGE_CONSTRAINTS.MAX_HEIGHT;
@@ -262,7 +263,7 @@ class ImageService {
         {
           fit: "cover",
           position: "center",
-        }
+        },
       )
       .webp({ quality: IMAGE_CONSTRAINTS.WEBP_QUALITY })
       .toBuffer();
@@ -275,7 +276,7 @@ class ImageService {
     context: ImageContext,
     entityId: string,
     filename: string,
-    isThumbnail = false
+    isThumbnail = false,
   ): string {
     const uuid = uuidv4();
     const sanitizedFilename = filename.replace(/[^a-zA-Z0-9.-]/g, "_");
@@ -299,7 +300,7 @@ class ImageService {
   private async uploadToS3(
     key: string,
     buffer: Buffer,
-    contentType: string
+    contentType: string,
   ): Promise<void> {
     const command = new PutObjectCommand({
       Bucket: this.bucket,
@@ -320,7 +321,7 @@ class ImageService {
    */
   async uploadImage(
     file: Express.Multer.File,
-    options: UploadOptions
+    options: UploadOptions,
   ): Promise<ImageMetadata> {
     const startTime = Date.now();
 
@@ -362,7 +363,7 @@ class ImageService {
       const key = this.generateKey(
         options.context,
         options.entityId,
-        `${file.originalname}.${format}`
+        `${file.originalname}.${format}`,
       );
       const contentType = mime.lookup(format) || "image/jpeg";
 
@@ -387,7 +388,7 @@ class ImageService {
           options.context,
           options.entityId,
           `${file.originalname}.webp`,
-          true
+          true,
         );
 
         await this.uploadToS3(thumbnailKey, thumbnailBuffer, "image/webp");
@@ -424,7 +425,7 @@ class ImageService {
    */
   async uploadImages(
     files: Express.Multer.File[],
-    options: UploadOptions
+    options: UploadOptions,
   ): Promise<ImageMetadata[]> {
     // Validate total size
     const totalSizeValidation = this.validateTotalSize(files);
@@ -434,14 +435,14 @@ class ImageService {
 
     // Validate listing image count for listing context
     if (options.context === ImageContext.LISTING) {
-      if (files.length < IMAGE_CONSTRAINTS.MIN_LISTING_IMAGES) {
-        throw new Error(
-          `Listings require at least ${IMAGE_CONSTRAINTS.MIN_LISTING_IMAGES} images`
-        );
+      const minImages =
+        options.minImages ?? IMAGE_CONSTRAINTS.MIN_LISTING_IMAGES;
+      if (files.length < minImages) {
+        throw new Error(`Listings require at least ${minImages} images`);
       }
       if (files.length > IMAGE_CONSTRAINTS.MAX_LISTING_IMAGES) {
         throw new Error(
-          `Listings cannot have more than ${IMAGE_CONSTRAINTS.MAX_LISTING_IMAGES} images`
+          `Listings cannot have more than ${IMAGE_CONSTRAINTS.MAX_LISTING_IMAGES} images`,
         );
       }
     }
@@ -475,15 +476,16 @@ class ImageService {
     }
 
     // For listing context, ensure minimum images uploaded
-    if (
-      options.context === ImageContext.LISTING &&
-      results.length < IMAGE_CONSTRAINTS.MIN_LISTING_IMAGES
-    ) {
-      // Clean up successfully uploaded images
-      await this.deleteImages(results.map((r) => r.key));
-      throw new Error(
-        `Failed to upload minimum required images. ${errors.length} uploads failed.`
-      );
+    if (options.context === ImageContext.LISTING) {
+      const minImages =
+        options.minImages ?? IMAGE_CONSTRAINTS.MIN_LISTING_IMAGES;
+      if (results.length < minImages) {
+        // Clean up successfully uploaded images
+        await this.deleteImages(results.map((r) => r.key));
+        throw new Error(
+          `Failed to upload minimum required images. ${errors.length} uploads failed.`,
+        );
+      }
     }
 
     return results;
@@ -574,7 +576,7 @@ class ImageService {
    */
   async getPresignedUrl(
     key: string,
-    expiresIn: number = IMAGE_CONSTRAINTS.PRESIGNED_URL_EXPIRY
+    expiresIn: number = IMAGE_CONSTRAINTS.PRESIGNED_URL_EXPIRY,
   ): Promise<string> {
     try {
       const command = new PutObjectCommand({
@@ -600,7 +602,7 @@ class ImageService {
    * Get image metadata without downloading
    */
   async getImageMetadata(
-    key: string
+    key: string,
   ): Promise<{ size: number; contentType: string; lastModified: Date }> {
     try {
       const command = new HeadObjectCommand({

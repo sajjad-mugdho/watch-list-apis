@@ -12,21 +12,21 @@ router.get("/:id/media", conversationHandlers.getConversationMedia);
 router.get(
   "/:id/shared/media",
   (req: Request, res: Response, next: NextFunction) => {
-    req.query.type = "image";
+    req.query.type = "media";
     conversationHandlers.getConversationMedia(req, res, next);
   },
 );
 router.get(
   "/:id/shared/files",
   (req: Request, res: Response, next: NextFunction) => {
-    req.query.type = "file";
+    req.query.type = "files";
     conversationHandlers.getConversationMedia(req, res, next);
   },
 );
 router.get(
   "/:id/shared/links",
   (req: Request, res: Response, next: NextFunction) => {
-    req.query.type = "url_enrichment";
+    req.query.type = "links";
     conversationHandlers.getConversationMedia(req, res, next);
   },
 );

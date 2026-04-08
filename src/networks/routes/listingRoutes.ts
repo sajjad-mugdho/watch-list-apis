@@ -9,6 +9,10 @@ import {
   networks_listing_preview,
   networks_listing_get,
 } from "../handlers/NetworksListingHandlers";
+import {
+  networks_listing_upload_images,
+  networks_listing_delete_image,
+} from "../handlers/NetworksListingImageHandlers";
 import { networks_concierge_request_create } from "../handlers/NetworksConciergeHandlers";
 import {
   networks_listing_offers_get,
@@ -30,6 +34,7 @@ import {
   createReservationSchema,
 } from "../../validation/schemas";
 import { normalizeListingQuery } from "../middleware/normalizeListingQuery";
+import { uploadMultiple } from "../../middleware/upload";
 
 const router: Router = Router();
 
@@ -70,6 +75,25 @@ router.get(
   "/:id/preview",
   networks_listing_preview as any, // Author-only preview
 );
+
+/**
+ * Image upload for networks listings
+ * @route POST /api/v1/networks/listings/:id/images
+ * @auth Required
+ * @body multipart/form-data with 'images' field
+ */
+router.post(
+  "/:id/images",
+  uploadMultiple,
+  networks_listing_upload_images as any,
+);
+
+/**
+ * Delete image from networks listing
+ * @route DELETE /api/v1/networks/listings/:id/images/:imageKey
+ * @auth Required
+ */
+router.delete("/:id/images/:imageKey", networks_listing_delete_image as any);
 
 router.post(
   "/:id/concierge",

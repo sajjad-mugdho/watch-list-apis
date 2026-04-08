@@ -16,6 +16,15 @@ const router = Router();
 
 /**
  * @swagger
+ * /api/v1/networks/social/status:
+ *   get:
+ *     summary: Get social hub status summary
+ *     tags: [Social Hub]
+ */
+router.get("/status", hubHandlers.social_status_get as any);
+
+/**
+ * @swagger
  * /api/v1/networks/social/inbox:
  *   get:
  *     summary: Get unified social inbox
@@ -112,6 +121,8 @@ router.delete(
   validateRequest(joinGroupSchema),
   groupHandlers.social_group_leave,
 );
+// Group member endpoints
+router.get("/groups/:id/members", groupHandlers.social_group_members_list);
 router.post("/groups/:id/members", groupHandlers.social_group_members_add);
 router.delete(
   "/groups/:id/members/:userId",
@@ -122,6 +133,24 @@ router.patch(
   groupHandlers.social_group_member_role_update,
 );
 router.post("/groups/:id/mute", groupHandlers.social_group_mute);
+
+// Group shared content endpoints
+router.get(
+  "/groups/:id/shared-links",
+  groupHandlers.social_group_shared_links_get,
+);
+router.post(
+  "/groups/:id/shared-links",
+  groupHandlers.social_group_shared_links_post,
+);
+router.get(
+  "/groups/:id/shared-media",
+  groupHandlers.social_group_shared_media_get,
+);
+router.get(
+  "/groups/:id/shared-files",
+  groupHandlers.social_group_shared_files_get,
+);
 
 /**
  * @swagger
