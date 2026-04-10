@@ -72,7 +72,7 @@ debugRoutes.get("/mock-users", (_req: Request, res: Response) => {
     usage: {
       header: "x-test-user",
       example:
-        'fetch("/api/v1/me", { headers: { "x-test-user": "buyer_us_complete" } })',
+        'fetch("/api/v1/networks/users/profile", { headers: { "x-test-user": "buyer_us_complete" } })',
       note: "Mock users are ONLY available in development/test environments",
     },
     total: mockUsers.length,
@@ -110,7 +110,7 @@ debugRoutes.get("/mock-users/:id", (req: Request, res: Response) => {
     usage: {
       header: "x-test-user",
       value: mockUser.id,
-      example: `fetch("/api/v1/me", { headers: { "x-test-user": "${mockUser.id}" } })`,
+      example: `fetch("/api/v1/networks/users/profile", { headers: { "x-test-user": "${mockUser.id}" } })`,
     },
     user: {
       id: mockUser.id,
@@ -154,10 +154,10 @@ debugRoutes.get(
           id: u.id,
           name: u.name,
           description: u.description,
-        })
+        }),
       ),
     });
-  }
+  },
 );
 
 /**
@@ -169,12 +169,12 @@ function generateExpectedBehavior(mockUser: MockUser): Record<string, string> {
 
   // Onboarding status
   if (claims.onboarding_status === "incomplete") {
-    behavior["GET /api/v1/me"] =
+    behavior["GET /api/v1/networks/users/profile"] =
       "Returns user with onboarding_status: incomplete, next_step indicates current step";
     behavior["Protected buyer routes"] =
       "403 Forbidden - User must complete platform onboarding";
   } else {
-    behavior["GET /api/v1/me"] =
+    behavior["GET /api/v1/networks/users/profile"] =
       "Returns user with onboarding_status: completed";
     behavior["Protected buyer routes"] =
       "200 OK - User can access buyer features";

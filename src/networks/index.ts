@@ -1,7 +1,6 @@
 import { Router } from "express";
 import listingRoutes from "./routes/listingRoutes";
 import offerRoutes from "./routes/offerRoutes";
-import offersInquiriesRoutes from "./routes/offersInquiriesRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import messageRoutes from "./routes/messageRoutes";
 import conversationRoutes from "./routes/conversationRoutes";
@@ -27,7 +26,6 @@ router.use("/user", userRoutes);
 router.use("/users", usersRoutes);
 router.use("/listings", listingRoutes);
 router.use("/offers", offerRoutes);
-router.use("/offers-inquiries", offersInquiriesRoutes);
 router.use("/chat", chatRoutes);
 router.use("/messages", messageRoutes);
 router.use("/conversations", conversationRoutes);

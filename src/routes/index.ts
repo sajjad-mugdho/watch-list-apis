@@ -7,12 +7,8 @@ import {
   requirePlatformAuth,
   requireAdmin,
 } from "../middleware/authentication";
-import { watchesRoutes } from "./watchesRoutes";
-import { authRoutes } from "./auth";
 import { debugRoutes } from "./debugRoutes";
-import { subscriptionRoutes } from "./subscriptionRoutes";
 import { getstreamWebhookRoutes } from "./getstreamWebhookRoutes";
-import { userSubRoutes } from "./user"; // Consolidated user routes
 import { analyticsRoutes } from "./analyticsRoutes";
 import { newsRoutes } from "./newsRoutes";
 import { marketplaceWebhookRoutes } from "../marketplace/routes/webhookRoutes";
@@ -32,21 +28,8 @@ router.get("/ready", readinessCheck);
 
 // -- versioned routes --
 
-// Auth & bootstrap endpoints (platform-agnostic)
-router.use("/v1", authRoutes);
-
 // Debug routes (dev/test only - protected by middleware in debugRoutes.ts)
 router.use("/v1/debug", debugRoutes);
-
-// platform-agnostic top level resources
-router.use("/v1/watches", watchesRoutes);
-
-// Current User Resources (scoped to the authenticated user)
-// /api/v1/user/* -> "My Content"
-router.use("/v1/user", requirePlatformAuth(), userSubRoutes); // Consolidated!
-
-// Subscriptions
-router.use("/v1/subscriptions", requirePlatformAuth(), subscriptionRoutes);
 
 // GetStream webhooks (no auth - uses signature verification)
 router.use("/v1/webhooks/getstream", getstreamWebhookRoutes);
