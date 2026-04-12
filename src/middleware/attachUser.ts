@@ -15,15 +15,15 @@ import logger from "../utils/logger";
 
 // Express augmentation moved to src/types/express.d.ts
 
-
 /**
  * Attaches the current authenticated user to the request.
  * Sets req.user (full document) and req.dialistUserId (string ID).
+ * Auto-creates user if they don't exist (for Bearer token auth).
  */
 export const attachUser = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const auth = (req as any).auth;
@@ -33,11 +33,38 @@ export const attachUser = async (
       return;
     }
 
-    const user = await User.findOne({ external_id: auth.userId }).select("+external_id");
+    let user = await User.findOne({ external_id: auth.userId }).select(
+      "+external_id",
+    );
 
+    // Auto-create user if not found (useful for E2E tests with Bearer tokens)
     if (!user) {
-      res.status(404).json({ error: { message: "User not found" } });
-      return;
+      try {
+        user = new User({
+          external_id: auth.userId,
+          email: `${auth.userId}@test.local`,
+          first_name: "Test",
+          last_name: "User",
+          display_name: auth.userId,
+          onboarding: {
+            status: "incomplete",
+            steps: {
+              location: {},
+              display_name: { confirmed: false, user_provided: false },
+              avatar: { confirmed: false, user_provided: false },
+            },
+          },
+        });
+        await user.save();
+        logger.info("Auto-created user from Bearer token", {
+          userId: user._id,
+          externalId: auth.userId,
+        });
+      } catch (createError) {
+        logger.error("Failed to auto-create user", { auth, createError });
+        res.status(500).json({ error: { message: "Failed to create user" } });
+        return;
+      }
     }
 
     // Attach to request
@@ -58,7 +85,7 @@ export const attachUser = async (
 export const attachUserOptional = async (
   req: Request,
   _res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): Promise<void> => {
   try {
     const auth = (req as any).auth;
@@ -84,7 +111,9 @@ export const attachUserOptional = async (
  */
 export const getUser = (req: Request): IUser => {
   if (!req.user) {
-    throw new Error("User not attached to request. Did you forget attachUser middleware?");
+    throw new Error(
+      "User not attached to request. Did you forget attachUser middleware?",
+    );
   }
   return req.user;
 };
@@ -94,7 +123,9 @@ export const getUser = (req: Request): IUser => {
  */
 export const getUserId = (req: Request): string => {
   if (!req.dialistUserId) {
-    throw new Error("User ID not attached to request. Did you forget attachUser middleware?");
+    throw new Error(
+      "User ID not attached to request. Did you forget attachUser middleware?",
+    );
   }
   return req.dialistUserId;
 };

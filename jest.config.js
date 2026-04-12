@@ -36,4 +36,7 @@ module.exports = {
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   testTimeout: 30000, // 30s for integration tests with DB
   verbose: true,
+  testEnvironmentOptions: {
+    NODE_ENV: "test",
+  },
 };

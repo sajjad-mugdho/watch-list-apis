@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import mongoose from "mongoose";
-import { ChatMessage } from "../../models/ChatMessage";
+import { ChatMessage } from "../../networks/models/ChatMessage";
 import { MarketplaceListingChannel } from "../models/MarketplaceListingChannel";
 import { User } from "../../models/User";
 import { chatService } from "../../services/ChatService";
@@ -181,7 +181,7 @@ export const sendMessage =
           text: dbMessage.text,
           type: dbMessage.type,
           sender_id: dbMessage.sender_id,
-          createdAt: dbMessage.createdAt,
+          createdAt: dbMessage.created_at,
           status: dbMessage.status,
         },
       });
@@ -233,13 +233,13 @@ export const getChannelMessages =
       if (before && mongoose.Types.ObjectId.isValid(before)) {
         const beforeMessage = await ChatMessage.findById(before);
         if (beforeMessage) {
-          query.createdAt = { $lt: beforeMessage.createdAt };
+          query.created_at = { $lt: beforeMessage.created_at };
         }
       }
 
       const [messages, total] = await Promise.all([
         ChatMessage.find(query)
-          .sort({ createdAt: -1 })
+          .sort({ created_at: -1 })
           .limit(limit + 1) // limit + 1 to detect has_more precisely
           .populate("sender_id", "display_name avatar first_name last_name"),
         ChatMessage.countDocuments({
@@ -290,6 +290,14 @@ export const updateMessage =
         res
           .status(403)
           .json({ error: { message: "Not authorized to edit this message" } });
+        return;
+      }
+
+      // Ensure message has a channel ID
+      if (!message.stream_channel_id) {
+        res
+          .status(400)
+          .json({ error: { message: "Message has no associated channel" } });
         return;
       }
 
@@ -367,6 +375,14 @@ export const deleteMessage =
         res.status(403).json({
           error: { message: "Not authorized to delete this message" },
         });
+        return;
+      }
+
+      // Ensure message has a channel ID
+      if (!message.stream_channel_id) {
+        res
+          .status(400)
+          .json({ error: { message: "Message has no associated channel" } });
         return;
       }
 

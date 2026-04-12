@@ -1,5 +1,8 @@
 /// <reference types="jest" />
 
+// Set test environment
+process.env.NODE_ENV = "test";
+
 // add jest-extended matchers
 import "jest-extended";
 
@@ -33,7 +36,7 @@ import mongoose from "mongoose";
 // multi-document transactions which would cause "catalog changes" errors.
 import "../src/models/AuditLog";
 import "../src/networks/models/Block";
-import "../src/models/ChatMessage";
+import "../src/networks/models/ChatMessage";
 import "../src/networks/models/ConciergeRequest";
 import "../src/models/DeviceToken";
 import "../src/models/EventOutbox";

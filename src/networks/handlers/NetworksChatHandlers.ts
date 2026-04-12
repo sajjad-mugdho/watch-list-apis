@@ -1,8 +1,11 @@
 import { Request, Response, NextFunction } from "express";
+import mongoose from "mongoose";
 import { chatService } from "../../services/ChatService";
+import { networksChatService } from "../services/NetworksChatService";
 import { User } from "../../models/User";
 import { getOrCreateUser } from "../../utils/user";
 import logger from "../../utils/logger";
+import { NetworksChannelRepository } from "../repositories/NetworksChannelRepository";
 
 /**
  * Generate Stream Chat token for Networks
@@ -168,22 +171,58 @@ export const getOrCreateChannel = async (
       return;
     }
 
-    const seller = await User.findById(seller_id);
+    // Look up seller by external_id (Clerk ID) or MongoDB ID
+    let seller = await User.findOne({ external_id: seller_id });
+
+    // If not found by external_id and it's a valid MongoDB ObjectId, try by ID
+    if (!seller && mongoose.Types.ObjectId.isValid(seller_id)) {
+      seller = await User.findById(seller_id);
+    }
+
     if (!seller) {
       res.status(404).json({ error: { message: "Seller not found" } });
       return;
     }
 
-    if (user._id.toString() === seller_id) {
+    // Check if buyer and seller are the same user
+    const buyerClerkId = user.external_id || user._id.toString();
+    const sellerClerkId = seller.external_id || seller._id.toString();
+
+    if (buyerClerkId === sellerClerkId) {
       res
         .status(400)
         .json({ error: { message: "Cannot create channel with yourself" } });
       return;
     }
 
+    // Upsert both users to GetStream before creating channel
+    // This ensures they exist in GetStream (required before channel.create())
+    try {
+      await chatService.upsertUser({
+        id: user._id.toString(),
+        name:
+          user.display_name ||
+          `${user.first_name} ${user.last_name}`.trim() ||
+          "Anonymous",
+        ...(user.avatar && { avatar: user.avatar }),
+      });
+
+      await chatService.upsertUser({
+        id: seller._id.toString(),
+        name:
+          seller.display_name ||
+          `${seller.first_name} ${seller.last_name}`.trim() ||
+          "Anonymous",
+        ...(seller.avatar && { avatar: seller.avatar }),
+      });
+    } catch (upsertError) {
+      logger.error("Failed to upsert users to GetStream Chat", { upsertError });
+      // Continue anyway - some of the users might already exist
+    }
+
     const { channel, channelId } = await chatService.getOrCreateChannel(
       user._id.toString(),
-      seller_id,
+      seller._id.toString(),
       { listing_id, listing_title, listing_price, listing_thumbnail },
     );
 
@@ -197,7 +236,80 @@ export const getOrCreateChannel = async (
         listing_title,
         listing_price,
         listing_thumbnail,
-        members: [user._id.toString(), seller_id],
+        members: [user._id.toString(), seller._id.toString()],
+      },
+    });
+  } catch (error: any) {
+    next(error);
+  }
+};
+
+/**
+ * Mark a channel as read
+ * Called by client when user opens/reads messages in a channel
+ */
+export const markChannelAsRead = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const auth = (req as any).auth;
+    if (!auth?.userId) {
+      res.status(401).json({ error: { message: "Unauthorized" } });
+      return;
+    }
+
+    const user = await getOrCreateUser(auth.userId);
+    if (!user) {
+      res.status(404).json({ error: { message: "User not found" } });
+      return;
+    }
+
+    const { channelId } = req.body;
+    if (!channelId) {
+      res.status(400).json({ error: { message: "channelId is required" } });
+      return;
+    }
+
+    const channelRepo = new NetworksChannelRepository();
+
+    // Verify user is member of this channel
+    const isMember = await channelRepo.isMember(channelId, user._id.toString());
+    if (!isMember) {
+      res
+        .status(403)
+        .json({ error: { message: "Not a member of this channel" } });
+      return;
+    }
+
+    // Clear unread count in database
+    const updated = await channelRepo.clearUnreadCount(channelId);
+    if (!updated) {
+      res.status(404).json({ error: { message: "Channel not found" } });
+      return;
+    }
+
+    // Mark as read in GetStream as well
+    try {
+      await networksChatService.markChannelAsRead(
+        channelId,
+        user._id.toString(),
+      );
+    } catch (error) {
+      // Log error but don't fail the response
+      logger.warn("Failed to mark channel as read in GetStream", {
+        channelId,
+        error,
+      });
+    }
+
+    res.json({
+      ok: true,
+      channel: {
+        id: updated._id,
+        unread_count: updated.unread_count,
+        last_read_at: updated.last_read_at,
       },
     });
   } catch (error: any) {

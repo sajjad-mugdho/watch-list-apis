@@ -149,8 +149,6 @@ async function processWebhookJob(job: Job<WebhookJobData>): Promise<string> {
   }
 }
 
-
-
 /**
  * Process Clerk webhook events
  *
@@ -160,7 +158,7 @@ async function processWebhookJob(job: Job<WebhookJobData>): Promise<string> {
  */
 async function processClerkWebhook(
   type: string,
-  _payload: any
+  _payload: any,
 ): Promise<string> {
   webhookLogger.info(`Processing Clerk webhook: ${type}`);
 
@@ -189,7 +187,7 @@ async function processClerkWebhook(
 async function processGetstreamWebhook(
   type: string,
   payload: any,
-  eventId: string
+  eventId: string,
 ): Promise<string> {
   const { message, channel_id, channel_type, user } = payload;
 
@@ -231,6 +229,86 @@ async function processGetstreamWebhook(
       logger.info(`Unhandled GetStream event: ${type}`, { eventId });
       return `Unhandled GetStream event: ${type}`;
   }
+
+  // ============================================================================
+  // NETWORKS-SPECIFIC DOMAIN HANDLERS
+  // ============================================================================
+  // After global handlers run, check if this is a Networks channel
+  // and call Networks-specific business logic handlers
+  // Idempotent: Safe to call multiple times for same event
+
+  const cid = payload.cid || `${channel_type}:${channel_id}`;
+  const isNetworksEvent = cid?.includes("networks");
+
+  if (isNetworksEvent) {
+    try {
+      // Dynamically import Networks handlers
+      const {
+        onNetworkChatMessageNew,
+        onNetworkChatMessageRead,
+        onNetworkChatMessageUpdated,
+        onNetworkChatMessageDeleted,
+        onNetworkChatMemberAdded,
+        onNetworkChatMemberUpdated,
+        onNetworkChatChannelCreated,
+        onNetworkChatChannelUpdated,
+        onNetworkChatReactionNew,
+        onNetworkChatReactionDeleted,
+      } = require("../networks/events");
+
+      // Route to Networks handlers
+      switch (type) {
+        case "message.new":
+          await onNetworkChatMessageNew(payload);
+          break;
+        case "message.read":
+          await onNetworkChatMessageRead(payload);
+          break;
+        case "message.updated":
+          await onNetworkChatMessageUpdated(payload);
+          break;
+        case "message.deleted":
+          await onNetworkChatMessageDeleted(payload);
+          break;
+        case "member.added":
+          await onNetworkChatMemberAdded(payload);
+          break;
+        case "member.updated":
+          await onNetworkChatMemberUpdated(payload);
+          break;
+        case "channel.created":
+          await onNetworkChatChannelCreated(payload);
+          break;
+        case "channel.updated":
+          await onNetworkChatChannelUpdated(payload);
+          break;
+        case "reaction.new":
+          await onNetworkChatReactionNew(payload);
+          break;
+        case "reaction.deleted":
+          await onNetworkChatReactionDeleted(payload);
+          break;
+        default:
+          // No Networks-specific handler for this event
+          break;
+      }
+
+      logger.info(`✅ Networks domain handler executed for ${type}`, {
+        eventId,
+        type,
+        cid,
+      });
+    } catch (networksError) {
+      logger.error("Networks domain handler failed", {
+        error: networksError,
+        type,
+        eventId,
+        cid,
+      });
+      // Don't re-throw: global handlers already succeeded
+      // Networks failures should not cause webhook retry
+    }
+  }
 }
 
 /**
@@ -239,7 +317,7 @@ async function processGetstreamWebhook(
  */
 async function handleGetstreamMessageNew(
   event: any,
-  eventId: string
+  eventId: string,
 ): Promise<string> {
   const { message, channel_id } = event;
 
@@ -284,7 +362,7 @@ async function handleGetstreamMessageNew(
  */
 async function handleGetstreamMessageUpdated(
   event: any,
-  eventId: string
+  eventId: string,
 ): Promise<string> {
   const { message } = event;
 
@@ -302,7 +380,7 @@ async function handleGetstreamMessageUpdated(
  */
 async function handleGetstreamMessageDeleted(
   event: any,
-  eventId: string
+  eventId: string,
 ): Promise<string> {
   const { message } = event;
 
@@ -321,7 +399,7 @@ async function handleGetstreamMessageDeleted(
  */
 async function handleGetstreamMessageRead(
   event: any,
-  eventId: string
+  eventId: string,
 ): Promise<string> {
   const { user, channel_id } = event;
 
@@ -343,7 +421,7 @@ async function handleGetstreamMessageRead(
 async function handleGetstreamChannelEvent(
   event: any,
   eventId: string,
-  action: "created" | "updated"
+  action: "created" | "updated",
 ): Promise<string> {
   const { channel_id, channel_type } = event;
 
@@ -363,7 +441,7 @@ async function handleGetstreamChannelEvent(
 async function handleGetstreamReactionEvent(
   event: any,
   eventId: string,
-  action: "new" | "deleted"
+  action: "new" | "deleted",
 ): Promise<string> {
   const { reaction, message } = event;
 
@@ -396,4 +474,9 @@ export function startWebhookWorker(): void {
 /**
  * Export for testing
  */
-export { processWebhookJob, processFinixWebhook, processClerkWebhook, processGetstreamWebhook };
+export {
+  processWebhookJob,
+  processFinixWebhook,
+  processClerkWebhook,
+  processGetstreamWebhook,
+};
