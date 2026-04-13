@@ -88,8 +88,12 @@ export const rateLimit = (
   res: Response,
   next: NextFunction,
 ): void => {
-  // Skip rate limiting in non-production environments
-  if (process.env.NODE_ENV !== "production") {
+  // Only skip rate limiting in test environments
+  const skipRateLimit =
+    process.env.NODE_ENV === "test" ||
+    process.env.DISABLE_GLOBAL_RATE_LIMIT === "true";
+
+  if (skipRateLimit) {
     return next();
   }
 

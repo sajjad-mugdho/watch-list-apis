@@ -219,7 +219,7 @@ export class NetworksChatService {
    * Increments unread_count for the recipient (not sender).
    *
    * @param channelId - GetStream channel ID
-   * @param recipientId - User ID to increment unread for
+   * @param recipientId - User ID to increment unread for (TODO: Use in Phase 3 for per-user tracking)
    * @param delta - Amount to change (usually +1 for new message)
    */
   async updateUnreadCount(
@@ -262,15 +262,30 @@ export class NetworksChatService {
 
   /**
    * Mark channel as read
-   *
-   * Called when user marks channel as read or views conversation.
-   * Clears unread_count and records the read timestamp.
+   * Syncs unread state with both GetStream and MongoDB
    *
    * @param channelId - GetStream channel ID
    * @param userId - User who marked as read
    */
   async markChannelAsRead(channelId: string, userId: string): Promise<void> {
     try {
+      // Sync with GetStream
+      try {
+        await chatService.ensureConnected();
+        const client = chatService.getClient();
+        const channel = client.channel("messaging", channelId);
+        await channel.markRead({ user_id: userId });
+
+        logger.debug("GetStream channel marked as read", { channelId, userId });
+      } catch (streamError) {
+        logger.warn("Failed to sync with GetStream for mark-read", {
+          channelId,
+          userId,
+          error: streamError,
+        });
+      }
+
+      // Update MongoDB for persistence
       const result = await NetworkListingChannel.findOneAndUpdate(
         { getstream_channel_id: channelId },
         {
@@ -290,10 +305,7 @@ export class NetworksChatService {
         return;
       }
 
-      logger.info("Channel marked as read", {
-        channelId,
-        userId,
-      });
+      logger.info("Channel marked as read", { channelId, userId });
     } catch (error) {
       logger.error("Error marking channel as read", {
         error,

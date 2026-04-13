@@ -235,16 +235,14 @@ export const networks_connection_request_respond = async (
         connectionId,
       );
 
-      // Invalidate cache for both users' connections
+      // Invalidate cache for both users
       try {
         const { networksHomeFeedService } =
           await import("../services/NetworksHomeFeedService");
-        // Invalidate for the user accepting (follower)
         await networksHomeFeedService.invalidateUserCache(userId);
-        // Invalidate for the user being followed (following)
-        if (result?.following_id) {
+        if (result?.follower_id) {
           await networksHomeFeedService.invalidateUserCache(
-            String(result.following_id),
+            String(result.follower_id),
           );
         }
       } catch (cacheError) {

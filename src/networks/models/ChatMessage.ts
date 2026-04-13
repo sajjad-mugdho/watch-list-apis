@@ -203,7 +203,7 @@ const ChatMessageSchema = new Schema<IChatMessage, IChatMessageModel>(
     },
     status: {
       type: String,
-      enum: ["pending_delivery", "delivered", "failed"],
+      enum: ["pending_delivery", "delivered", "failed", "sent", "deleted"],
       default: "pending_delivery",
       description: "Message delivery status",
     },

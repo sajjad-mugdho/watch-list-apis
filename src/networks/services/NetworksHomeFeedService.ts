@@ -73,7 +73,7 @@ export class NetworksHomeFeedService {
     dialistUserId: string,
     limit: number = 6,
   ): Promise<INetworkListing[]> {
-    const cacheKey = this.getRecommendedCacheKey(dialistUserId);
+    const cacheKey = this.getRecommendedCacheKey(dialistUserId, limit);
 
     // Try cache first
     const cached = await this.getFromCache<INetworkListing[]>(cacheKey);
@@ -82,10 +82,10 @@ export class NetworksHomeFeedService {
     }
 
     try {
-      // Step 1: Get user's favorites
+      // Get user's favorites
       const favorites = await Favorite.find({
         user_id: new Types.ObjectId(dialistUserId),
-        item_type: "for_sale",
+        item_type: "listing",
         platform: "networks",
       }).select("item_id");
 
@@ -254,7 +254,7 @@ export class NetworksHomeFeedService {
     dialistUserId: string,
     limit: number = 6,
   ): Promise<INetworkListing[]> {
-    const cacheKey = this.getConnectionsCacheKey(dialistUserId);
+    const cacheKey = this.getConnectionsCacheKey(dialistUserId, limit);
 
     // Try cache first
     const cached = await this.getFromCache<INetworkListing[]>(cacheKey);
@@ -263,11 +263,14 @@ export class NetworksHomeFeedService {
     }
 
     try {
-      // Step 1: Get accepted connections
+      // Step 1: Get accepted connections where current user is the requester
+      // follower_id = requester (the person who initiated contact)
+      // following_id = target (the person being connected to)
+      // We want people WE connected to: follower_id = us, extract following_id
       const acceptedConnections = await Connection.find({
-        following_id: new Types.ObjectId(dialistUserId),
+        follower_id: new Types.ObjectId(dialistUserId),
         status: "accepted",
-      }).select("follower_id");
+      }).select("following_id");
 
       if (acceptedConnections.length === 0) {
         // No connections; return empty and cache it
@@ -275,11 +278,11 @@ export class NetworksHomeFeedService {
         return [];
       }
 
-      const followerIds = acceptedConnections.map((c) => c.follower_id);
+      const followingIds = acceptedConnections.map((c) => c.following_id);
 
       // Step 2: Fetch listings from those users
       const connections = await NetworkListing.find({
-        dialist_id: { $in: followerIds },
+        dialist_id: { $in: followingIds },
         status: "active",
         is_deleted: { $ne: true },
       })
@@ -369,16 +372,22 @@ export class NetworksHomeFeedService {
   /**
    * Cache key generators
    */
-  private getRecommendedCacheKey(dialistUserId: string): string {
-    return `home-feed:recommended:${dialistUserId}`;
+  private getRecommendedCacheKey(
+    dialistUserId: string,
+    limit: number = 6,
+  ): string {
+    return `home-feed:recommended:${dialistUserId}:limit:${limit}`;
   }
 
   private getFeaturedCacheKey(): string {
     return "home-feed:featured";
   }
 
-  private getConnectionsCacheKey(dialistUserId: string): string {
-    return `home-feed:connections:${dialistUserId}`;
+  private getConnectionsCacheKey(
+    dialistUserId: string,
+    limit: number = 6,
+  ): string {
+    return `home-feed:connections:${dialistUserId}:limit:${limit}`;
   }
 }
 

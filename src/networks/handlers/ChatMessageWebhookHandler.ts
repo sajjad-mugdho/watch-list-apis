@@ -25,7 +25,8 @@ export class ChatMessageWebhookHandler {
         return;
       }
 
-      const channelId = channel.cid;
+      // Use channel.id (plain ID) instead of channel.cid (type:id format)
+      const channelId = channel.id;
       const messageText = message.text || "";
       const senderId = message.user?.id;
 
@@ -34,7 +35,6 @@ export class ChatMessageWebhookHandler {
         return;
       }
 
-      // Update unread count and last message metadata
       const updated = await this.channelRepo.updateLastMessage(
         channelId,
         messageText,

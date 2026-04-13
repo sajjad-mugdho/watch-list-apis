@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction } from "express";
+import { Router, Request, Response, NextFunction, raw } from "express";
 import crypto from "crypto";
 import logger from "../../utils/logger";
 import { ChatMessageWebhookHandler } from "../handlers/ChatMessageWebhookHandler";
@@ -12,23 +12,42 @@ const webhookHandler = new ChatMessageWebhookHandler(channelRepo);
 const GETSTREAM_WEBHOOK_SECRET = process.env.GETSTREAM_WEBHOOK_SECRET || "";
 
 /**
- * Verify GetStream webhook signature
- * GetStream sends a X-Signature header with HMAC-SHA256 hash of the request body
+ * Verify GetStream webhook signature using raw request body bytes
+ * Computes HMAC on exact raw bytes and uses timing-safe comparison
+ *
+ * @param signatureHeader - X-Signature header value
+ * @param rawBody - Raw request body bytes (Buffer)
+ * @returns true if signature is valid
  */
-function verifyWebhookSignature(req: Request): boolean {
-  const signature = req.headers["x-signature"] as string;
-  if (!signature || !GETSTREAM_WEBHOOK_SECRET) {
+function verifyWebhookSignature(
+  signatureHeader: string | undefined,
+  rawBody: Buffer,
+): boolean {
+  if (!signatureHeader || !GETSTREAM_WEBHOOK_SECRET) {
     logger.warn("Missing webhook signature or secret");
     return false;
   }
 
-  const body = JSON.stringify(req.body);
-  const hash = crypto
-    .createHmac("sha256", GETSTREAM_WEBHOOK_SECRET)
-    .update(body)
-    .digest("hex");
+  try {
+    const expectedSignature = crypto
+      .createHmac("sha256", GETSTREAM_WEBHOOK_SECRET)
+      .update(rawBody)
+      .digest("hex");
 
-  return hash === signature;
+    const expectedBuffer = Buffer.from(expectedSignature, "utf8");
+    const providedBuffer = Buffer.from(signatureHeader.trim(), "utf8");
+
+    // Return false if lengths differ (prevents length-based timing leaks)
+    if (expectedBuffer.length !== providedBuffer.length) {
+      return false;
+    }
+
+    // Compare with constant-time algorithm (same time regardless of mismatch position)
+    return crypto.timingSafeEqual(expectedBuffer, providedBuffer);
+  } catch (err) {
+    logger.error("Webhook signature verification error", { error: err });
+    return false;
+  }
 }
 
 /**
@@ -40,24 +59,44 @@ function verifyWebhookSignature(req: Request): boolean {
  * - message.updated: Message was edited
  * - message.deleted: Message was deleted
  * - channel.updated: Channel metadata changed
+ *
+ * ✅ SECURITY: Uses raw() middleware to capture exact request body
+ * for signature verification before JSON parsing
  */
 router.post(
   "/getstream/chat",
+  raw({ type: "application/json" }), // ✅ Capture raw body bytes
   async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     try {
-      // Verify webhook signature
-      if (!verifyWebhookSignature(req)) {
+      // ✅ Extract raw body and signature header
+      const signature = req.headers["x-signature"] as string | undefined;
+      const rawBody = req.body as Buffer;
+
+      // ✅ Verify webhook signature against exact raw bytes
+      if (
+        !Buffer.isBuffer(rawBody) ||
+        !verifyWebhookSignature(signature, rawBody)
+      ) {
         logger.warn("Invalid webhook signature", {
           ip: req.ip,
           path: req.path,
+          signaturePresent: !!signature,
         });
         res.status(401).json({ error: "Invalid signature" });
         return;
       }
 
-      const { type, data } = req.body;
+      // ✅ Parse JSON AFTER signature verification
+      const parsed = JSON.parse(rawBody.toString("utf8")) as {
+        type?: string;
+        data?: any;
+      };
+      const { type, data } = parsed;
 
-      logger.debug("Webhook received", { type, channelId: data?.channel?.cid });
+      logger.debug("Webhook received and verified", {
+        type,
+        channelId: data?.channel?.cid,
+      });
 
       // Route to appropriate handler based on event type
       switch (type) {
