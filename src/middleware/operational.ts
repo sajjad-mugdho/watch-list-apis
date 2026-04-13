@@ -7,7 +7,7 @@ import { apiLogger } from "../utils/logger";
 export const requestId = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   const id = (req.headers["x-request-id"] as string) || randomUUID();
   req.headers["x-request-id"] = id;
@@ -25,7 +25,7 @@ export const requestId = (
 export const requestLogger = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
   const requestId = req.headers["x-request-id"];
 
@@ -51,7 +51,7 @@ export const requestLogger = (
         duration,
         contentLength: res.getHeader("content-length") || 0,
         userId: (req as any).user?.dialist_id,
-      }
+      },
     );
 
     if (duration > 1000) {
@@ -61,7 +61,7 @@ export const requestLogger = (
           requestId,
           threshold: "1000ms",
           userId: (req as any).user?.dialist_id,
-        }
+        },
       );
     }
   });
@@ -86,8 +86,13 @@ const RATE_LIMIT_MAX = 100; // requests per window
 export const rateLimit = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ): void => {
+  // Skip rate limiting in non-production environments
+  if (process.env.NODE_ENV !== "production") {
+    return next();
+  }
+
   const clientId = req.ip || req.socket.remoteAddress || "unknown";
   const now = Date.now();
   const windowStart = now - RATE_LIMIT_WINDOW;
@@ -115,11 +120,11 @@ export const rateLimit = (
   res.setHeader("X-RateLimit-Limit", RATE_LIMIT_MAX);
   res.setHeader(
     "X-RateLimit-Remaining",
-    Math.max(0, RATE_LIMIT_MAX - clientData.count)
+    Math.max(0, RATE_LIMIT_MAX - clientData.count),
   );
   res.setHeader(
     "X-RateLimit-Reset",
-    Math.ceil((clientData.resetTime + RATE_LIMIT_WINDOW) / 1000)
+    Math.ceil((clientData.resetTime + RATE_LIMIT_WINDOW) / 1000),
   );
 
   if (clientData.count > RATE_LIMIT_MAX) {
@@ -150,18 +155,21 @@ export const rateLimit = (
 // ============================================================
 
 export interface RateLimitConfig {
-  windowMs: number;       // Time window in milliseconds
-  maxRequests: number;    // Max requests per window
-  keyPrefix: string;      // Prefix for the rate limit key
-  useUserId?: boolean;    // Use authenticated user ID instead of IP
-  message?: string;       // Custom error message
+  windowMs: number; // Time window in milliseconds
+  maxRequests: number; // Max requests per window
+  keyPrefix: string; // Prefix for the rate limit key
+  useUserId?: boolean; // Use authenticated user ID instead of IP
+  message?: string; // Custom error message
 }
 
-const endpointRateLimits = new Map<string, { count: number; resetTime: number }>();
+const endpointRateLimits = new Map<
+  string,
+  { count: number; resetTime: number }
+>();
 
 /**
  * Creates a configurable rate limiter middleware
- * 
+ *
  * @example
  * // 5 offers per hour per user
  * router.post("/offers", createRateLimiter({
@@ -215,7 +223,7 @@ export const createRateLimiter = (config: RateLimitConfig) => {
     res.setHeader(`X-RateLimit-Remaining-${keyPrefix}`, remaining);
     res.setHeader(
       `X-RateLimit-Reset-${keyPrefix}`,
-      Math.ceil((entry.resetTime + windowMs) / 1000)
+      Math.ceil((entry.resetTime + windowMs) / 1000),
     );
 
     // Check if exceeded
@@ -255,7 +263,8 @@ export const rateLimiters = {
     maxRequests: 10,
     keyPrefix: "offer_create",
     useUserId: true,
-    message: "You have reached the maximum number of offers per hour. Please try again later.",
+    message:
+      "You have reached the maximum number of offers per hour. Please try again later.",
   }),
 
   // Counter offers: 20 per hour
@@ -273,7 +282,8 @@ export const rateLimiters = {
     maxRequests: 5,
     keyPrefix: "vouch_create",
     useUserId: true,
-    message: "You have reached the maximum number of vouches per hour. Please try again later.",
+    message:
+      "You have reached the maximum number of vouches per hour. Please try again later.",
   }),
 
   // Reference check creation: 3 per hour
@@ -282,7 +292,8 @@ export const rateLimiters = {
     maxRequests: 3,
     keyPrefix: "refcheck_create",
     useUserId: true,
-    message: "You have reached the maximum number of reference checks per hour.",
+    message:
+      "You have reached the maximum number of reference checks per hour.",
   }),
 
   // Auth token generation: 10 per minute
@@ -344,7 +355,7 @@ export const notFoundHandler = (req: Request, res: Response): void => {
 // Unlike healthCheck, this verifies external dependencies are ready
 export const readinessCheck = async (
   req: Request,
-  res: Response
+  res: Response,
 ): Promise<void> => {
   const requestId = req.headers["x-request-id"] as string;
 
@@ -387,8 +398,9 @@ export const readinessCheck = async (
       requestId,
     });
   } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+
     apiLogger.error("Readiness check error", {
       requestId,
       error: errorMessage,
@@ -402,4 +414,3 @@ export const readinessCheck = async (
     });
   }
 };
-

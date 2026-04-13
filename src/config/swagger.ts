@@ -2424,6 +2424,113 @@ Use this to test API endpoints without real authentication.
             createdAt: { type: "string", format: "date-time" },
           },
         },
+        NetworkListing: {
+          type: "object",
+          description: "Networks marketplace listing",
+          properties: {
+            _id: { type: "string" },
+            dialist_id: { type: "string" },
+            clerk_id: { type: "string" },
+            watch_id: { type: "string" },
+            status: {
+              type: "string",
+              enum: ["draft", "active", "reserved", "sold"],
+              description: "Listing status",
+            },
+            type: {
+              type: "string",
+              enum: ["for_sale", "wanted"],
+              default: "for_sale",
+            },
+            title: { type: "string" },
+            description: { type: "string" },
+            brand: { type: "string" },
+            model: { type: "string" },
+            reference: { type: "string" },
+            year: { type: "integer" },
+            condition: {
+              type: "string",
+              enum: ["Excellent", "Good", "Fair", "Needs Service", "For Parts"],
+            },
+            price: { type: "number" },
+            currency: { type: "string", default: "USD" },
+            allow_offers: { type: "boolean", default: true },
+            author: {
+              type: "object",
+              properties: {
+                _id: { type: "string" },
+                name: { type: "string" },
+                avatar: { type: "string" },
+              },
+            },
+            ships_from: {
+              type: "object",
+              properties: {
+                country: { type: "string" },
+                state: { type: "string" },
+                city: { type: "string" },
+              },
+            },
+            images: {
+              type: "array",
+              items: { type: "string", format: "uri" },
+            },
+            createdAt: { type: "string", format: "date-time" },
+            updatedAt: { type: "string", format: "date-time" },
+          },
+          required: [
+            "_id",
+            "dialist_id",
+            "clerk_id",
+            "watch_id",
+            "status",
+            "brand",
+            "model",
+            "author",
+            "ships_from",
+          ],
+        },
+        NetworkChatMessage: {
+          type: "object",
+          description: "Message in networks chat",
+          properties: {
+            _id: { type: "string" },
+            stream_channel_id: { type: "string" },
+            stream_message_id: { type: "string" },
+            text: { type: "string" },
+            type: {
+              type: "string",
+              enum: [
+                "regular",
+                "inquiry",
+                "offer",
+                "counter_offer",
+                "offer_accepted",
+                "offer_rejected",
+                "order_created",
+                "order_paid",
+                "order_shipped",
+                "order_delivered",
+                "system",
+                "image",
+                "file",
+                "link",
+              ],
+            },
+            sender_id: { type: "string" },
+            sender_clerk_id: { type: "string" },
+            attachments: { type: "array" },
+            custom_data: { type: "object" },
+            status: {
+              type: "string",
+              enum: ["sent", "delivered", "pending_delivery"],
+            },
+            read_by: { type: "array" },
+            reactions: { type: "object" },
+            created_at: { type: "string", format: "date-time" },
+            updated_at: { type: "string", format: "date-time" },
+          },
+        },
       },
     },
     security: [
@@ -2466,6 +2573,22 @@ Use this to test API endpoints without real authentication.
       {
         name: "Networks - Listings",
         description: "Networks listings management",
+      },
+      {
+        name: "Networks - Chat",
+        description: "Networks real-time chat and messaging via GetStream",
+      },
+      {
+        name: "Networks - Messages",
+        description: "Networks message endpoints - send and retrieve messages",
+      },
+      {
+        name: "Networks - Conversations",
+        description: "Networks conversation context and history",
+      },
+      {
+        name: "Networks - Home Feed",
+        description: "Networks personalized home feed with recommendations",
       },
       {
         name: "Networks - Offers",
@@ -2677,83 +2800,96 @@ swaggerSpec.paths = {
       },
     },
   },
-  // --- Reservation Terms ---
-  "/api/v1/reservation-terms/current": {
+
+  // --- Conversations ---
+  "/api/v1/marketplace/conversations": {
     get: {
-      tags: ["Reservation Terms"],
-      summary: "Get the current active reservation terms",
+      tags: ["Networks - Chat"],
+      summary: "Generate WebSocket authentication token",
+      description:
+        "Creates JWT token for real-time WebSocket connection to GetStream and GetStream API key. User is automatically created in GetStream if not exists.",
+      security: [{ bearerAuth: [] }],
       responses: {
         200: {
-          description: "Current terms retrieved",
+          description: "Token generated successfully",
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/ReservationTerms" },
+              schema: {
+                type: "object",
+                properties: {
+                  token: {
+                    type: "string",
+                    description: "JWT token for WebSocket authentication",
+                  },
+                  userId: {
+                    type: "string",
+                    description: "User ID for GetStream",
+                  },
+                  apiKey: {
+                    type: "string",
+                    description: "GetStream API key",
+                  },
+                },
+              },
             },
           },
         },
-        404: { description: "No current terms found" },
+        401: { description: "Unauthorized" },
+        404: { description: "User not found" },
       },
     },
   },
-  "/api/v1/reservation-terms/{version}": {
+  "/api/v1/networks/chat/channels": {
     get: {
-      tags: ["Reservation Terms"],
-      summary: "Get reservation terms by version",
-      parameters: [
-        {
-          name: "version",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: {
-        200: {
-          description: "Terms retrieved",
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/ReservationTerms" },
-            },
-          },
-        },
-        404: { description: "Version not found" },
-      },
-    },
-  },
-  "/api/v1/reservation-terms": {
-    get: {
-      tags: ["Reservation Terms"],
-      summary: "List all reservation terms versions",
+      tags: ["Networks - Chat"],
+      summary: "List user's chat channels",
+      description:
+        "Get all channels the authenticated user is a member of, paginated. Includes listing metadata, member info, and unread counts.",
       security: [{ bearerAuth: [] }],
       parameters: [
         {
           name: "limit",
           in: "query",
-          schema: { type: "integer", default: 20 },
+          schema: { type: "integer", default: 20, maximum: 50 },
+          description: "Items per page",
         },
         {
           name: "offset",
           in: "query",
           schema: { type: "integer", default: 0 },
-        },
-        {
-          name: "include_archived",
-          in: "query",
-          schema: { type: "boolean", default: false },
+          description: "Pagination offset",
         },
       ],
       responses: {
         200: {
-          description: "Terms list retrieved",
+          description: "Channels listed",
           content: {
             "application/json": {
               schema: {
+                type: "object",
                 properties: {
-                  data: {
+                  channels: {
                     type: "array",
-                    items: { $ref: "#/components/schemas/ReservationTerms" },
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        type: { type: "string" },
+                        cid: { type: "string" },
+                        listing_id: { type: "string" },
+                        listing_title: { type: "string" },
+                        listing_price: { type: "number" },
+                        listing_thumbnail: { type: "string" },
+                        members: { type: "array", items: { type: "string" } },
+                        last_message_at: {
+                          type: "string",
+                          format: "date-time",
+                        },
+                        created_at: { type: "string", format: "date-time" },
+                        unread_count: { type: "integer" },
+                      },
+                    },
                   },
-                  total: { type: "integer" },
                   limit: { type: "integer" },
                   offset: { type: "integer" },
                 },
@@ -2761,11 +2897,44 @@ swaggerSpec.paths = {
             },
           },
         },
+        401: { description: "Unauthorized" },
+        404: { description: "User not found" },
       },
     },
+  },
+  "/api/v1/networks/chat/unread": {
+    get: {
+      tags: ["Networks - Chat"],
+      summary: "Get unread message counts",
+      description:
+        "Returns total unread count and breakdown by channel for authenticated user.",
+      security: [{ bearerAuth: [] }],
+      responses: {
+        200: {
+          description: "Unread counts",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  total_unread: { type: "integer" },
+                  unread_by_channel: { type: "object" },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+        404: { description: "User not found" },
+      },
+    },
+  },
+  "/api/v1/networks/chat/channel": {
     post: {
-      tags: ["Reservation Terms"],
-      summary: "Create new reservation terms version (admin only)",
+      tags: ["Networks - Chat"],
+      summary: "Create or retrieve buyer-seller channel",
+      description:
+        "Creates 1:1 buyer-seller channel if not exists, or returns existing channel. Always returns same channel ID for same user pair.",
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -2773,67 +2942,232 @@ swaggerSpec.paths = {
           "application/json": {
             schema: {
               type: "object",
-              required: ["version", "content", "effective_date"],
               properties: {
-                version: { type: "string" },
-                content: { type: "string" },
-                effective_date: { type: "string", format: "date-time" },
-                set_as_current: { type: "boolean", default: false },
+                listing_id: { type: "string", description: "Listing ID" },
+                type: {
+                  type: "string",
+                  enum: ["messaging", "group"],
+                  default: "messaging",
+                },
+                name: {
+                  type: "string",
+                  description: "Name for group channels",
+                },
+                members: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Member IDs for group channels",
+                },
+                image: {
+                  type: "string",
+                  description: "Channel image URL",
+                },
+                description: {
+                  type: "string",
+                  description: "Channel description",
+                },
               },
+              required: ["listing_id"],
             },
           },
         },
       },
-      responses: { 201: { description: "Terms created" } },
-    },
-  },
-  "/api/v1/reservation-terms/{version}/archive": {
-    post: {
-      tags: ["Reservation Terms"],
-      summary: "Archive a terms version (admin only)",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "version",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Archived" } },
-    },
-  },
-  "/api/v1/reservation-terms/{version}/set-current": {
-    post: {
-      tags: ["Reservation Terms"],
-      summary: "Set a terms version as current (admin only)",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "version",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Set as current" } },
-    },
-  },
-  // --- Conversations ---
-  "/api/v1/marketplace/conversations": {
-    get: {
-      tags: ["Marketplace - Conversations"],
-      summary: "Get user's conversations with enriched context",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "platform",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["marketplace", "networks"],
-            default: "marketplace",
+      responses: {
+        201: {
+          description: "Channel created/retrieved",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  channelId: { type: "string" },
+                  channel: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string" },
+                      type: { type: "string" },
+                      members: { type: "integer" },
+                    },
+                  },
+                },
+              },
+            },
           },
+        },
+        401: { description: "Unauthorized" },
+        404: { description: "User or listing not found" },
+        409: { description: "Channel already exists" },
+      },
+    },
+  },
+  "/api/v1/networks/chat/channel/mark-read": {
+    post: {
+      tags: ["Networks - Chat"],
+      summary: "Mark channel as read",
+      description: "Mark all messages in a specific channel as read.",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                channel_id: { type: "string" },
+              },
+              required: ["channel_id"],
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Channel marked as read" },
+        401: { description: "Unauthorized" },
+        403: { description: "Not a member of channel" },
+      },
+    },
+  },
+
+  // --- Messages ---
+  "/api/v1/networks/messages/send": {
+    post: {
+      tags: ["Networks - Messages"],
+      summary: "Send message to channel",
+      description:
+        "Send message to a channel. Backend persists to MongoDB and delivers to GetStream. Must use this endpoint, NOT GetStream SDK sendMessage().",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                channel_id: {
+                  type: "string",
+                  description: "GetStream channel ID (messaging:...)",
+                },
+                text: { type: "string" },
+                type: {
+                  type: "string",
+                  enum: [
+                    "regular",
+                    "inquiry",
+                    "offer",
+                    "counter_offer",
+                    "offer_accepted",
+                    "offer_rejected",
+                    "order_created",
+                    "order_paid",
+                    "order_shipped",
+                    "order_delivered",
+                    "system",
+                    "image",
+                    "file",
+                    "link",
+                  ],
+                  default: "regular",
+                },
+                attachments: {
+                  type: "array",
+                  items: { type: "object" },
+                },
+                custom_data: { type: "object" },
+                parent_id: {
+                  type: "string",
+                  description: "For threading",
+                },
+              },
+              required: ["channel_id"],
+            },
+          },
+        },
+      },
+      responses: {
+        201: {
+          description: "Message sent successfully",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  _id: { type: "string" },
+                  stream_message_id: { type: "string" },
+                  text: { type: "string" },
+                  type: { type: "string" },
+                  sender_id: { type: "string" },
+                  createdAt: { type: "string", format: "date-time" },
+                  status: {
+                    type: "string",
+                    enum: ["sent", "delivered", "pending_delivery"],
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: { description: "Invalid request or channel closed" },
+        401: { description: "Unauthorized" },
+        403: { description: "Not a member of channel" },
+      },
+    },
+  },
+  "/api/v1/networks/messages/chats": {
+    get: {
+      tags: ["Networks - Messages"],
+      summary: "List conversations (alias for /conversations)",
+      description: "Get user's conversations with enriched context",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "limit",
+          in: "query",
+          schema: { type: "integer", default: 20 },
+        },
+        {
+          name: "offset",
+          in: "query",
+          schema: { type: "integer", default: 0 },
+        },
+      ],
+      responses: {
+        200: { description: "Conversations listed" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/messages/chats/search": {
+    get: {
+      tags: ["Networks - Messages"],
+      summary: "Search conversations",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          schema: { type: "string" },
+          required: true,
+          description: "Search query",
+        },
+      ],
+      responses: {
+        200: { description: "Search results" },
+        400: { description: "Query required" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/messages/{chatId}/history": {
+    get: {
+      tags: ["Networks - Messages"],
+      summary: "Get message history for conversation",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "chatId",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
         },
         {
           name: "limit",
@@ -2847,120 +3181,248 @@ swaggerSpec.paths = {
         },
       ],
       responses: {
+        200: { description: "Message history" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/messages/channel/{channelId}": {
+    get: {
+      tags: ["Networks - Messages"],
+      summary: "Get messages from channel",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "channelId",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+        {
+          name: "limit",
+          in: "query",
+          schema: { type: "integer", default: 20, maximum: 100 },
+        },
+        {
+          name: "offset",
+          in: "query",
+          schema: { type: "integer", default: 0 },
+        },
+      ],
+      responses: {
         200: {
-          description: "Conversations retrieved",
+          description: "Messages and metadata",
           content: {
             "application/json": {
               schema: {
+                type: "object",
                 properties: {
-                  data: {
+                  messages: {
                     type: "array",
                     items: {
-                      $ref: "#/components/schemas/EnrichedConversation",
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        channel_id: { type: "string" },
+                        user_id: { type: "string" },
+                        text: { type: "string" },
+                        type: { type: "string" },
+                        created_at: { type: "string", format: "date-time" },
+                        read_by: { type: "array" },
+                        reactions: { type: "object" },
+                      },
                     },
                   },
-                  limit: { type: "integer" },
-                  offset: { type: "integer" },
+                  has_more: { type: "boolean" },
                   total: { type: "integer" },
                 },
               },
             },
           },
         },
+        401: { description: "Unauthorized" },
       },
     },
   },
-  "/api/v1/conversations/search": {
-    get: {
-      tags: ["Marketplace - Conversations"],
-      summary: "Search conversations",
+  "/api/v1/networks/messages/{id}": {
+    put: {
+      tags: ["Networks - Messages"],
+      summary: "Edit message",
       security: [{ bearerAuth: [] }],
       parameters: [
-        { name: "q", in: "query", required: true, schema: { type: "string" } },
         {
-          name: "platform",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["marketplace", "networks"],
-            default: "marketplace",
-          },
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
         },
       ],
-      responses: {
-        200: {
-          description: "Search results",
-          content: {
-            "application/json": {
-              schema: {
-                properties: {
-                  data: {
-                    type: "array",
-                    items: {
-                      $ref: "#/components/schemas/EnrichedConversation",
-                    },
-                  },
-                  query: { type: "string" },
-                  total: { type: "integer" },
-                },
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                text: { type: "string" },
+                attachments: { type: "array" },
               },
             },
           },
         },
       },
+      responses: {
+        200: { description: "Message updated" },
+        400: { description: "Cannot edit messages older than 24 hours" },
+        401: { description: "Unauthorized" },
+        403: { description: "Can only edit own messages" },
+      },
     },
-  },
-  "/api/v1/conversations/{id}": {
-    get: {
-      tags: ["Marketplace - Conversations"],
-      summary: "Get full context for a specific conversation",
+    delete: {
+      tags: ["Networks - Messages"],
+      summary: "Delete message (soft delete)",
       security: [{ bearerAuth: [] }],
       parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
         {
-          name: "platform",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["marketplace", "networks"],
-            default: "marketplace",
-          },
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        200: { description: "Message deleted" },
+        401: { description: "Unauthorized" },
+        403: { description: "Can only delete own messages" },
+      },
+    },
+  },
+  "/api/v1/networks/messages/{id}/read": {
+    post: {
+      tags: ["Networks - Messages"],
+      summary: "Mark message as read",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        200: { description: "Message marked as read" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/messages/channel/{channelId}/read-all": {
+    post: {
+      tags: ["Networks - Messages"],
+      summary: "Mark all channel messages as read",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "channelId",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
         },
       ],
       responses: {
         200: {
-          description: "Conversation context retrieved",
+          description: "Messages marked as read",
           content: {
             "application/json": {
-              schema: { $ref: "#/components/schemas/EnrichedConversation" },
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean" },
+                  marked_as_read: { type: "integer" },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/messages/{id}/react": {
+    post: {
+      tags: ["Networks - Messages"],
+      summary: "Add emoji reaction to message",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                type: {
+                  type: "string",
+                  enum: ["like", "love", "laugh", "wow", "sad", "angry"],
+                },
+              },
+              required: ["type"],
             },
           },
         },
       },
+      responses: {
+        200: { description: "Reaction added" },
+        401: { description: "Unauthorized" },
+      },
     },
   },
-  "/api/v1/conversations/{id}/media": {
-    get: {
-      tags: ["Marketplace - Conversations"],
-      summary: "Get shared media for a conversation",
+  "/api/v1/networks/messages/channel/{channelId}/archive": {
+    post: {
+      tags: ["Networks - Messages"],
+      summary: "Archive channel",
+      description: "Hide channel from user's channel list",
       security: [{ bearerAuth: [] }],
       parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
         {
-          name: "platform",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["marketplace", "networks"],
-            default: "marketplace",
-          },
+          name: "channelId",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
         },
+      ],
+      responses: {
+        200: { description: "Channel archived" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+
+  // =========================================================================
+  // NETWORKS - CONVERSATIONS
+  // =========================================================================
+
+  "/api/v1/networks/conversations": {
+    get: {
+      tags: ["Networks - Conversations"],
+      summary: "List all conversations",
+      description:
+        "Get conversations with enriched context including listing info and recent messages",
+      security: [{ bearerAuth: [] }],
+      parameters: [
         {
           name: "type",
           in: "query",
           schema: {
             type: "string",
-            enum: ["image", "video", "file", "all"],
+            enum: ["all", "unread", "active"],
             default: "all",
           },
         },
@@ -2969,16 +3431,497 @@ swaggerSpec.paths = {
           in: "query",
           schema: { type: "integer", default: 20 },
         },
-        { name: "next", in: "query", schema: { type: "string" } },
+        {
+          name: "offset",
+          in: "query",
+          schema: { type: "integer", default: 0 },
+        },
       ],
       responses: {
         200: {
-          description: "Media retrieved",
-          content: { "application/json": { schema: { type: "object" } } },
+          description: "Conversations listed",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: { type: "string" },
+                        channel_id: { type: "string" },
+                        listing_id: { type: "string" },
+                        listing_title: { type: "string" },
+                        last_message: { type: "object" },
+                        unread_count: { type: "integer" },
+                        members: { type: "integer" },
+                        created_at: { type: "string", format: "date-time" },
+                      },
+                    },
+                  },
+                  _metadata: {
+                    type: "object",
+                    properties: {
+                      limit: { type: "integer" },
+                      offset: { type: "integer" },
+                      total: { type: "integer" },
+                    },
+                  },
+                },
+              },
+            },
+          },
         },
+        401: { description: "Unauthorized" },
       },
     },
   },
+  "/api/v1/networks/conversations/search": {
+    get: {
+      tags: ["Networks - Conversations"],
+      summary: "Search conversations",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          schema: { type: "string" },
+          required: true,
+          description: "Search query",
+        },
+        {
+          name: "limit",
+          in: "query",
+          schema: { type: "integer", default: 20 },
+        },
+      ],
+      responses: {
+        200: { description: "Search results" },
+        400: { description: "Query parameter required" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/conversations/{id}": {
+    get: {
+      tags: ["Networks - Conversations"],
+      summary: "Get conversation context",
+      description:
+        "Get detailed conversation with listing info, participants, recent messages, offers, and orders",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        200: {
+          description: "Conversation context",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  conversation: {
+                    type: "object",
+                    properties: {
+                      id: { type: "string" },
+                      listing: { type: "object" },
+                      participants: { type: "array" },
+                      status: { type: "string" },
+                    },
+                  },
+                  recent_messages: { type: "array" },
+                  offers: { type: "array" },
+                  orders: { type: "array" },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Unauthorized" },
+        404: { description: "Conversation not found" },
+      },
+    },
+  },
+  "/api/v1/networks/conversations/{id}/media": {
+    get: {
+      tags: ["Networks - Conversations"],
+      summary: "Get shared media in conversation",
+      description: "Retrieve images, files, and links shared in a conversation",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+        {
+          name: "type",
+          in: "query",
+          schema: {
+            type: "string",
+            enum: ["media", "files", "links", "all"],
+            default: "all",
+          },
+        },
+        {
+          name: "limit",
+          in: "query",
+          schema: { type: "integer", default: 50 },
+        },
+        {
+          name: "offset",
+          in: "query",
+          schema: { type: "integer", default: 0 },
+        },
+      ],
+      responses: {
+        200: { description: "Shared media" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+
+  // =========================================================================
+  // NETWORKS - LISTINGS
+  // =========================================================================
+
+  "/api/v1/networks/listings": {
+    get: {
+      tags: ["Networks - Listings"],
+      summary: "Get public listings with filtering & search",
+      description:
+        "Search and filter listings by brand, category, condition, price, year, etc. Supports pagination and sorting.",
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          schema: { type: "string" },
+          description: "Search query (brand, model, reference)",
+        },
+        {
+          name: "brand",
+          in: "query",
+          schema: { type: "string" },
+        },
+        {
+          name: "category",
+          in: "query",
+          schema: { type: "string" },
+        },
+        {
+          name: "condition",
+          in: "query",
+          schema: {
+            type: "string",
+            enum: ["Excellent", "Good", "Fair", "Needs Service", "For Parts"],
+          },
+        },
+        {
+          name: "contents",
+          in: "query",
+          schema: { type: "string" },
+        },
+        {
+          name: "year_min",
+          in: "query",
+          schema: { type: "integer" },
+        },
+        {
+          name: "year_max",
+          in: "query",
+          schema: { type: "integer" },
+        },
+        {
+          name: "min_price",
+          in: "query",
+          schema: { type: "number" },
+        },
+        {
+          name: "max_price",
+          in: "query",
+          schema: { type: "number" },
+        },
+        {
+          name: "allow_offers",
+          in: "query",
+          schema: { type: "boolean" },
+          description: "Filter by whether seller accepts offers",
+        },
+        {
+          name: "sort_by",
+          in: "query",
+          schema: {
+            type: "string",
+            enum: ["newest", "price_asc", "price_desc", "relevance"],
+            default: "newest",
+          },
+        },
+        {
+          name: "sort_order",
+          in: "query",
+          schema: { type: "string", enum: ["asc", "desc"] },
+        },
+        {
+          name: "limit",
+          in: "query",
+          schema: { type: "integer", default: 20, maximum: 100 },
+        },
+        {
+          name: "page",
+          in: "query",
+          schema: { type: "integer", default: 1 },
+        },
+      ],
+      responses: {
+        200: {
+          description: "Listings found",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/NetworkListing" },
+                  },
+                  _metadata: {
+                    type: "object",
+                    properties: {
+                      paging: {
+                        type: "object",
+                        properties: {
+                          count: { type: "integer" },
+                          total: { type: "integer" },
+                          page: { type: "integer" },
+                          limit: { type: "integer" },
+                          pages: { type: "integer" },
+                        },
+                      },
+                      filters: { type: "object" },
+                      sort: { type: "object" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+    post: {
+      tags: ["Networks - Listings"],
+      summary: "Create new listing (draft)",
+      description:
+        "Create a new listing in draft status. Must publish separately to make it publicly visible.",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                watch: { type: "string", description: "Watch ID" },
+                type: {
+                  type: "string",
+                  enum: ["for_sale", "wanted"],
+                  default: "for_sale",
+                },
+                title: { type: "string" },
+                description: { type: "string" },
+                condition: {
+                  type: "string",
+                  enum: [
+                    "Excellent",
+                    "Good",
+                    "Fair",
+                    "Needs Service",
+                    "For Parts",
+                  ],
+                },
+                price: { type: "number" },
+                allow_offers: { type: "boolean", default: true },
+                location: { type: "object" },
+              },
+              required: ["watch"],
+            },
+          },
+        },
+      },
+      responses: {
+        201: { description: "Listing created (draft)" },
+        400: { description: "Invalid input or limits exceeded" },
+        401: { description: "Unauthorized" },
+        404: { description: "Watch not found" },
+      },
+    },
+  },
+  "/api/v1/networks/listings/{id}": {
+    get: {
+      tags: ["Networks - Listings"],
+      summary: "Get single listing details",
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        200: { description: "Listing details" },
+        404: { description: "Listing not found" },
+      },
+    },
+    patch: {
+      tags: ["Networks - Listings"],
+      summary: "Update listing (draft only)",
+      description:
+        "Update draft listing details. Cannot update published listings.",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                title: { type: "string" },
+                description: { type: "string" },
+                condition: { type: "string" },
+                price: { type: "number" },
+                allow_offers: { type: "boolean" },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Listing updated" },
+        400: { description: "Cannot update published listing" },
+        401: { description: "Unauthorized" },
+        404: { description: "Listing not found" },
+      },
+    },
+  },
+  "/api/v1/networks/listings/{id}/preview": {
+    get: {
+      tags: ["Networks - Listings"],
+      summary: "Preview listing (author only)",
+      description:
+        "Get draft listing details for preview. Only accessible by listing author.",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      responses: {
+        200: { description: "Preview data" },
+        401: { description: "Unauthorized" },
+        403: { description: "Only author can preview" },
+        404: { description: "Listing not found" },
+      },
+    },
+  },
+  "/api/v1/networks/listings/{id}/publish": {
+    post: {
+      tags: ["Networks - Listings"],
+      summary: "Publish listing to make it public",
+      description:
+        "Transition draft listing to active. Creates chat channel and enables buyer inquiries.",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                images: {
+                  type: "array",
+                  items: { type: "string" },
+                  description: "Image IDs to publish with",
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Listing published" },
+        400: { description: "Listing incomplete or already published" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/networks/listings/{id}/status": {
+    patch: {
+      tags: ["Networks - Listings"],
+      summary: "Update listing status",
+      description:
+        "Change listing status (active → reserved/sold, or unpublish)",
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: "id",
+          in: "path",
+          required: true,
+          schema: { type: "string" },
+        },
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              properties: {
+                status: {
+                  type: "string",
+                  enum: ["draft", "active", "reserved", "sold"],
+                },
+              },
+              required: ["status"],
+            },
+          },
+        },
+      },
+      responses: {
+        200: { description: "Status updated" },
+        400: { description: "Invalid status transition" },
+        401: { description: "Unauthorized" },
+      },
+    },
+  },
+
   // --- Marketplace Offers ---
   "/api/v1/marketplace/offers": {
     get: {
@@ -3112,56 +4055,6 @@ swaggerSpec.paths = {
             },
           },
         },
-      },
-    },
-  },
-  "/api/v1/user": {
-    get: {
-      tags: ["User"],
-      summary: "Get current user profile",
-      description: "Returns the current authenticated user profile information",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: {
-          description: "User profile retrieved successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        $ref: "#/components/schemas/User",
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-    delete: {
-      tags: ["User"],
-      summary: "Delete user account",
-      description: "Permanently deletes the authenticated user's account",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Account deleted successfully" },
-        401: { description: "Unauthorized" },
       },
     },
   },
@@ -3450,151 +4343,6 @@ swaggerSpec.paths = {
                   },
                 },
               },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/user/subscription": {
-    get: {
-      tags: ["Subscription"],
-      summary: "Get current user subscription",
-      description: "Returns the current user's subscription details",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: {
-          description: "Subscription retrieved successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: { $ref: "#/components/schemas/Subscription" },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/user/tokens/chat": {
-    get: {
-      tags: ["Chat"],
-      summary: "Get Stream Chat token",
-      description:
-        "Returns a GetStream Chat token for the current user. Used for initializing the Stream Chat SDK on the client.",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: {
-          description: "Chat token generated successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "object",
-                        properties: {
-                          token: {
-                            type: "string",
-                            description: "GetStream Chat JWT token",
-                          },
-                          user_id: {
-                            type: "string",
-                            description: "User's MongoDB ID",
-                          },
-                          type: { type: "string", example: "chat" },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/Error" },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/user/tokens/feed": {
-    get: {
-      tags: ["Feeds"],
-      summary: "Get Stream Feed token (Networks only)",
-      description:
-        "Returns a GetStream Activity Feed token for the current user. Feed functionality is Networks-only.",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "x-platform",
-          in: "header",
-          schema: { type: "string", enum: ["networks"] },
-          description: "Must be 'networks' (feeds are Networks-only)",
-        },
-      ],
-      responses: {
-        200: {
-          description: "Feed token generated successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "object",
-                        properties: {
-                          token: {
-                            type: "string",
-                            description: "GetStream Feed JWT token",
-                          },
-                          user_id: {
-                            type: "string",
-                            description: "User's MongoDB ID",
-                          },
-                          type: { type: "string", example: "feed" },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        400: {
-          description:
-            "Bad Request - Feed tokens only available on Networks platform",
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/Error" },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/Error" },
             },
           },
         },
@@ -3977,554 +4725,6 @@ swaggerSpec.paths = {
       },
     },
   },
-  "/api/v1/networks/listings": {
-    get: {
-      tags: ["Networks - Listings"],
-      summary: "Get networks listings",
-      description:
-        "Returns public networks listings with filtering, sorting, and pagination",
-      parameters: [
-        {
-          name: "q",
-          in: "query",
-          schema: {
-            type: "string",
-            maxLength: 100,
-          },
-          description: "Search query for brand, model, or reference",
-        },
-        {
-          name: "brand",
-          in: "query",
-          schema: {
-            type: "string",
-            maxLength: 50,
-          },
-          description: "Filter by watch brand",
-        },
-        {
-          name: "condition",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["new", "like-new", "good", "fair", "poor"],
-          },
-          description: "Filter by condition",
-        },
-        {
-          name: "min_price",
-          in: "query",
-          schema: {
-            type: "number",
-            minimum: 0,
-          },
-          description: "Minimum price filter",
-        },
-        {
-          name: "max_price",
-          in: "query",
-          schema: {
-            type: "number",
-            minimum: 0,
-          },
-          description: "Maximum price filter",
-        },
-        {
-          name: "allow_offers",
-          in: "query",
-          schema: {
-            type: "boolean",
-          },
-          description: "Filter listings that allow offers",
-        },
-        {
-          name: "sort_by",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["price", "created", "updated"],
-            default: "created",
-          },
-          description: "Sort field",
-        },
-        {
-          name: "sort_order",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["asc", "desc"],
-            default: "desc",
-          },
-          description: "Sort order",
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: {
-            type: "integer",
-            minimum: 1,
-            maximum: 100,
-            default: 20,
-          },
-          description: "Number of results per page",
-        },
-        {
-          name: "page",
-          in: "query",
-          schema: {
-            type: "integer",
-            minimum: 1,
-            default: 1,
-          },
-          description: "Page number",
-        },
-      ],
-      responses: {
-        200: {
-          description: "Listings retrieved successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "array",
-                        items: {
-                          $ref: "#/components/schemas/Listing",
-                        },
-                      },
-                      _metadata: {
-                        type: "object",
-                        properties: {
-                          pagination: {
-                            $ref: "#/components/schemas/PaginationMetadata",
-                          },
-                          filters: {
-                            type: "object",
-                          },
-                          sort: {
-                            type: "object",
-                          },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-    },
-    post: {
-      tags: ["Networks - Listings"],
-      summary: "Create a new listing",
-      description:
-        "Creates a new listing for the authenticated user. Limits apply based on subscription tier (Free: 10 drafts, Premium: 10 drafts).",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["watch"],
-              properties: {
-                watch: {
-                  type: "string",
-                  description: "MongoDB ObjectId of the watch",
-                },
-              },
-            },
-            example: {
-              watch: "507f1f77bcf86cd799439011",
-            },
-          },
-        },
-      },
-      responses: {
-        201: {
-          description: "Listing created successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        $ref: "#/components/schemas/Listing",
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        400: {
-          description: "Bad request",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/networks/listings/{id}": {
-    get: {
-      tags: ["Networks - Listings"],
-      summary: "Get listing details",
-      description: "Returns detailed information about a specific listing",
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: {
-            type: "string",
-          },
-          description: "Listing ID",
-        },
-      ],
-      responses: {
-        200: {
-          description: "Listing details retrieved successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        $ref: "#/components/schemas/Listing",
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        404: {
-          description: "Listing not found",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-    patch: {
-      tags: ["Networks - Listings"],
-      summary: "Update listing",
-      description:
-        "Updates an existing listing owned by the authenticated user",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: {
-            type: "string",
-          },
-          description: "Listing ID",
-        },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                subtitle: {
-                  type: "string",
-                  maxLength: 200,
-                },
-                price: {
-                  type: "number",
-                  minimum: 0,
-                },
-                condition: {
-                  type: "string",
-                  enum: ["new", "like-new", "good", "fair", "poor"],
-                },
-                allow_offers: {
-                  type: "boolean",
-                },
-                year: {
-                  type: "number",
-                  minimum: 1900,
-                  maximum: 2025,
-                },
-                contents: {
-                  type: "string",
-                  enum: ["box_papers", "box", "papers", "watch"],
-                },
-                images: {
-                  type: "array",
-                  items: {
-                    type: "string",
-                    format: "uri",
-                  },
-                },
-                thumbnail: {
-                  type: "string",
-                  format: "uri",
-                },
-                shipping: {
-                  type: "array",
-                  items: {
-                    type: "object",
-                    properties: {
-                      region: {
-                        type: "string",
-                        enum: ["US", "CA"],
-                      },
-                      shippingIncluded: {
-                        type: "boolean",
-                      },
-                      shippingCost: {
-                        type: "number",
-                        minimum: 0,
-                      },
-                    },
-                  },
-                },
-                ships_from: {
-                  type: "object",
-                  properties: {
-                    country: {
-                      type: "string",
-                      minLength: 2,
-                    },
-                    state: {
-                      type: "string",
-                    },
-                    city: {
-                      type: "string",
-                    },
-                  },
-                },
-              },
-            },
-            example: {
-              subtitle: "Beautiful condition with full set",
-              price: 2500,
-              condition: "like-new",
-              allow_offers: true,
-              year: 2020,
-              contents: "box_papers",
-              images: ["https://example.com/image1.jpg"],
-              thumbnail: "https://example.com/thumbnail.jpg",
-              shipping: [
-                {
-                  region: "US",
-                  shippingIncluded: false,
-                  shippingCost: 25,
-                },
-              ],
-              ships_from: {
-                country: "US",
-                state: "NY",
-                city: "New York",
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Listing updated successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        $ref: "#/components/schemas/Listing",
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        400: {
-          description: "Bad request",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        403: {
-          description: "Forbidden - not the owner",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        404: {
-          description: "Listing not found",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-    delete: {
-      tags: ["Networks - Listings"],
-      summary: "Delete listing",
-      description: "Deletes a listing owned by the authenticated user",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Listing ID",
-        },
-      ],
-      responses: {
-        200: { description: "Listing deleted successfully" },
-        401: { description: "Unauthorized" },
-        403: { description: "Forbidden - not the owner" },
-        404: { description: "Listing not found" },
-      },
-    },
-  },
-  "/api/v1/networks/listings/{id}/publish": {
-    post: {
-      tags: ["Networks - Listings"],
-      summary: "Publish listing",
-      description:
-        "Publishes a draft listing, making it active and visible to other users. Active listing limits apply (Free: 25, Premium: 50).",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: {
-            type: "string",
-          },
-          description: "Listing ID",
-        },
-      ],
-      responses: {
-        200: {
-          description: "Listing published successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        $ref: "#/components/schemas/Listing",
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        400: {
-          description: "Bad request - listing incomplete or already published",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        403: {
-          description: "Forbidden - not the owner",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        404: {
-          description: "Listing not found",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
   "/api/v1/networks/offers": {
     get: {
       tags: ["Networks - Offers"],
@@ -4579,294 +4779,6 @@ swaggerSpec.paths = {
     },
   },
 
-  "/api/v1/watches": {
-    get: {
-      tags: ["Watches"],
-      summary: "Get watches",
-      description:
-        "Returns a list of watches with search, sorting, and pagination",
-      parameters: [
-        {
-          name: "q",
-          in: "query",
-          schema: {
-            type: "string",
-            maxLength: 100,
-          },
-          description: "Search query for brand, model, reference, etc.",
-        },
-        {
-          name: "sort",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: ["recent", "random"],
-            default: "recent",
-          },
-          description: "Sort order",
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: {
-            type: "integer",
-            minimum: 1,
-            maximum: 50,
-            default: 20,
-          },
-          description: "Number of results",
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: {
-            type: "integer",
-            minimum: 0,
-            default: 0,
-          },
-          description: "Pagination offset",
-        },
-      ],
-      responses: {
-        200: {
-          description: "Watches retrieved successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "array",
-                        items: {
-                          $ref: "#/components/schemas/Watch",
-                        },
-                      },
-                      _metadata: {
-                        type: "object",
-                        properties: {
-                          q: { type: "string" },
-                          count: { type: "number" },
-                          total: { type: "number" },
-                          pagination: {
-                            type: "object",
-                            properties: {
-                              limit: { type: "number" },
-                              offset: { type: "number" },
-                              hasMore: { type: "boolean" },
-                            },
-                          },
-                          sort: { type: "string" },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-      },
-    },
-    post: {
-      tags: ["Watches"],
-      summary: "Add to watch list",
-      description: "Adds a watch to the authenticated user's watch list",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["watchId"],
-              properties: {
-                watchId: {
-                  type: "string",
-                  description: "MongoDB ObjectId of the watch to add",
-                },
-              },
-            },
-            example: {
-              watchId: "507f1f77bcf86cd799439011",
-            },
-          },
-        },
-      },
-      responses: {
-        201: {
-          description: "Watch added to list successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "object",
-                        properties: {
-                          _id: { type: "string" },
-                          watchId: { type: "string" },
-                          userId: { type: "string" },
-                          createdAt: { type: "string", format: "date-time" },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        400: {
-          description: "Bad request - already in watch list",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/watches/{watchId}": {
-    delete: {
-      tags: ["Watches"],
-      summary: "Remove from watch list",
-      description: "Removes a watch from the authenticated user's watch list",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "watchId",
-          in: "path",
-          required: true,
-          schema: {
-            type: "string",
-          },
-          description: "Watch ID to remove",
-        },
-      ],
-      responses: {
-        200: {
-          description: "Watch removed from list successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        type: "object",
-                        properties: {
-                          deleted: { type: "boolean", example: true },
-                        },
-                      },
-                    },
-                  },
-                ],
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-        404: {
-          description: "Watch not in list",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/auth/refresh": {
-    post: {
-      tags: ["Auth"],
-      summary: "Force refresh user session claims from database",
-      description: `Forces DB lookup and syncs result back to Clerk session claims (best-effort). Call this after onboarding completion or merchant approval to ensure client has latest state.
-
-**Use cases:**
-- After completing platform onboarding
-- After Finix merchant approval webhook
-- When client detects stale session claims
-
-**Note:** This always queries DB and attempts to sync to Clerk. May take 1-2 seconds for Clerk JWT to refresh.`,
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: {
-          description: "Session refreshed successfully",
-          content: {
-            "application/json": {
-              schema: {
-                allOf: [
-                  { $ref: "#/components/schemas/ApiResponse" },
-                  {
-                    type: "object",
-                    properties: {
-                      data: {
-                        $ref: "#/components/schemas/ValidatedUserClaims",
-                      },
-                    },
-                  },
-                ],
-              },
-              example: {
-                data: {
-                  userId: "user_abc123",
-                  dialist_id: "677a2222222222222222bbb2",
-                  onboarding_status: "completed",
-                  display_name: "John Buyer",
-                  location_country: "US",
-                  isMerchant: false,
-                },
-                requestId: "req_xyz789",
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized",
-          content: {
-            "application/json": {
-              schema: {
-                $ref: "#/components/schemas/Error",
-              },
-            },
-          },
-        },
-      },
-    },
-  },
   "/api/v1/debug/mock-users": {
     get: {
       tags: ["Debug"],
@@ -4908,7 +4820,7 @@ swaggerSpec.paths = {
                       example: {
                         type: "string",
                         example:
-                          'fetch("/api/v1/me", { headers: { "x-test-user": "buyer_us_complete" } })',
+                          'fetch("/api/v1/networks/users/profile", { headers: { "x-test-user": "buyer_us_complete" } })',
                       },
                       note: {
                         type: "string",
@@ -5046,7 +4958,7 @@ swaggerSpec.paths = {
                       example: {
                         type: "string",
                         example:
-                          'fetch("/api/v1/me", { headers: { "x-test-user": "buyer_us_complete" } })',
+                          'fetch("/api/v1/networks/users/profile", { headers: { "x-test-user": "buyer_us_complete" } })',
                       },
                     },
                   },
@@ -8365,199 +8277,7 @@ Once approved:
       },
     },
   },
-  "/api/v1/marketplace/orders/dev/clear-reservations": {
-    post: {
-      tags: ["Marketplace - Orders"],
-      summary: "Clear all reservations (DEV ONLY)",
-      description:
-        "⚠️ TEMPORARY DEV ENDPOINT - Clears all active reservations from listings and orders. This endpoint cancels all reserved orders and releases all reserved listings. Useful for development and testing purposes. ⚠️ REMOVE THIS IN PRODUCTION!",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: {
-          description: "All reservations cleared successfully",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  success: {
-                    type: "boolean",
-                    example: true,
-                  },
-                  message: {
-                    type: "string",
-                    example: "All reservations cleared successfully",
-                  },
-                  data: {
-                    type: "object",
-                    properties: {
-                      listings_cleared: {
-                        type: "number",
-                        example: 5,
-                        description:
-                          "Number of listings that had reservations cleared",
-                      },
-                      orders_cancelled: {
-                        type: "number",
-                        example: 3,
-                        description: "Number of orders that were cancelled",
-                      },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        401: {
-          description: "Unauthorized - not authenticated",
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/Error" },
-            },
-          },
-        },
-        500: {
-          description: "Internal server error",
-          content: {
-            "application/json": {
-              schema: { $ref: "#/components/schemas/Error" },
-            },
-          },
-        },
-      },
-    },
-  },
-  "/api/v1/marketplace/orders/dev/reset-listing": {
-    post: {
-      tags: ["Marketplace - Orders"],
-      summary: "Reset a listing and cancel associated orders (DEV ONLY)",
-      description:
-        "DEV endpoint to mark a listing as active/published again and cancel related orders. Use for automated testing to reuse test listings.",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                listing_id: {
-                  type: "string",
-                  example: "507f1f77bcf86cd799439012",
-                },
-                order_id: {
-                  type: "string",
-                  example: "507f1f77bcf86cd799439013",
-                },
-              },
-            },
-            example: { listing_id: "6931f679f97db00210d68746" },
-          },
-        },
-      },
-      responses: {
-        200: {
-          description: "Listing reset; orders cancelled",
-          content: {
-            "application/json": {
-              schema: {
-                type: "object",
-                properties: {
-                  success: { type: "boolean", example: true },
-                  data: {
-                    type: "object",
-                    properties: {
-                      listing_id: {
-                        type: "string",
-                        example: "6931f679f97db00210d68746",
-                      },
-                      orders_cancelled: { type: "number", example: 1 },
-                    },
-                  },
-                },
-              },
-            },
-          },
-        },
-        400: { description: "Bad Request" },
-        401: { description: "Unauthorized" },
-        404: { description: "Listing or Order not found" },
-      },
-    },
-  },
-  "/api/v1/chat/token": {
-    get: {
-      tags: ["Chat"],
-      summary: "Get Stream Chat authentication token",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Token generated" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/chat/channels": {
-    get: {
-      tags: ["Chat"],
-      summary: "Get user's chat channels",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          in: "query",
-          name: "limit",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          in: "query",
-          name: "offset",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: {
-        200: { description: "Channels retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/chat/unread": {
-    get: {
-      tags: ["Chat"],
-      summary: "Get unread message count",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Unread count retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/chat/channel": {
-    post: {
-      tags: ["Chat"],
-      summary: "Create or get chat channel",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["listing_id", "other_user_id"],
-              properties: {
-                listing_id: { type: "string" },
-                other_user_id: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Channel created" },
-        400: { description: "Invalid request" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
+
   "/api/v1/networks/user/feeds/token": {
     get: {
       tags: ["Feeds"],
@@ -8944,86 +8664,7 @@ Once approved:
       },
     },
   },
-  "/api/v1/messages/{id}": {
-    put: {
-      tags: ["Marketplace - Messages"],
-      summary: "Edit a message",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: { text: { type: "string" } },
-            },
-          },
-        },
-      },
-      responses: { 200: { description: "Message updated" } },
-    },
-    delete: {
-      tags: ["Marketplace - Messages"],
-      summary: "Delete a message",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Message deleted" } },
-    },
-  },
-  "/api/v1/messages/{id}/read": {
-    post: {
-      tags: ["Marketplace - Messages"],
-      summary: "Mark message as read",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Marked as read" } },
-    },
-  },
-  "/api/v1/messages/channel/{channelId}/read-all": {
-    post: {
-      tags: ["Marketplace - Messages"],
-      summary: "Mark all messages in channel as read",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "channelId",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "All marked as read" } },
-    },
-  },
-  "/api/v1/messages/{id}/react": {
-    post: {
-      tags: ["Marketplace - Messages"],
-      summary: "Add/toggle reaction",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: { type: { type: "string" } },
-            },
-          },
-        },
-      },
-      responses: { 200: { description: "Reaction updated" } },
-    },
-  },
+
   "/api/v1/marketplace/channels": {
     get: {
       tags: ["Marketplace - Channels"],
@@ -9269,344 +8910,14 @@ Once approved:
   // ==========================================================================
   // USER PROFILE API
   // ==========================================================================
-  "/api/v1/user/profile": {
-    get: {
-      tags: ["User Profile"],
-      summary: "Get current user's profile",
-      description:
-        "Returns bio, social links, and stats for the authenticated user.",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: {
-        200: { description: "User profile with bio, social_links, stats" },
-      },
-    },
-    patch: {
-      tags: ["User Profile"],
-      summary: "Update user profile",
-      description:
-        "Update bio and/or social links. Partial updates are supported.",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: {
-                bio: { type: "string", maxLength: 500 },
-                social_links: {
-                  type: "object",
-                  properties: {
-                    instagram: { type: "string" },
-                    twitter: { type: "string" },
-                    website: { type: "string", format: "uri" },
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Profile updated successfully" },
-        400: { description: "No valid fields to update" },
-      },
-    },
-  },
 
   // ==========================================================================
   // WISHLIST API
   // ==========================================================================
-  "/api/v1/user/wishlist": {
-    get: {
-      tags: ["Wishlist"],
-      summary: "Get user's wishlist",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: { 200: { description: "List of wishlist listings" } },
-    },
-    post: {
-      tags: ["Wishlist"],
-      summary: "Add listing to wishlist",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["listing_id"],
-              properties: { listing_id: { type: "string" } },
-            },
-          },
-        },
-      },
-      responses: { 201: { description: "Listing added to wishlist" } },
-    },
-  },
-  "/api/v1/user/wishlist/{listing_id}": {
-    delete: {
-      tags: ["Wishlist"],
-      summary: "Remove listing from wishlist",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "listing_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Listing removed from wishlist" } },
-    },
-  },
-  "/api/v1/user/wishlist/check/{listing_id}": {
-    get: {
-      tags: ["Wishlist"],
-      summary: "Check if listing is in wishlist",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "listing_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: {
-        200: { description: "Wishlist status (in_wishlist: boolean)" },
-      },
-    },
-  },
 
   // ==========================================================================
   // SUPPORT TICKETS API
   // ==========================================================================
-  "/api/v1/user/support/tickets": {
-    get: {
-      tags: ["Support"],
-      summary: "Get user's support tickets",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "status",
-          in: "query",
-          schema: {
-            type: "string",
-            enum: [
-              "open",
-              "in_progress",
-              "awaiting_user",
-              "resolved",
-              "closed",
-            ],
-          },
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: { 200: { description: "List of support tickets" } },
-    },
-    post: {
-      tags: ["Support"],
-      summary: "Create a support ticket",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["subject", "category", "message"],
-              properties: {
-                subject: { type: "string", maxLength: 200 },
-                category: {
-                  type: "string",
-                  enum: [
-                    "order_issue",
-                    "payment_issue",
-                    "account_issue",
-                    "listing_issue",
-                    "technical_bug",
-                    "feature_request",
-                    "fraud_report",
-                    "other",
-                  ],
-                },
-                priority: {
-                  type: "string",
-                  enum: ["low", "medium", "high", "urgent"],
-                  default: "medium",
-                },
-                message: { type: "string", maxLength: 5000 },
-                related_order_id: { type: "string" },
-                related_listing_id: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: { 201: { description: "Ticket created successfully" } },
-    },
-  },
-  "/api/v1/user/support/tickets/{ticket_id}": {
-    get: {
-      tags: ["Support"],
-      summary: "Get a specific ticket",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "ticket_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Ticket details with messages" } },
-    },
-  },
-  "/api/v1/user/support/tickets/{ticket_id}/messages": {
-    post: {
-      tags: ["Support"],
-      summary: "Add a message to a ticket",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "ticket_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["message"],
-              properties: {
-                message: { type: "string", maxLength: 5000 },
-                attachments: { type: "array", items: { type: "string" } },
-              },
-            },
-          },
-        },
-      },
-      responses: { 200: { description: "Message added" } },
-    },
-  },
-  "/api/v1/user/support/tickets/{ticket_id}/reopen": {
-    post: {
-      tags: ["Support"],
-      summary: "Reopen a closed/resolved ticket",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "ticket_id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Ticket reopened" } },
-    },
-  },
-  "/api/v1/user/support/tickets/count/open": {
-    get: {
-      tags: ["Support"],
-      summary: "Get count of open tickets",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "Open tickets count" } },
-    },
-  },
-  "/api/v1/user/notifications": {
-    get: {
-      tags: ["User - Notifications"],
-      summary: "Get my notifications",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-        {
-          name: "unread_only",
-          in: "query",
-          schema: { type: "boolean", default: false },
-        },
-      ],
-      responses: {
-        200: { description: "Notifications retrieved successfully" },
-      },
-    },
-  },
-  "/api/v1/user/notifications/unread-count": {
-    get: {
-      tags: ["User - Notifications"],
-      summary: "Get unread count",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Count retrieved" },
-      },
-    },
-  },
-  "/api/v1/user/notifications/read-all": {
-    post: {
-      tags: ["User - Notifications"],
-      summary: "Mark all as read",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Marked all as read" },
-      },
-    },
-  },
-  "/api/v1/user/notifications/{id}/read": {
-    post: {
-      tags: ["User - Notifications"],
-      summary: "Mark notification as read",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Marked as read" } },
-    },
-  },
-  "/api/v1/user/notifications/{id}": {
-    delete: {
-      tags: ["User - Notifications"],
-      summary: "Delete notification",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Notification deleted" } },
-    },
-  },
 
   // --- Auto-Appended Networks Routes ---
   "/api/v1/networks/reference-checks": {
@@ -9760,771 +9071,6 @@ Once approved:
       },
       responses: {
         200: { description: "Success - returns channel with price_delta" },
-      },
-    },
-  },
-  "/api/v1/networks/chat/token": {
-    get: {
-      tags: ["Networks - Chat"],
-      summary: "Get GetStream chat token",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/chat/channels": {
-    get: {
-      tags: ["Networks - Chat"],
-      summary: "Get user channels",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/chat/channel": {
-    post: {
-      tags: ["Networks - Chat"],
-      summary: "Get or create channel",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      requestBody: {
-        content: { "application/json": { schema: { type: "object" } } },
-      },
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/conversations": {
-    get: {
-      tags: ["Networks - Chat"],
-      summary: "List conversations",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/conversations/search": {
-    get: {
-      tags: ["Networks - Chat"],
-      summary: "Search conversations",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/conversations/{id}": {
-    get: {
-      tags: ["Networks - Chat"],
-      summary: "Get conversation context",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/conversations/{id}/media": {
-    get: {
-      tags: ["Networks - Chat"],
-      summary: "Get conversation media",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/messages/send": {
-    post: {
-      tags: ["Networks - Chat"],
-      summary: "Send a message",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      requestBody: {
-        content: { "application/json": { schema: { type: "object" } } },
-      },
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/messages/channel/{channelId}": {
-    get: {
-      tags: ["Networks - Chat"],
-      summary: "Get channel messages",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "channelId",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/messages/{id}": {
-    put: {
-      tags: ["Networks - Chat"],
-      summary: "Update message",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      requestBody: {
-        content: { "application/json": { schema: { type: "object" } } },
-      },
-      responses: { 200: { description: "Success" } },
-    },
-    delete: {
-      tags: ["Networks - Chat"],
-      summary: "Delete message",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/messages/{id}/read": {
-    post: {
-      tags: ["Networks - Chat"],
-      summary: "Read message",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/messages/channel/{channelId}/read-all": {
-    post: {
-      tags: ["Networks - Chat"],
-      summary: "Read all messages",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "channelId",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/messages/{id}/react": {
-    post: {
-      tags: ["Networks - Chat"],
-      summary: "React to message",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      requestBody: {
-        content: { "application/json": { schema: { type: "object" } } },
-      },
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/messages/channel/{channelId}/archive": {
-    post: {
-      tags: ["Networks - Chat"],
-      summary: "Archive channel",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "channelId",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/inbox": {
-    get: {
-      tags: ["Networks - Social Hub"],
-      summary: "Get unified social inbox",
-      description: "Aggregates personal/group chats. Capped at 999+ unread.",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/search": {
-    get: {
-      tags: ["Networks - Social Hub"],
-      summary: "Multi-entity search",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [{ name: "q", in: "query", schema: { type: "string" } }],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/discover": {
-    get: {
-      tags: ["Networks - Social Hub"],
-      summary: "Recommended people and groups",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/conversations/{id}/content": {
-    get: {
-      tags: ["Networks - Social Hub"],
-      summary: "Get shared content (media/links/files)",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/conversations/{id}/search": {
-    get: {
-      tags: ["Networks - Social Hub"],
-      summary: "Search messages in specific chat",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-        { name: "q", in: "query", schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/conversations/{id}/events": {
-    get: {
-      tags: ["Networks - Social Hub"],
-      summary: "Get unified conversation timeline",
-      description: "Aggregates offers, vouches, and order milestones",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/chat-profile/{userId}": {
-    get: {
-      tags: ["Networks - Social Hub"],
-      summary: "Get chat-specific user profile",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "userId",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-        },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/groups": {
-    get: {
-      tags: ["Networks - Social Hub | Groups"],
-      summary: "List public groups and user's groups",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: { 200: { description: "Groups list retrieved" } },
-    },
-    post: {
-      tags: ["Networks - Social Hub | Groups"],
-      summary: "Create a social group",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["name"],
-              properties: {
-                name: { type: "string" },
-                description: { type: "string" },
-                avatar: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: { 201: { description: "Group created" } },
-    },
-  },
-  "/api/v1/networks/social/groups/{id}/members": {
-    post: {
-      tags: ["Networks - Social Hub | Groups"],
-      summary: "Add members to group",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-    delete: {
-      tags: ["Networks - Social Hub | Groups"],
-      summary: "Remove member from group",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/groups/{id}/mute": {
-    post: {
-      tags: ["Networks - Social Hub | Groups"],
-      summary: "Mute/Unmute group",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      parameters: [
-        { name: "id", in: "path", required: true, schema: { type: "string" } },
-      ],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/social/reports": {
-    post: {
-      tags: ["Networks - Social Hub | Reports"],
-      summary: "Report user/group/message",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      requestBody: {
-        content: { "application/json": { schema: { type: "object" } } },
-      },
-      responses: { 200: { description: "Success" } },
-    },
-  },
-  "/api/v1/networks/connections/listings": {
-    get: {
-      tags: ["Networks - Connections"],
-      summary: "Get listings from connected users",
-      description:
-        "Returns an activity feed containing listings from connected users",
-      security: [{ bearerAuth: [] }, { mockUser: [] }],
-      responses: { 200: { description: "Success" } },
-    },
-  },
-
-  // =========================================================================
-  // NETWORKS - LISTING SUB-ROUTES
-  // =========================================================================
-  "/api/v1/networks/listings/{id}/status": {
-    patch: {
-      tags: ["Networks - Listings"],
-      summary: "Update listing status",
-      description:
-        "Updates the status of a listing (e.g. active, sold, archived)",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Listing ID",
-        },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["status"],
-              properties: {
-                status: {
-                  type: "string",
-                  enum: ["active", "sold", "archived", "draft"],
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Status updated" },
-        401: { description: "Unauthorized" },
-        403: { description: "Forbidden" },
-        404: { description: "Listing not found" },
-      },
-    },
-  },
-  "/api/v1/networks/listings/{id}/preview": {
-    get: {
-      tags: ["Networks - Listings"],
-      summary: "Get listing preview",
-      description: "Returns a preview of a draft listing before publishing",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Listing ID",
-        },
-      ],
-      responses: {
-        200: { description: "Listing preview retrieved" },
-        401: { description: "Unauthorized" },
-        404: { description: "Listing not found" },
-      },
-    },
-  },
-  "/api/v1/networks/listings/{id}/concierge": {
-    post: {
-      tags: ["Networks - Listings"],
-      summary: "Send concierge request",
-      description:
-        "Sends a concierge (sourcing) request for a specific listing",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Listing ID",
-        },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: { message: { type: "string", maxLength: 500 } },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Concierge request sent" },
-        401: { description: "Unauthorized" },
-        404: { description: "Listing not found" },
-      },
-    },
-  },
-  "/api/v1/networks/listings/{id}/offers": {
-    post: {
-      tags: ["Networks - Offers"],
-      summary: "Send offer on listing",
-      description: "Sends an offer on a specific listing",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Listing ID",
-        },
-      ],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["amount"],
-              properties: {
-                amount: {
-                  type: "number",
-                  minimum: 1,
-                  description: "Offer amount in cents",
-                },
-                shipping_region: {
-                  type: "string",
-                  enum: ["US", "CA", "International"],
-                  description: "Shipping region",
-                },
-                message: {
-                  type: "string",
-                  maxLength: 500,
-                  description: "Optional message with the offer",
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Offer sent successfully" },
-        400: { description: "Bad request" },
-        401: { description: "Unauthorized" },
-        404: { description: "Listing not found" },
-      },
-    },
-    get: {
-      tags: ["Networks - Offers"],
-      summary: "Get offers on listing",
-      description: "Returns all offers made on a specific listing (owner only)",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Listing ID",
-        },
-      ],
-      responses: {
-        200: { description: "Offers retrieved" },
-        401: { description: "Unauthorized" },
-        403: { description: "Forbidden" },
-        404: { description: "Listing not found" },
-      },
-    },
-  },
-  "/api/v1/networks/listings/{id}/inquire": {
-    post: {
-      tags: ["Networks - Listings"],
-      summary: "Send listing inquiry",
-      description: "Sends an inquiry message about a specific listing",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Listing ID",
-        },
-      ],
-      requestBody: {
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              properties: { message: { type: "string", maxLength: 500 } },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Inquiry sent" },
-        401: { description: "Unauthorized" },
-        404: { description: "Listing not found" },
-      },
-    },
-  },
-
-  // =========================================================================
-  // NETWORKS - ORDERS & RESERVATIONS
-  // =========================================================================
-  "/api/v1/networks/orders": {
-    get: {
-      tags: ["Networks - Orders"],
-      summary: "Get current user's orders",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "type",
-          in: "query",
-          schema: { type: "string", enum: ["buying", "selling"] },
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: {
-        200: { description: "Orders retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-    post: {
-      tags: ["Networks - Orders"],
-      summary: "Create an order",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["listing_id"],
-              properties: {
-                listing_id: { type: "string" },
-                shipping_region: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Order created" },
-        400: { description: "Bad request" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/networks/reservations": {
-    get: {
-      tags: ["Networks - Reservations"],
-      summary: "Get current user's reservations",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "type",
-          in: "query",
-          schema: { type: "string", enum: ["buyer", "seller"] },
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: {
-        200: { description: "Reservations retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-    post: {
-      tags: ["Networks - Reservations"],
-      summary: "Create a reservation",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["listing_id", "shipping_region"],
-              properties: {
-                listing_id: { type: "string" },
-                shipping_region: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Reservation created" },
-        400: { description: "Bad request" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-
-  // =========================================================================
-  // NETWORKS - CHAT & CONVERSATIONS
-  // =========================================================================
-  "/api/v1/networks/chat/unread": {
-    get: {
-      tags: ["Networks - Chat"],
-      summary: "Get unread message counts",
-      description:
-        "Returns the unread message counts across channels for the authenticated user",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Unread counts retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/networks/conversations/{id}/shared/media": {
-    get: {
-      tags: ["Networks - Conversations"],
-      summary: "Get shared media in conversation",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Conversation ID",
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: {
-        200: { description: "Shared media retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/networks/conversations/{id}/shared/files": {
-    get: {
-      tags: ["Networks - Conversations"],
-      summary: "Get shared files in conversation",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Conversation ID",
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: {
-        200: { description: "Shared files retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/networks/conversations/{id}/shared/links": {
-    get: {
-      tags: ["Networks - Conversations"],
-      summary: "Get shared links in conversation",
-      security: [{ bearerAuth: [] }],
-      parameters: [
-        {
-          name: "id",
-          in: "path",
-          required: true,
-          schema: { type: "string" },
-          description: "Conversation ID",
-        },
-        {
-          name: "limit",
-          in: "query",
-          schema: { type: "integer", default: 20 },
-        },
-        {
-          name: "offset",
-          in: "query",
-          schema: { type: "integer", default: 0 },
-        },
-      ],
-      responses: {
-        200: { description: "Shared links retrieved" },
-        401: { description: "Unauthorized" },
       },
     },
   },
@@ -10998,182 +9544,10 @@ Once approved:
   },
 
   // =========================================================================
-  // USER - AUTH PROFILE ENDPOINTS
+  // DEPRECATED ENDPOINTS REMOVED
+  // User auth, profile, subscription, and token endpoints moved to
+  // platform-specific routes: /api/v1/networks/* and /api/v1/marketplace/*
   // =========================================================================
-  "/api/v1/user/avatar": {
-    post: {
-      tags: ["User"],
-      summary: "Upload user avatar",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "multipart/form-data": {
-            schema: {
-              type: "object",
-              properties: { avatar: { type: "string", format: "binary" } },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Avatar uploaded" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/user/verification": {
-    get: {
-      tags: ["User"],
-      summary: "Get user verification status",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Verification status retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/user/status": {
-    patch: {
-      tags: ["User"],
-      summary: "Update user online/activity status",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["status"],
-              properties: {
-                status: {
-                  type: "string",
-                  enum: ["online", "offline", "away", "busy"],
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Status updated" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-
-  "/api/v1/user/deactivate": {
-    patch: {
-      tags: ["User"],
-      summary: "Deactivate or reactivate current user account",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["active"],
-              properties: {
-                active: {
-                  type: "boolean",
-                  description: "true to reactivate, false to deactivate",
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Account status updated" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-
-  // =========================================================================
-  // USER - SUBSCRIPTION
-  // =========================================================================
-  "/api/v1/user/subscription/upgrade": {
-    post: {
-      tags: ["Subscription"],
-      summary: "Upgrade subscription",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["plan"],
-              properties: {
-                plan: { type: "string" },
-                payment_method_id: { type: "string" },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        200: { description: "Subscription upgraded" },
-        400: { description: "Bad request" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-  "/api/v1/user/subscription/cancel": {
-    post: {
-      tags: ["Subscription"],
-      summary: "Cancel subscription",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Subscription cancelled" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
-
-  // =========================================================================
-  // USER - PUSH TOKENS
-  // =========================================================================
-  "/api/v1/user/tokens/push": {
-    get: {
-      tags: ["User - Tokens"],
-      summary: "Get push notification tokens",
-      security: [{ bearerAuth: [] }],
-      responses: {
-        200: { description: "Push tokens retrieved" },
-        401: { description: "Unauthorized" },
-      },
-    },
-    post: {
-      tags: ["User - Tokens"],
-      summary: "Register a push notification token",
-      security: [{ bearerAuth: [] }],
-      requestBody: {
-        required: true,
-        content: {
-          "application/json": {
-            schema: {
-              type: "object",
-              required: ["token", "device_type"],
-              properties: {
-                token: { type: "string" },
-                device_type: {
-                  type: "string",
-                  enum: ["ios", "android", "web"],
-                },
-              },
-            },
-          },
-        },
-      },
-      responses: {
-        201: { description: "Push token registered" },
-        401: { description: "Unauthorized" },
-      },
-    },
-  },
 
   // =========================================================================
   // MARKETPLACE - USER INVENTORY & OFFERS

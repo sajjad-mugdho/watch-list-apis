@@ -87,6 +87,12 @@ export interface INetworkListingChannel {
   // Reference to canonical Order document
   order_id: Types.ObjectId | null;
 
+  // Chat tracking
+  unread_count: number;
+  last_read_at: Date | null;
+  last_message_preview: string | null;
+  last_message_at: Date | null;
+
   // Timestamps
   createdAt: Date;
   updatedAt: Date;
@@ -223,6 +229,26 @@ const networkListingChannelSchema = new Schema<INetworkListingChannel>(
       ref: "NetworkOrder",
       default: null,
       index: true,
+    },
+    unread_count: {
+      type: Number,
+      default: 0,
+      description: "Number of unread messages in this channel",
+    },
+    last_read_at: {
+      type: Date,
+      default: null,
+      description: "Timestamp when channel was last read by user",
+    },
+    last_message_preview: {
+      type: String,
+      default: null,
+      description: "Preview of the last message in the channel",
+    },
+    last_message_at: {
+      type: Date,
+      default: null,
+      description: "Timestamp of the last message",
     },
   },
   { timestamps: true },

@@ -6,7 +6,7 @@ import {
   ValidationError,
   NotFoundError,
 } from "../../utils/errors";
-import { ChatMessage } from "../../models/ChatMessage";
+import { ChatMessage } from "../models/ChatMessage";
 import { SocialGroup } from "../models/SocialGroup";
 import { SocialGroupMember } from "../models/SocialGroupMember";
 import { User } from "../../models/User";
@@ -385,7 +385,7 @@ export const social_shared_content_get = async (
       type: m.type,
       attachments: m.attachments,
       text: m.text,
-      createdAt: m.createdAt,
+      createdAt: m.created_at || (m as any).createdAt,
     }));
 
     // Canonical shared-content response with standardized envelope
@@ -517,7 +517,7 @@ export const social_chat_search_get = async (
         _id: m._id,
         text: m.text,
         sender_id: m.sender_id,
-        createdAt: m.createdAt,
+        createdAt: m.created_at || (m as any).createdAt,
       })),
       requestId: req.headers["x-request-id"] as string,
     });

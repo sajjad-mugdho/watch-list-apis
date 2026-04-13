@@ -424,6 +424,15 @@ export const networks_listing_publish = async (
       });
     }
 
+    // Invalidate featured listings cache
+    try {
+      const { networksHomeFeedService } =
+        await import("../services/NetworksHomeFeedService");
+      await networksHomeFeedService.invalidateFeaturedCache();
+    } catch (cacheError) {
+      logger.warn("Failed to invalidate featured cache", { cacheError });
+    }
+
     const response: ApiResponse<INetworkListing> = {
       data: listing.toJSON() as any,
       requestId: req.headers["x-request-id"] as string,

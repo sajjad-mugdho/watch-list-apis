@@ -1,7 +1,6 @@
 import { Router } from "express";
 import listingRoutes from "./routes/listingRoutes";
 import offerRoutes from "./routes/offerRoutes";
-import offersInquiriesRoutes from "./routes/offersInquiriesRoutes";
 import chatRoutes from "./routes/chatRoutes";
 import messageRoutes from "./routes/messageRoutes";
 import conversationRoutes from "./routes/conversationRoutes";
@@ -13,8 +12,10 @@ import socialRoutes from "./routes/socialRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import reservationRoutes from "./routes/reservationRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
+import webhookRoutes from "./routes/webhookRoutes";
 import { usersRoutes } from "./routes/usersRoutes";
 import onboardingRoutes from "./routes/onboardingRoutes";
+import homeFeedRoutes from "./routes/homeFeedRoutes";
 
 import { registerNetworksEventHandlers } from "./events";
 
@@ -25,9 +26,9 @@ const router = Router();
 
 router.use("/user", userRoutes);
 router.use("/users", usersRoutes);
+router.use("/", homeFeedRoutes);
 router.use("/listings", listingRoutes);
 router.use("/offers", offerRoutes);
-router.use("/offers-inquiries", offersInquiriesRoutes);
 router.use("/chat", chatRoutes);
 router.use("/messages", messageRoutes);
 router.use("/conversations", conversationRoutes);
@@ -40,5 +41,6 @@ router.use("/social", socialRoutes);
 router.use("/orders", orderRoutes);
 router.use("/reservations", reservationRoutes);
 router.use("/notifications", notificationRoutes);
+router.use("/webhooks", webhookRoutes);
 
 export default router;

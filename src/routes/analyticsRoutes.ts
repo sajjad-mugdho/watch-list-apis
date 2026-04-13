@@ -1,5 +1,5 @@
 import { Router, Request, Response, NextFunction } from "express";
-import { ChatMessage } from "../models/ChatMessage";
+import { ChatMessage } from "../networks/models/ChatMessage";
 
 const router = Router();
 
@@ -23,7 +23,7 @@ router.get(
       }
 
       // Optional: Add admin check if this is for admin dashboard
-      
+
       const { startDate, endDate, listingId, userId } = req.query;
 
       const query: any = {};
@@ -58,7 +58,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 /**
@@ -92,7 +92,7 @@ router.get(
     } catch (error) {
       next(error);
     }
-  }
+  },
 );
 
 export { router as analyticsRoutes };

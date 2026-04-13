@@ -11,6 +11,7 @@ import { ConnectionRequestInput } from "../../validation/schemas";
 import { connectionRepository } from "../../repositories/ConnectionRepository";
 import { User } from "../../models/User";
 import { Connection } from "../models/Connection";
+import logger from "../../utils/logger";
 
 // ============================================================
 // Input Validation Helpers
@@ -233,6 +234,22 @@ export const networks_connection_request_respond = async (
         userId,
         connectionId,
       );
+
+      // Invalidate cache for both users' connections
+      try {
+        const { networksHomeFeedService } =
+          await import("../services/NetworksHomeFeedService");
+        // Invalidate for the user accepting (follower)
+        await networksHomeFeedService.invalidateUserCache(userId);
+        // Invalidate for the user being followed (following)
+        if (result?.following_id) {
+          await networksHomeFeedService.invalidateUserCache(
+            String(result.following_id),
+          );
+        }
+      } catch (cacheError) {
+        logger.warn("Failed to invalidate connection cache", { cacheError });
+      }
     } else if (isReject) {
       await connectionService.rejectConnectionRequest(userId, connectionId);
       result = { message: "Connection request rejected" };

@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "dialist-api-collection-v1",
     "name": "Dialist API",
-    "description": "Full Dialist API collection — all 213+ endpoints across Marketplace, Networks, User, Auth, and Admin modules.\n\n## Quick Start\n1. Import both this collection AND the `Dialist-LocalDev.postman_environment.json` file\n2. Select **Dialist - Local Dev** as the active environment\n3. Start the server: `npm run dev` (listens on port 5050)\n4. Run `Debug > Get All Mock Users` to see available personas\n5. Change `{{mockUser}}` in the environment to switch testing persona\n6. Use Collection Runner to run folders in order for end-to-end flows\n\n## Auth\nControlled by the `authMode` environment variable:\n\n**Mode 1 — Mock (default, `authMode = mock`)**\nInjects `x-test-user: {{mockUser}}` header — no Clerk account needed.\nChange `{{mockUser}}` to switch persona:\n- `buyer_us_complete` — fully onboarded US buyer\n- `merchant_approved` — approved US seller\n- `merchant_approved_ca` — approved Canadian seller\n- `new_user_us` — fresh US user (test onboarding)\n- `new_user_ca` — fresh Canadian user\n- `merchant_pending` / `merchant_provisioning` / `merchant_rejected`\n\n**Mode 2 — Real Clerk JWT (`authMode = jwt`)** [BATCH 4 READY]\nInjects `Authorization: Bearer {{token}}` header for a real Clerk user.\nSupports: `{{token}}`, `{{buyerToken}}` (Pre-loaded!), or `{{sellerToken}}` (Pre-loaded!)\nHow to use:\n1. For Batch 4: Set authMode='jwt' + tokenRole='seller' or 'buyer'\n2. Seller: user_36IWCC3uus7Ch1Go4qYTZexUeWoaTM\n3. Buyer: user_36IdtjemE0ACxYzUFfpP8QUFjyf\n4. Tokens valid ~12 hours — refresh from DevTools when they expire.\n\n## ID Chaining\nCreate requests auto-save response IDs to environment variables:\n`{{listingId}}`, `{{orderId}}`, `{{offerId}}`, `{{connectionId}}`, `{{groupId}}`, etc.\nSubsequent requests reference these automatically.\n\n## Batch 4 (2026-04-07)\nBatch 4 endpoints tested with real verified Clerk JWT tokens. Use included environment file with JWT mode enabled.\n\n## Batch 3 Validation (2026-04-01) [Legacy]\nIncludes comprehensive validation suite with 19 tested Networks endpoints. See **✅ Batch 3 — Networks Validation Suite** folder for full test coverage.",
+    "description": "Platform-agnostic endpoints removed. Dialist API collection \u2014 195 endpoints across Marketplace, Networks, Admin, and Debug modules.\n\n## Quick Start\n1. Import both this collection AND the `Dialist-LocalDev.postman_environment.json` file\n2. Select **Dialist - Local Dev** as the active environment\n3. Start the server: `npm run dev` (listens on port 5050)\n4. Run `Debug > Get All Mock Users` to see available personas\n5. Change `{{mockUser}}` in the environment to switch testing persona\n6. Use Collection Runner to run folders in order for end-to-end flows\n\n## Note: Deprecated Endpoints Removed\nUser profile, subscriptions, notifications, tokens, support, and watches endpoints have been consolidated into platform-specific routes (/v1/networks/* and /v1/marketplace/*).",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "event": [
@@ -17,8 +17,8 @@
           "// ============================================================",
           "",
           "// Auth mode is controlled by the 'authMode' environment variable:",
-          "//   'mock' (default) — injects x-test-user header  (no Clerk needed)",
-          "//   'jwt'            — injects Authorization: Bearer <token>",
+          "//   'mock' (default) \u2014 injects x-test-user header  (no Clerk needed)",
+          "//   'jwt'            \u2014 injects Authorization: Bearer <token>",
           "",
           "const authMode = pm.environment.get('authMode') || 'mock';",
           "",
@@ -90,8 +90,8 @@
   ],
   "item": [
     {
-      "name": "🔧 Debug",
-      "description": "Debug endpoints — inspect mock users, server health, and spec.",
+      "name": "\ud83d\udd27 Debug",
+      "description": "Debug endpoints \u2014 inspect mock users, server health, and spec.",
       "item": [
         {
           "name": "Health Check",
@@ -132,7 +132,7 @@
       ]
     },
     {
-      "name": "✅ Batch 3 — Networks Validation Suite",
+      "name": "\u2705 Batch 3 \u2014 Networks Validation Suite",
       "description": "Comprehensive validation suite for Batch 3 Networks API endpoints (19 validated endpoints from 2026-04-01 report).\n\nAll endpoints tested with mock-user authentication and confirmed passing.\n\nRun this folder sequentially to validate all major Networks user flows.",
       "item": [
         {
@@ -604,232 +604,7 @@
       ]
     },
     {
-      "name": "👤 User — Profile",
-      "description": "Current user profile, avatar, status, verification, wishlist.\nSet {{mockUser}} in environment to control which user you're acting as.",
-      "item": [
-        {
-          "name": "Get Current User",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res.data?._id) pm.environment.set('userId', res.data._id);",
-                  "pm.test('Has user data', () => pm.expect(res.data).to.exist);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user"]
-            }
-          }
-        },
-        {
-          "name": "Get User Profile",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "profile"]
-            }
-          }
-        },
-        {
-          "name": "Update User Profile",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"first_name\": \"Test\",\n  \"last_name\": \"User\",\n  \"display_name\": \"testuser\",\n  \"bio\": \"Testing via Postman\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/profile",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "profile"]
-            }
-          }
-        },
-        {
-          "name": "Upload Avatar",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "body": {
-              "mode": "formdata",
-              "formdata": [
-                {
-                  "key": "avatar",
-                  "type": "file",
-                  "src": ""
-                }
-              ]
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/avatar",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "avatar"]
-            }
-          }
-        },
-        {
-          "name": "Get Verification Status",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/verification",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "verification"]
-            }
-          }
-        },
-        {
-          "name": "Update Online Status",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"status\": \"online\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/status",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "status"]
-            }
-          }
-        },
-        {
-          "name": "Deactivate / Reactivate Account",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "key": "x-test-user",
-                "value": "{{mockUser}}"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"active\": false\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/deactivate",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "deactivate"]
-            }
-          }
-        },
-        {
-          "name": "Get Wishlist",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/wishlist",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "wishlist"]
-            }
-          }
-        },
-        {
-          "name": "Add to Wishlist",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"listing_id\": \"{{listingId}}\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/wishlist",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "wishlist"]
-            }
-          }
-        },
-        {
-          "name": "Check Wishlist Item",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/wishlist/check/{{listingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "wishlist",
-                "check",
-                "{{listingId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Remove from Wishlist",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/wishlist/{{listingId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "wishlist", "{{listingId}}"]
-            }
-          }
-        },
-        {
-          "name": "Delete Account",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "⭐ Networks — Favorites",
+      "name": "\u2b50 Networks \u2014 Favorites",
       "item": [
         {
           "name": "Get Favorites (Networks)",
@@ -944,7 +719,7 @@
       ]
     },
     {
-      "name": "🔍 Networks — Searches",
+      "name": "\ud83d\udd0d Networks \u2014 Searches",
       "item": [
         {
           "name": "Get Recent Searches",
@@ -1014,329 +789,7 @@
       ]
     },
     {
-      "name": "💳 User — Subscription",
-      "item": [
-        {
-          "name": "Get Subscription",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/subscription",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "subscription"]
-            }
-          }
-        },
-        {
-          "name": "Upgrade Subscription",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"plan\": \"premium\",\n  \"payment_method_id\": \"pm_test_xxx\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/subscription/upgrade",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "subscription", "upgrade"]
-            }
-          }
-        },
-        {
-          "name": "Cancel Subscription",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/subscription/cancel",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "subscription", "cancel"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🔔 User — Notifications",
-      "item": [
-        {
-          "name": "Get Notifications",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/notifications",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "notifications"]
-            }
-          }
-        },
-        {
-          "name": "Get Unread Count",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/notifications/unread-count",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "notifications", "unread-count"]
-            }
-          }
-        },
-        {
-          "name": "Mark All Read",
-          "request": {
-            "method": "PATCH",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/notifications/read-all",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "notifications", "read-all"]
-            }
-          }
-        },
-        {
-          "name": "Mark Notification Read",
-          "request": {
-            "method": "PATCH",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/notifications/NOTIFICATION_ID/read",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "notifications",
-                "NOTIFICATION_ID",
-                "read"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Delete Notification",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/notifications/NOTIFICATION_ID",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "notifications", "NOTIFICATION_ID"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🎫 User — Tokens",
-      "item": [
-        {
-          "name": "Get Chat Token",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/tokens/chat",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "tokens", "chat"]
-            }
-          }
-        },
-        {
-          "name": "Get Feed Token",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/tokens/feed",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "tokens", "feed"]
-            }
-          }
-        },
-        {
-          "name": "Get Push Tokens",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/tokens/push",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "tokens", "push"]
-            }
-          }
-        },
-        {
-          "name": "Register Push Token",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"token\": \"ExponentPushToken[xxxxxxxxxxxxxxxxxx]\",\n  \"device_type\": \"ios\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/tokens/push",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "tokens", "push"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "📋 User — Support",
-      "item": [
-        {
-          "name": "List Support Tickets",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/support/tickets",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "support", "tickets"]
-            }
-          }
-        },
-        {
-          "name": "Create Support Ticket",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "const res = pm.response.json();",
-                  "if (res.data?._id) pm.environment.set('ticketId', res.data._id);"
-                ]
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"subject\": \"Test support ticket\",\n  \"message\": \"This is a test message from Postman\",\n  \"category\": \"general\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/support/tickets",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "user", "support", "tickets"]
-            }
-          }
-        },
-        {
-          "name": "Get Ticket",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "support",
-                "tickets",
-                "{{ticketId}}"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Reply to Ticket",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"message\": \"Follow-up reply from Postman\"\n}"
-            },
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}/messages",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "support",
-                "tickets",
-                "{{ticketId}}",
-                "messages"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Reopen Ticket",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/support/tickets/{{ticketId}}/reopen",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "support",
-                "tickets",
-                "{{ticketId}}",
-                "reopen"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Open Ticket Count",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/user/support/tickets/count/open",
-              "host": ["{{baseUrl}}"],
-              "path": [
-                "api",
-                "v1",
-                "user",
-                "support",
-                "tickets",
-                "count",
-                "open"
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🛍️ Marketplace — User Onboarding",
+      "name": "\ud83d\udecd\ufe0f Marketplace \u2014 User Onboarding",
       "description": "Marketplace onboarding flow: buyer/dealer intent selection with Finix auto-start for dealers",
       "item": [
         {
@@ -1503,7 +956,7 @@
       ]
     },
     {
-      "name": "🏷️ Networks — Listings",
+      "name": "\ud83c\udff7\ufe0f Networks \u2014 Listings",
       "description": "Create, update, publish, and manage Networks listings.\nIMPORTANT: Use `merchant_approved` as mockUser when creating listings.",
       "item": [
         {
@@ -1579,7 +1032,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"price\": 11500,\n  \"subtitle\": \"Updated — priced to sell!\"\n}"
+              "raw": "{\n  \"price\": 11500,\n  \"subtitle\": \"Updated \u2014 priced to sell!\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}",
@@ -1749,11 +1202,137 @@
               "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
             }
           }
+        },
+        {
+          "name": "Update Listing Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "listings",
+                "{{listingId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Listings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/listings?q=rolex&brand=Rolex&condition=Excellent&min_price=5000&max_price=20000&sort_by=newest&limit=20&page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "listings"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "rolex"
+                },
+                {
+                  "key": "brand",
+                  "value": "Rolex"
+                },
+                {
+                  "key": "condition",
+                  "value": "Excellent"
+                },
+                {
+                  "key": "min_price",
+                  "value": "5000"
+                },
+                {
+                  "key": "max_price",
+                  "value": "20000"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "newest"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
         }
       ]
     },
     {
-      "name": "💰 Networks — Offers",
+      "name": "🌟 Networks \u2014 Home Feed",
+      "description": "Get personalized home feed with three sections: recommended (for you), featured (new/popular), and connections.",
+      "item": [
+        {
+          "name": "Get Home Feed (Default)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Response has three sections', () => {",
+                  "  pm.expect(res.data).to.have.property('recommended');",
+                  "  pm.expect(res.data).to.have.property('featured');",
+                  "  pm.expect(res.data).to.have.property('connections');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/home-feed",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "home-feed"]
+            }
+          }
+        },
+        {
+          "name": "Get Home Feed (Custom Limit)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/home-feed?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "home-feed"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "\ud83d\udcb0 Networks \u2014 Offers",
       "description": "Send and manage offers on listings.\nSet mockUser to `buyer_us_complete` to send; `merchant_approved` to receive.",
       "item": [
         {
@@ -1836,7 +1415,7 @@
       ]
     },
     {
-      "name": "📦 Networks — Orders",
+      "name": "\ud83d\udce6 Networks \u2014 Orders",
       "item": [
         {
           "name": "Get My Orders",
@@ -1906,7 +1485,7 @@
       ]
     },
     {
-      "name": "🔗 Networks — Connections",
+      "name": "\ud83d\udd17 Networks \u2014 Connections",
       "item": [
         {
           "name": "Get My Incoming Connections",
@@ -2081,7 +1660,7 @@
       ]
     },
     {
-      "name": "💬 Networks — Chat",
+      "name": "\ud83d\udcac Networks \u2014 Chat",
       "item": [
         {
           "name": "Get Chat Token",
@@ -2164,11 +1743,32 @@
               "path": ["api", "v1", "networks", "chat", "unread"]
             }
           }
+        },
+        {
+          "name": "Mark Channel as Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": \"{{channelId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/chat/channel/mark-read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "chat", "channel", "mark-read"]
+            }
+          }
         }
       ]
     },
     {
-      "name": "📨 Networks — Conversations",
+      "name": "\ud83d\udce8 Networks \u2014 Conversations",
       "item": [
         {
           "name": "Get Conversations",
@@ -2189,9 +1789,49 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/conversations",
+              "raw": "{{baseUrl}}/api/v1/networks/conversations?limit=20&offset=0&type=all",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "conversations"]
+              "path": ["api", "v1", "networks", "conversations"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/conversations?limit=20&offset=0&type=unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "conversations"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "type",
+                  "value": "unread"
+                }
+              ]
             }
           }
         },
@@ -2201,13 +1841,17 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/conversations/search?q=Rolex",
+              "raw": "{{baseUrl}}/api/v1/networks/conversations/search?q=rolex&limit=20",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "networks", "conversations", "search"],
               "query": [
                 {
                   "key": "q",
-                  "value": "Rolex"
+                  "value": "rolex"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
                 }
               ]
             }
@@ -2237,7 +1881,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/media",
+              "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/media?type=all&limit=50&offset=0",
               "host": ["{{baseUrl}}"],
               "path": [
                 "api",
@@ -2246,12 +1890,26 @@
                 "conversations",
                 "{{conversationId}}",
                 "media"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "all"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             }
           }
         },
         {
-          "name": "Get Shared Media (Images)",
+          "name": "Get Shared Media",
           "request": {
             "method": "GET",
             "header": [],
@@ -2313,7 +1971,7 @@
       ]
     },
     {
-      "name": "💬 Networks — Messages",
+      "name": "\ud83d\udcac Networks \u2014 Messages",
       "item": [
         {
           "name": "Get Messages by Channel",
@@ -2321,7 +1979,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}",
+              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}?limit=20&offset=0",
               "host": ["{{baseUrl}}"],
               "path": [
                 "api",
@@ -2330,12 +1988,34 @@
                 "messages",
                 "channel",
                 "{{channelId}}"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             }
           }
         },
         {
           "name": "Send Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?._id) pm.environment.set('messageId', res.data._id);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -2346,10 +2026,116 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"Hello from Postman!\",\n  \"channel_id\": \"{{channelId}}\"\n}"
+              "raw": "{\n  \"channel_id\": \"{{channelId}}\",\n  \"text\": \"Is this watch still available?\",\n  \"type\": \"regular\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}",
+              "raw": "{{baseUrl}}/api/v1/networks/messages/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "send"]
+            }
+          }
+        },
+        {
+          "name": "Send Inquiry Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": \"{{channelId}}\",\n  \"text\": \"Can you tell me more about the condition?\",\n  \"type\": \"inquiry\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "send"]
+            }
+          }
+        },
+        {
+          "name": "Send Offer Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": \"{{channelId}}\",\n  \"text\": \"I'd like to offer $11,000 for this watch\",\n  \"type\": \"offer\",\n  \"custom_data\": {\n    \"amount\": 11000,\n    \"expires_at\": \"2025-04-28T10:00:00Z\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "send"]
+            }
+          }
+        },
+        {
+          "name": "Update Message",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Updated message text\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "{{messageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "{{messageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Mark Message as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{messageId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "messages",
+                "{{messageId}}",
+                "read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark All Channel Messages as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}/read-all",
               "host": ["{{baseUrl}}"],
               "path": [
                 "api",
@@ -2357,7 +2143,125 @@
                 "networks",
                 "messages",
                 "channel",
-                "{{channelId}}"
+                "{{channelId}}",
+                "read-all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "React to Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"love\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{messageId}}/react",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "messages",
+                "{{messageId}}",
+                "react"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Archive Channel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}/archive",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "messages",
+                "channel",
+                "{{channelId}}",
+                "archive"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Chats (Alias)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/chats?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "chats"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Chats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/chats/search?q=rolex",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "chats", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "rolex"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Chat History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{chatId}}/history?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "messages",
+                "{{chatId}}",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             }
           }
@@ -2365,7 +2269,7 @@
       ]
     },
     {
-      "name": "👥 Networks — Social Groups",
+      "name": "\ud83d\udc65 Networks \u2014 Social Groups",
       "item": [
         {
           "name": "List Groups",
@@ -2588,7 +2492,7 @@
       ]
     },
     {
-      "name": "✉️ Networks — Social Invites",
+      "name": "\u2709\ufe0f Networks \u2014 Social Invites",
       "item": [
         {
           "name": "Create Invite Link",
@@ -2645,7 +2549,7 @@
       ]
     },
     {
-      "name": "📊 Networks — User & Dashboard",
+      "name": "\ud83d\udcca Networks \u2014 User & Dashboard",
       "item": [
         {
           "name": "Get My Networks Profile",
@@ -3004,7 +2908,7 @@
       ]
     },
     {
-      "name": "👤 Networks — Users (Other)",
+      "name": "\ud83d\udc64 Networks \u2014 Users (Other)",
       "item": [
         {
           "name": "Get User Public Profile",
@@ -3188,7 +3092,7 @@
       ]
     },
     {
-      "name": "🏪 Marketplace — Listings",
+      "name": "\ud83c\udfea Marketplace \u2014 Listings",
       "description": "Use mockUser = `merchant_approved` for create/update/delete.\nUse `buyer_us_complete` for browsing.",
       "item": [
         {
@@ -3326,8 +3230,8 @@
       ]
     },
     {
-      "name": "🛒 Marketplace — Orders (Finix Payments)",
-      "description": "Full Finix payment flow:\n1. Reserve → get fraud_session_id\n2. Tokenize → get Finix config for CardTokenForm\n3. Pay (with payment_token from Finix.js)\n4. Refund\n\nUse mockUser = `buyer_us_complete` as buyer.",
+      "name": "\ud83d\uded2 Marketplace \u2014 Orders (Finix Payments)",
+      "description": "Full Finix payment flow:\n1. Reserve \u2192 get fraud_session_id\n2. Tokenize \u2192 get Finix config for CardTokenForm\n3. Pay (with payment_token from Finix.js)\n4. Refund\n\nUse mockUser = `buyer_us_complete` as buyer.",
       "item": [
         {
           "name": "Reserve Order (+ get fraud_session_id)",
@@ -3453,7 +3357,7 @@
       ]
     },
     {
-      "name": "🏢 Marketplace — Merchant Onboarding",
+      "name": "\ud83c\udfe2 Marketplace \u2014 Merchant Onboarding",
       "description": "Finix merchant onboarding flow.\nUse mockUser = `new_user_us` or `merchant_pending`.",
       "item": [
         {
@@ -3621,7 +3525,7 @@
       ]
     },
     {
-      "name": "🔎 Networks — ISOs",
+      "name": "\ud83d\udd0e Networks \u2014 ISOs",
       "item": [
         {
           "name": "List ISOs",
@@ -3722,36 +3626,7 @@
       ]
     },
     {
-      "name": "⌚ Watches",
-      "item": [
-        {
-          "name": "Search Watches",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/watches?q=Rolex&limit=20",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "watches"]
-            }
-          }
-        },
-        {
-          "name": "Get Watch by ID",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{baseUrl}}/api/v1/watches/{{watchId}}",
-              "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "watches", "{{watchId}}"]
-            }
-          }
-        }
-      ]
-    },
-    {
-      "name": "🔐 Reference Checks",
+      "name": "\ud83d\udd10 Reference Checks",
       "item": [
         {
           "name": "List Reference Checks",
@@ -3789,8 +3664,8 @@
       ]
     },
     {
-      "name": "🛡️ Admin",
-      "description": "Admin endpoints — switch mockUser if needed (check with /debug/mock-users which users have admin role).",
+      "name": "\ud83d\udee1\ufe0f Admin",
+      "description": "Admin endpoints \u2014 switch mockUser if needed (check with /debug/mock-users which users have admin role).",
       "item": [
         {
           "name": "List Trust Cases",
@@ -3865,8 +3740,8 @@
       ]
     },
     {
-      "name": "🔗 Webhooks",
-      "description": "Webhook receiver endpoints — these are called by external services (Finix, Clerk), not by the frontend.",
+      "name": "\ud83d\udd17 Webhooks",
+      "description": "Webhook receiver endpoints \u2014 these are called by external services (Finix, Clerk), not by the frontend.",
       "item": [
         {
           "name": "Finix Webhook (test signature validation)",
@@ -3929,7 +3804,7 @@
       ]
     },
     {
-      "name": "✅ Batch 2 - Screen Integration (Aligned Payloads)",
+      "name": "\u2705 Batch 2 - Screen Integration (Aligned Payloads)",
       "description": "Canonical screen-by-screen Batch 2 flow requests aligned with implementation and payload docs.\nUses x-test-user when authMode=mock, or Bearer token when authMode=jwt.\nRelated docs:\n- docs/BATCH_2_API_REQUEST_RESPONSE_ALIGNMENT.md\n- docs/BATCH_2_API_PAYLOADS.md\n- docs/BATCH_2_SCREEN_BY_SCREEN_INTEGRATION_GUIDE.md",
       "item": [
         {
@@ -4015,26 +3890,6 @@
                       "key": "offset",
                       "value": "0"
                     }
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Get Open Tickets Count",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/user/support/tickets/count/open",
-                  "host": ["{{baseUrl}}"],
-                  "path": [
-                    "api",
-                    "v1",
-                    "user",
-                    "support",
-                    "tickets",
-                    "count",
-                    "open"
                   ]
                 }
               }
@@ -5247,83 +5102,6 @@
                   ]
                 }
               }
-            },
-            {
-              "name": "Patch User Profile",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/user/profile",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "user", "profile"]
-                },
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"first_name\": \"Sam\",\n  \"last_name\": \"Dealer\",\n  \"display_name\": \"Sam Dealer\",\n  \"bio\": \"Independent watch dealer\",\n  \"social_links\": {\n    \"instagram\": \"dealer_handle\",\n    \"twitter\": \"dealerx\",\n    \"website\": \"https://dealer.example.com\"\n  }\n}"
-                }
-              }
-            },
-            {
-              "name": "Upload Avatar (multipart)",
-              "request": {
-                "method": "POST",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/user/avatar",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "user", "avatar"]
-                },
-                "body": {
-                  "mode": "formdata",
-                  "formdata": [
-                    {
-                      "key": "avatar",
-                      "type": "file",
-                      "src": ""
-                    }
-                  ]
-                }
-              }
-            },
-            {
-              "name": "Deactivate/Reactivate Account",
-              "request": {
-                "method": "PATCH",
-                "header": [
-                  {
-                    "key": "Content-Type",
-                    "value": "application/json"
-                  }
-                ],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/user/deactivate",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "user", "deactivate"]
-                },
-                "body": {
-                  "mode": "raw",
-                  "raw": "{\n  \"active\": true\n}"
-                }
-              }
-            },
-            {
-              "name": "Delete Account (Use With Caution)",
-              "request": {
-                "method": "DELETE",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/user",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "user"]
-                }
-              },
-              "description": "Irreversible anonymization endpoint. Run only in disposable test data environments."
             }
           ]
         },
@@ -5507,47 +5285,6 @@
                       "  const res = pm.response.json();",
                       "  const value = res.data && res.data[0] && res.data[0]._id;",
                       "  if (value) pm.environment.set(\"referenceCheckId\", value);",
-                      "} catch (e) {}"
-                    ]
-                  }
-                }
-              ]
-            },
-            {
-              "name": "Get Support Tickets",
-              "request": {
-                "method": "GET",
-                "header": [],
-                "url": {
-                  "raw": "{{baseUrl}}/api/v1/user/support/tickets?status=open&limit=20&offset=0",
-                  "host": ["{{baseUrl}}"],
-                  "path": ["api", "v1", "user", "support", "tickets"],
-                  "query": [
-                    {
-                      "key": "status",
-                      "value": "open"
-                    },
-                    {
-                      "key": "limit",
-                      "value": "20"
-                    },
-                    {
-                      "key": "offset",
-                      "value": "0"
-                    }
-                  ]
-                }
-              },
-              "event": [
-                {
-                  "listen": "test",
-                  "script": {
-                    "type": "text/javascript",
-                    "exec": [
-                      "try {",
-                      "  const res = pm.response.json();",
-                      "  const value = res.data && res.data[0] && res.data[0]._id;",
-                      "  if (value) pm.environment.set(\"ticketId\", value);",
                       "} catch (e) {}"
                     ]
                   }

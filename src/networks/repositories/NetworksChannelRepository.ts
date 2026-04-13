@@ -72,6 +72,75 @@ export class NetworksChannelRepository extends BaseRepository<INetworkListingCha
       channel.seller_id.toString() === userId
     );
   }
+
+  /**
+   * Update unread count for a channel
+   * Called by webhook handler when message.new is received
+   *
+   * @param channelId - GetStream channel ID
+   * @param delta - Amount to increment (usually +1)
+   * @returns Updated channel
+   */
+  async updateUnreadCount(
+    channelId: string,
+    delta: number,
+  ): Promise<INetworkListingChannel | null> {
+    return await this.updateOne(
+      { getstream_channel_id: channelId },
+      {
+        $inc: { unread_count: delta },
+        $set: { updatedAt: new Date() },
+      },
+    );
+  }
+
+  /**
+   * Clear unread count when user marks channel as read
+   *
+   * @param channelId - GetStream channel ID
+   * @returns Updated channel
+   */
+  async clearUnreadCount(
+    channelId: string,
+  ): Promise<INetworkListingChannel | null> {
+    return await this.updateOne(
+      { getstream_channel_id: channelId },
+      {
+        $set: {
+          unread_count: 0,
+          last_read_at: new Date(),
+          updatedAt: new Date(),
+        },
+      },
+    );
+  }
+
+  /**
+   * Update last message metadata in a channel
+   * Called by webhook handler to track conversation preview
+   *
+   * @param channelId - GetStream channel ID
+   * @param messageText - Message text (for preview)
+   * @param senderId - User who sent the message
+   * @returns Updated channel
+   */
+  async updateLastMessage(
+    channelId: string,
+    messageText: string,
+    senderId: string,
+  ): Promise<INetworkListingChannel | null> {
+    return await this.updateOne(
+      { getstream_channel_id: channelId },
+      {
+        $set: {
+          last_message_at: new Date(),
+          last_message_preview: messageText.substring(0, 100),
+          last_message_sender_id: senderId,
+          updatedAt: new Date(),
+        },
+      },
+    );
+  }
 }
 
 export const networksChannelRepository = new NetworksChannelRepository();
