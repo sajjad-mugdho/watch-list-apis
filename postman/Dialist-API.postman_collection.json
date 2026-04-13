@@ -1202,6 +1202,132 @@
               "path": ["api", "v1", "networks", "listings", "{{listingId}}"]
             }
           }
+        },
+        {
+          "name": "Update Listing Status",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"active\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/listings/{{listingId}}/status",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "listings",
+                "{{listingId}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Listings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/listings?q=rolex&brand=Rolex&condition=Excellent&min_price=5000&max_price=20000&sort_by=newest&limit=20&page=1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "listings"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "rolex"
+                },
+                {
+                  "key": "brand",
+                  "value": "Rolex"
+                },
+                {
+                  "key": "condition",
+                  "value": "Excellent"
+                },
+                {
+                  "key": "min_price",
+                  "value": "5000"
+                },
+                {
+                  "key": "max_price",
+                  "value": "20000"
+                },
+                {
+                  "key": "sort_by",
+                  "value": "newest"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🌟 Networks \u2014 Home Feed",
+      "description": "Get personalized home feed with three sections: recommended (for you), featured (new/popular), and connections.",
+      "item": [
+        {
+          "name": "Get Home Feed (Default)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "pm.test('Response has three sections', () => {",
+                  "  pm.expect(res.data).to.have.property('recommended');",
+                  "  pm.expect(res.data).to.have.property('featured');",
+                  "  pm.expect(res.data).to.have.property('connections');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/home-feed",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "home-feed"]
+            }
+          }
+        },
+        {
+          "name": "Get Home Feed (Custom Limit)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/home-feed?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "home-feed"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
         }
       ]
     },
@@ -1617,6 +1743,27 @@
               "path": ["api", "v1", "networks", "chat", "unread"]
             }
           }
+        },
+        {
+          "name": "Mark Channel as Read",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": \"{{channelId}}\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/chat/channel/mark-read",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "chat", "channel", "mark-read"]
+            }
+          }
         }
       ]
     },
@@ -1642,9 +1789,49 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/conversations",
+              "raw": "{{baseUrl}}/api/v1/networks/conversations?limit=20&offset=0&type=all",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "v1", "networks", "conversations"]
+              "path": ["api", "v1", "networks", "conversations"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "type",
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Unread Conversations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/conversations?limit=20&offset=0&type=unread",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "conversations"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                },
+                {
+                  "key": "type",
+                  "value": "unread"
+                }
+              ]
             }
           }
         },
@@ -1654,13 +1841,17 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/conversations/search?q=Rolex",
+              "raw": "{{baseUrl}}/api/v1/networks/conversations/search?q=rolex&limit=20",
               "host": ["{{baseUrl}}"],
               "path": ["api", "v1", "networks", "conversations", "search"],
               "query": [
                 {
                   "key": "q",
-                  "value": "Rolex"
+                  "value": "rolex"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
                 }
               ]
             }
@@ -1690,7 +1881,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/media",
+              "raw": "{{baseUrl}}/api/v1/networks/conversations/{{conversationId}}/media?type=all&limit=50&offset=0",
               "host": ["{{baseUrl}}"],
               "path": [
                 "api",
@@ -1699,12 +1890,26 @@
                 "conversations",
                 "{{conversationId}}",
                 "media"
+              ],
+              "query": [
+                {
+                  "key": "type",
+                  "value": "all"
+                },
+                {
+                  "key": "limit",
+                  "value": "50"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             }
           }
         },
         {
-          "name": "Get Shared Media (Images)",
+          "name": "Get Shared Media",
           "request": {
             "method": "GET",
             "header": [],
@@ -1774,7 +1979,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}",
+              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}?limit=20&offset=0",
               "host": ["{{baseUrl}}"],
               "path": [
                 "api",
@@ -1783,12 +1988,34 @@
                 "messages",
                 "channel",
                 "{{channelId}}"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             }
           }
         },
         {
           "name": "Send Message",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.data?._id) pm.environment.set('messageId', res.data._id);"
+                ]
+              }
+            }
+          ],
           "request": {
             "method": "POST",
             "header": [
@@ -1799,10 +2026,116 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"text\": \"Hello from Postman!\",\n  \"channel_id\": \"{{channelId}}\"\n}"
+              "raw": "{\n  \"channel_id\": \"{{channelId}}\",\n  \"text\": \"Is this watch still available?\",\n  \"type\": \"regular\"\n}"
             },
             "url": {
-              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}",
+              "raw": "{{baseUrl}}/api/v1/networks/messages/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "send"]
+            }
+          }
+        },
+        {
+          "name": "Send Inquiry Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": \"{{channelId}}\",\n  \"text\": \"Can you tell me more about the condition?\",\n  \"type\": \"inquiry\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "send"]
+            }
+          }
+        },
+        {
+          "name": "Send Offer Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"channel_id\": \"{{channelId}}\",\n  \"text\": \"I'd like to offer $11,000 for this watch\",\n  \"type\": \"offer\",\n  \"custom_data\": {\n    \"amount\": 11000,\n    \"expires_at\": \"2025-04-28T10:00:00Z\"\n  }\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/send",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "send"]
+            }
+          }
+        },
+        {
+          "name": "Update Message",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Updated message text\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "{{messageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Delete Message",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{messageId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "{{messageId}}"]
+            }
+          }
+        },
+        {
+          "name": "Mark Message as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{messageId}}/read",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "messages",
+                "{{messageId}}",
+                "read"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark All Channel Messages as Read",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}/read-all",
               "host": ["{{baseUrl}}"],
               "path": [
                 "api",
@@ -1810,7 +2143,125 @@
                 "networks",
                 "messages",
                 "channel",
-                "{{channelId}}"
+                "{{channelId}}",
+                "read-all"
+              ]
+            }
+          }
+        },
+        {
+          "name": "React to Message",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"love\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{messageId}}/react",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "messages",
+                "{{messageId}}",
+                "react"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Archive Channel",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/channel/{{channelId}}/archive",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "messages",
+                "channel",
+                "{{channelId}}",
+                "archive"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Chats (Alias)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/chats?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "chats"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Chats",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/chats/search?q=rolex",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "messages", "chats", "search"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "rolex"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Chat History",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/messages/{{chatId}}/history?limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": [
+                "api",
+                "v1",
+                "networks",
+                "messages",
+                "{{chatId}}",
+                "history"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
               ]
             }
           }
