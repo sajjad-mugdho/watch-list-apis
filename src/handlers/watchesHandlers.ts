@@ -101,7 +101,8 @@ export const watches_list_get = async (
         const [faceted] = await Watch.aggregate(pipeline).exec();
         items = ((faceted as any)?.items ?? []) as IWatch[];
         total =
-          Array.isArray((faceted as any)?.meta) && (faceted as any).meta.length > 0
+          Array.isArray((faceted as any)?.meta) &&
+          (faceted as any).meta.length > 0
             ? ((faceted as any).meta[0]?.total ?? 0)
             : items.length;
       } catch (searchError) {

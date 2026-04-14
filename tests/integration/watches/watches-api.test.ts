@@ -255,7 +255,9 @@ describe("Watches API Integration Tests", () => {
           .query({ limit: 100 }); // Should be capped at 50
 
         expect(response.status).toBe(200);
-        expect(response.body._metadata.pagination.limit).toBeLessThanOrEqual(50);
+        expect(response.body._metadata.pagination.limit).toBeLessThanOrEqual(
+          50,
+        );
       });
     });
 
@@ -850,9 +852,7 @@ describe("Watches API Integration Tests", () => {
     });
 
     it("should validate cache age increases over time", async () => {
-      await request(app)
-        .get("/api/v1/watches")
-        .query({ limit: 5 });
+      await request(app).get("/api/v1/watches").query({ limit: 5 });
 
       // Wait a bit
       await new Promise((resolve) => setTimeout(resolve, 100));

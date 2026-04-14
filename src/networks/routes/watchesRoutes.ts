@@ -10,16 +10,18 @@ import { z } from "zod";
 
 const networkWatchesSchema = z.object({
   q: z.string().optional(),
-  category: z.enum([
-    "Luxury",
-    "Sport",
-    "Dress",
-    "Vintage",
-    "Casual",
-    "Dive",
-    "Pilot",
-    "Uncategorized",
-  ]).optional(),
+  category: z
+    .enum([
+      "Luxury",
+      "Sport",
+      "Dress",
+      "Vintage",
+      "Casual",
+      "Dive",
+      "Pilot",
+      "Uncategorized",
+    ])
+    .optional(),
   condition: z.enum(["excellent", "very_good", "good", "fair"]).optional(),
   materials: z.string().optional(),
   brands: z.string().optional(),

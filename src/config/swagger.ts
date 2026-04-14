@@ -2542,7 +2542,16 @@ Use this to test API endpoints without real authentication.
             diameter: { type: "string" },
             category: {
               type: "string",
-              enum: ["Luxury", "Sport", "Dress", "Vintage", "Casual", "Dive", "Pilot", "Uncategorized"],
+              enum: [
+                "Luxury",
+                "Sport",
+                "Dress",
+                "Vintage",
+                "Casual",
+                "Dive",
+                "Pilot",
+                "Uncategorized",
+              ],
             },
             usageCount: {
               type: "integer",
@@ -2570,7 +2579,16 @@ Use this to test API endpoints without real authentication.
             diameter: { type: "string" },
             category: {
               type: "string",
-              enum: ["Luxury", "Sport", "Dress", "Vintage", "Casual", "Dive", "Pilot", "Uncategorized"],
+              enum: [
+                "Luxury",
+                "Sport",
+                "Dress",
+                "Vintage",
+                "Casual",
+                "Dive",
+                "Pilot",
+                "Uncategorized",
+              ],
             },
             priceRange: {
               type: "object",
@@ -2596,8 +2614,14 @@ Use this to test API endpoints without real authentication.
           description: "Metadata for watches API responses",
           properties: {
             q: { type: "string", description: "Search query used" },
-            count: { type: "integer", description: "Number of items in this response" },
-            total: { type: "integer", description: "Total items matching query" },
+            count: {
+              type: "integer",
+              description: "Number of items in this response",
+            },
+            total: {
+              type: "integer",
+              description: "Total items matching query",
+            },
             platform: {
               type: "string",
               enum: ["public", "networks", "marketplace"],
@@ -2628,11 +2652,18 @@ Use this to test API endpoints without real authentication.
         },
         WatchesMetadataWithFilters: {
           type: "object",
-          description: "Metadata for marketplace watches API responses with price filters",
+          description:
+            "Metadata for marketplace watches API responses with price filters",
           properties: {
             q: { type: "string", description: "Search query used" },
-            count: { type: "integer", description: "Number of items in this response" },
-            total: { type: "integer", description: "Total items matching query" },
+            count: {
+              type: "integer",
+              description: "Number of items in this response",
+            },
+            total: {
+              type: "integer",
+              description: "Total items matching query",
+            },
             platform: {
               type: "string",
               enum: ["public", "networks", "marketplace"],
@@ -9755,12 +9786,14 @@ Once approved:
     get: {
       tags: ["Watches"],
       summary: "List all watches with search, filtering, and pagination",
-      description: "Public endpoint to browse watches across all platforms. Supports full-text search, category filtering, pagination, and sorting. No authentication required.",
+      description:
+        "Public endpoint to browse watches across all platforms. Supports full-text search, category filtering, pagination, and sorting. No authentication required.",
       parameters: [
         {
           name: "q",
           in: "query",
-          description: "Search query (searches brand, model, reference, bracelet, color, materials)",
+          description:
+            "Search query (searches brand, model, reference, bracelet, color, materials)",
           schema: { type: "string" },
           example: "Rolex",
         },
@@ -9770,7 +9803,16 @@ Once approved:
           description: "Filter by watch category",
           schema: {
             type: "string",
-            enum: ["Luxury", "Sport", "Dress", "Vintage", "Casual", "Dive", "Pilot", "Uncategorized"],
+            enum: [
+              "Luxury",
+              "Sport",
+              "Dress",
+              "Vintage",
+              "Casual",
+              "Dive",
+              "Pilot",
+              "Uncategorized",
+            ],
           },
           example: "Luxury",
         },
@@ -9778,7 +9820,11 @@ Once approved:
           name: "sort",
           in: "query",
           description: "Sort order",
-          schema: { type: "string", enum: ["recent", "random"], default: "recent" },
+          schema: {
+            type: "string",
+            enum: ["recent", "random"],
+            default: "recent",
+          },
         },
         {
           name: "limit",
@@ -9841,7 +9887,8 @@ Once approved:
     get: {
       tags: ["Watches"],
       summary: "List watches with networks engagement metrics",
-      description: "Authenticated endpoint that returns watches with engagement metrics (usageCount, trustedSellersCount, watchersCount) specific to Networks platform.",
+      description:
+        "Authenticated endpoint that returns watches with engagement metrics (usageCount, trustedSellersCount, watchersCount) specific to Networks platform.",
       security: [{ mockUser: [] }, { bearerAuth: [] }],
       parameters: [
         {
@@ -9857,14 +9904,26 @@ Once approved:
           description: "Filter by watch category",
           schema: {
             type: "string",
-            enum: ["Luxury", "Sport", "Dress", "Vintage", "Casual", "Dive", "Pilot", "Uncategorized"],
+            enum: [
+              "Luxury",
+              "Sport",
+              "Dress",
+              "Vintage",
+              "Casual",
+              "Dive",
+              "Pilot",
+              "Uncategorized",
+            ],
           },
         },
         {
           name: "condition",
           in: "query",
           description: "Filter by watch condition",
-          schema: { type: "string", enum: ["excellent", "very_good", "good", "fair"] },
+          schema: {
+            type: "string",
+            enum: ["excellent", "very_good", "good", "fair"],
+          },
         },
         {
           name: "brands",
@@ -9883,7 +9942,11 @@ Once approved:
           name: "sort",
           in: "query",
           description: "Sort order (networks-specific options)",
-          schema: { type: "string", enum: ["recent", "trending", "popular", "most_trusted"], default: "recent" },
+          schema: {
+            type: "string",
+            enum: ["recent", "trending", "popular", "most_trusted"],
+            default: "recent",
+          },
         },
         {
           name: "limit",
@@ -9943,7 +10006,8 @@ Once approved:
     get: {
       tags: ["Watches"],
       summary: "List watches with marketplace pricing metrics",
-      description: "Authenticated endpoint that returns watches with pricing metrics (priceRange, inventoryLevel, merchantReputation) specific to Marketplace platform.",
+      description:
+        "Authenticated endpoint that returns watches with pricing metrics (priceRange, inventoryLevel, merchantReputation) specific to Marketplace platform.",
       security: [{ mockUser: [] }, { bearerAuth: [] }],
       parameters: [
         {
@@ -9959,14 +10023,26 @@ Once approved:
           description: "Filter by watch category",
           schema: {
             type: "string",
-            enum: ["Luxury", "Sport", "Dress", "Vintage", "Casual", "Dive", "Pilot", "Uncategorized"],
+            enum: [
+              "Luxury",
+              "Sport",
+              "Dress",
+              "Vintage",
+              "Casual",
+              "Dive",
+              "Pilot",
+              "Uncategorized",
+            ],
           },
         },
         {
           name: "condition",
           in: "query",
           description: "Filter by watch condition",
-          schema: { type: "string", enum: ["excellent", "very_good", "good", "fair"] },
+          schema: {
+            type: "string",
+            enum: ["excellent", "very_good", "good", "fair"],
+          },
         },
         {
           name: "min_price",
@@ -9986,7 +10062,13 @@ Once approved:
           description: "Sort order (marketplace-specific options)",
           schema: {
             type: "string",
-            enum: ["recent", "price_low_to_high", "price_high_to_low", "most_available", "highest_rated"],
+            enum: [
+              "recent",
+              "price_low_to_high",
+              "price_high_to_low",
+              "most_available",
+              "highest_rated",
+            ],
             default: "recent",
           },
         },
@@ -10015,7 +10097,9 @@ Once approved:
                     type: "array",
                     items: { $ref: "#/components/schemas/MarketplaceWatch" },
                   },
-                  _metadata: { $ref: "#/components/schemas/WatchesMetadataWithFilters" },
+                  _metadata: {
+                    $ref: "#/components/schemas/WatchesMetadataWithFilters",
+                  },
                 },
               },
               example: {

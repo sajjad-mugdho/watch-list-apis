@@ -110,10 +110,6 @@ const router = Router();
  *                     message:
  *                       type: string
  */
-router.get(
-  "/",
-  validateRequest(getWatchesSchema),
-  watches_list_get
-);
+router.get("/", validateRequest(getWatchesSchema), watches_list_get);
 
 export default router;

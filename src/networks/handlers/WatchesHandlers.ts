@@ -14,10 +14,10 @@ import { watchCacheService } from "../../services/WatchCacheService";
 /**
  * GET /api/v1/networks/watches
  * Networks-specific with engagement metrics
- * 
+ *
  * Filters:
  * - q: Search query
- * - category: Watch category  
+ * - category: Watch category
  * - condition: excellent, very_good, good, fair
  * - materials: Case materials
  * - brands: Comma-separated brands
@@ -29,19 +29,34 @@ export const networks_watches_list = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const q = (req.query.q as string || "").trim();
+    const q = ((req.query.q as string) || "").trim();
     const category = req.query.category as string;
     const condition = req.query.condition as string;
     const materials = req.query.materials as string;
-    const brands = (req.query.brands as string || "").split(",").filter(Boolean);
-    const sort = (req.query.sort as string || "recent").toLowerCase();
+    const brands = ((req.query.brands as string) || "")
+      .split(",")
+      .filter(Boolean);
+    const sort = ((req.query.sort as string) || "recent").toLowerCase();
 
-    const limitParsed = req.query.limit ? parseInt(req.query.limit as string, 10) : undefined;
-    const offsetParsed = req.query.offset ? parseInt(req.query.offset as string, 10) : undefined;
+    const limitParsed = req.query.limit
+      ? parseInt(req.query.limit as string, 10)
+      : undefined;
+    const offsetParsed = req.query.offset
+      ? parseInt(req.query.offset as string, 10)
+      : undefined;
     const { limit, skip } = buildPaginationOptions(limitParsed, offsetParsed);
 
     // Build cache params
-    const cacheParams = { q: q || undefined, category, condition, materials, brands, sort, limit, skip };
+    const cacheParams = {
+      q: q || undefined,
+      category,
+      condition,
+      materials,
+      brands,
+      sort,
+      limit,
+      skip,
+    };
 
     // CHECK CACHE
     const cached = watchCacheService.get("networks", cacheParams);
@@ -56,7 +71,9 @@ export const networks_watches_list = async (
           hitCount: cached.hitCount,
           pagination: { limit, offset: skip, hasMore: false },
         },
-      });      return;    }
+      });
+      return;
+    }
 
     // Build match stage
     const matchStage: Record<string, any> = {};
@@ -151,16 +168,13 @@ export const networks_watches_list = async (
     // Pagination
     pipeline.push({
       $facet: {
-        items: [
-          ...(skip > 0 ? [{ $skip: skip }] : []),
-          { $limit: limit },
-        ],
+        items: [...(skip > 0 ? [{ $skip: skip }] : []), { $limit: limit }],
         metadata: [{ $count: "total" }],
       },
     });
 
     const [result] = (await Watch.aggregate(pipeline).exec()) as any[];
-    const watches = ((result?.items ?? []) as any[]);
+    const watches = (result?.items ?? []) as any[];
     const total =
       Array.isArray(result?.metadata) && result.metadata.length > 0
         ? (result.metadata[0]?.total ?? 0)

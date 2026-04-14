@@ -2,7 +2,7 @@
  * Watch Catalog Caching Service
  * Long-term caching with smart invalidation
  * - 24-hour TTL by default
- * - Automatic cleanup every hour  
+ * - Automatic cleanup every hour
  * - Platform-specific caches: public, networks, marketplace
  * - Size management: 500MB max with LRU eviction
  */
@@ -27,15 +27,21 @@ class WatchCacheService {
 
   constructor() {
     this.startCleanupInterval();
-    logger.info("[WatchCache] Service initialized", { defaultTTL: "24h", maxSize: "500MB" });
+    logger.info("[WatchCache] Service initialized", {
+      defaultTTL: "24h",
+      maxSize: "500MB",
+    });
   }
 
   private generateCacheKey(
     platform: "public" | "networks" | "marketplace",
-    params: Record<string, any>
+    params: Record<string, any>,
   ): string {
     const sortedParams = Object.keys(params)
-      .filter((k) => params[k] !== undefined && params[k] !== null && params[k] !== "")
+      .filter(
+        (k) =>
+          params[k] !== undefined && params[k] !== null && params[k] !== "",
+      )
       .sort()
       .map((k) => `${k}=${JSON.stringify(params[k])}`)
       .join("&");
@@ -46,7 +52,7 @@ class WatchCacheService {
 
   get<T>(
     platform: "public" | "networks" | "marketplace",
-    params: Record<string, any>
+    params: Record<string, any>,
   ): { data: T; cached: true; age: number; hitCount: number } | null {
     const key = this.generateCacheKey(platform, params);
     const entry = this.cache.get(key);
@@ -79,17 +85,20 @@ class WatchCacheService {
     platform: "public" | "networks" | "marketplace",
     params: Record<string, any>,
     data: T,
-    ttlMs?: number
+    ttlMs?: number,
   ): void {
     const key = this.generateCacheKey(platform, params);
     const size = JSON.stringify(data).length;
     const expiresAt = Date.now() + (ttlMs || this.DEFAULT_TTL);
 
-    const currentSize = Array.from(this.cache.values()).reduce((sum, e) => sum + e.size, 0);
+    const currentSize = Array.from(this.cache.values()).reduce(
+      (sum, e) => sum + e.size,
+      0,
+    );
 
     if (currentSize + size > this.MAX_CACHE_SIZE) {
       const sorted = Array.from(this.cache.entries()).sort(
-        (a, b) => a[1].createdAt - b[1].createdAt
+        (a, b) => a[1].createdAt - b[1].createdAt,
       );
 
       for (const [cacheKey] of sorted) {
@@ -121,14 +130,20 @@ class WatchCacheService {
       count = this.cache.size;
       this.cache.clear();
     }
-    logger.info("[WatchCache] INVALIDATED", { platform: platform || "all", count });
+    logger.info("[WatchCache] INVALIDATED", {
+      platform: platform || "all",
+      count,
+    });
     return count;
   }
 
   invalidateByCategory(category: string): number {
     let count = 0;
     for (const [key, entry] of this.cache.entries()) {
-      if (!entry.queryParams.category || entry.queryParams.category === category) {
+      if (
+        !entry.queryParams.category ||
+        entry.queryParams.category === category
+      ) {
         this.cache.delete(key);
         count++;
       }
@@ -142,7 +157,8 @@ class WatchCacheService {
       const hasBrand =
         !entry.queryParams.brand ||
         entry.queryParams.brand === brand ||
-        (Array.isArray(entry.queryParams.brands) && entry.queryParams.brands.includes(brand));
+        (Array.isArray(entry.queryParams.brands) &&
+          entry.queryParams.brands.includes(brand));
       if (hasBrand) {
         this.cache.delete(key);
         count++;
@@ -153,17 +169,22 @@ class WatchCacheService {
 
   getStats() {
     const now = Date.now();
-    const size = Array.from(this.cache.values()).reduce((sum, e) => sum + e.size, 0);
+    const size = Array.from(this.cache.values()).reduce(
+      (sum, e) => sum + e.size,
+      0,
+    );
     const utilizationPercent = (size / this.MAX_CACHE_SIZE) * 100;
 
-    const cacheEntries = Array.from(this.cache.entries()).map(([key, entry]) => ({
-      key: key.substring(0, 40),
-      platform: key.split(":")[1],
-      ageSeconds: Math.floor((now - entry.createdAt) / 1000),
-      expiresInSeconds: Math.floor((entry.expiresAt - now) / 1000),
-      hits: entry.hitCount,
-      sizeKB: Math.round(entry.size / 1024),
-    }));
+    const cacheEntries = Array.from(this.cache.entries()).map(
+      ([key, entry]) => ({
+        key: key.substring(0, 40),
+        platform: key.split(":")[1],
+        ageSeconds: Math.floor((now - entry.createdAt) / 1000),
+        expiresInSeconds: Math.floor((entry.expiresAt - now) / 1000),
+        hits: entry.hitCount,
+        sizeKB: Math.round(entry.size / 1024),
+      }),
+    );
 
     return {
       status:
@@ -188,21 +209,24 @@ class WatchCacheService {
   }
 
   private startCleanupInterval(): void {
-    this.cleanupInterval = setInterval(() => {
-      let cleaned = 0;
-      const now = Date.now();
+    this.cleanupInterval = setInterval(
+      () => {
+        let cleaned = 0;
+        const now = Date.now();
 
-      for (const [key, entry] of this.cache.entries()) {
-        if (now > entry.expiresAt) {
-          this.cache.delete(key);
-          cleaned++;
+        for (const [key, entry] of this.cache.entries()) {
+          if (now > entry.expiresAt) {
+            this.cache.delete(key);
+            cleaned++;
+          }
         }
-      }
 
-      if (cleaned > 0) {
-        logger.debug("[WatchCache] CLEANUP", { cleaned });
-      }
-    }, 60 * 60 * 1000) as NodeJS.Timer; // Every 1 hour
+        if (cleaned > 0) {
+          logger.debug("[WatchCache] CLEANUP", { cleaned });
+        }
+      },
+      60 * 60 * 1000,
+    ) as NodeJS.Timer; // Every 1 hour
   }
 
   stopCleanup(): void {
