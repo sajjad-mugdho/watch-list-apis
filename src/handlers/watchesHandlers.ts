@@ -5,6 +5,7 @@ import { ApiResponse } from "../types";
 import { buildPaginationOptions } from "../utils/pagination";
 import logger from "../utils/logger";
 import { DatabaseError } from "../utils/errors";
+import { watchCacheService } from "../services/WatchCacheService";
 
 // ----------------------------------------------------------
 // Handler Functions
@@ -30,6 +31,24 @@ export const watches_list_get = async (
       req.query.limit,
       req.query.offset,
     );
+
+    // CHECK CACHE
+    const cacheParams = { q: q || undefined, category, sort, limit, skip };
+    const cached = watchCacheService.get("public", cacheParams);
+    if (cached) {
+      res.json({
+        data: cached.data as IWatch[],
+        requestId: req.headers["x-request-id"] as string,
+        _metadata: {
+          platform: "public",
+          cached: true,
+          cacheAge: cached.age,
+          hitCount: cached.hitCount,
+          pagination: { limit, offset: skip, hasMore: false },
+        } as any,
+      });
+      return;
+    }
 
     let items: IWatch[] = [];
     let total = 0;
@@ -80,10 +99,10 @@ export const watches_list_get = async (
         });
 
         const [faceted] = await Watch.aggregate(pipeline).exec();
-        items = (faceted?.items ?? []) as IWatch[];
+        items = ((faceted as any)?.items ?? []) as IWatch[];
         total =
-          Array.isArray(faceted?.meta) && faceted.meta.length > 0
-            ? (faceted.meta[0]?.total ?? 0)
+          Array.isArray((faceted as any)?.meta) && (faceted as any).meta.length > 0
+            ? ((faceted as any).meta[0]?.total ?? 0)
             : items.length;
       } catch (searchError) {
         // Atlas Search not configured, fall back to regex search
@@ -156,6 +175,9 @@ export const watches_list_get = async (
 
     const hasMore = sort === "random" ? false : skip + limit < total;
 
+    // STORE IN CACHE (24 hours)
+    watchCacheService.set("public", cacheParams, items);
+
     const response: ApiResponse<IWatch[]> = {
       data: items,
       requestId: req.headers["x-request-id"] as string,
@@ -164,7 +186,6 @@ export const watches_list_get = async (
         count: items.length,
         total,
         pagination: { limit, offset: skip, hasMore },
-        sort, // Keep original property name for API compatibility
       } as any, // Use any to allow custom metadata shape
     };
 

@@ -1,0 +1,594 @@
+{
+  "info": {
+    "_postman_id": "watches-api-collection",
+    "name": "🕰️ Watches API Endpoints",
+    "description": "Watches API collection with public, networks, and marketplace platform endpoints.\n\n**Endpoints Included:**\n- GET /api/v1/watches (Public - no auth required)\n- GET /api/v1/networks/watches (Networks - requires x-test-user header)\n- GET /api/v1/marketplace/watches (Marketplace - requires x-test-user header)\n\n**Features:**\n- Search by brand, model, reference\n- Filter by category, condition, price\n- Sort options (platform-specific)\n- Pagination with limit/offset\n- Full Swagger/OpenAPI documentation\n\n**Authentication:**\n- Public endpoint: No authentication required\n- Networks/Marketplace: Set authMode to 'mock' (default) or 'jwt' in Postman environment\n",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Public Watches - GET /api/v1/watches",
+      "description": "List all watches publicly available (no authentication required). Supports search, filtering, and pagination.",
+      "item": [
+        {
+          "name": "List all watches (basic)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watches?limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search by brand",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watches?q=Rolex&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Rolex"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by category",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watches?category=Luxury&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"],
+              "query": [
+                {
+                  "key": "category",
+                  "value": "Luxury"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search + Filter + Sort",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watches?q=Datejust&category=Sport&sort=recent&limit=20&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Datejust"
+                },
+                {
+                  "key": "category",
+                  "value": "Sport"
+                },
+                {
+                  "key": "sort",
+                  "value": "recent"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Pagination test",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watches?limit=5&offset=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                },
+                {
+                  "key": "offset",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Random sort",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watches?sort=random&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "random"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Caching test (run twice)",
+          "description": "Run this twice in quick succession to observe cache behavior. First request will be slower (database hit), second will be faster (cache hit).",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watches?limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Error test - invalid limit (>50)",
+          "description": "Should return 400 validation error since limit exceeds maximum of 50",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/watches?limit=100",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "watches"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Networks Watches - GET /api/v1/networks/watches",
+      "description": "List watches with Networks platform engagement metrics (usageCount, trustedSellersCount, watchersCount). Requires authentication.",
+      "item": [
+        {
+          "name": "List all (with engagement metrics)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/watches?limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "watches"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by trending",
+          "description": "Networks-specific sort: trending (by watchers count)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/watches?sort=trending&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "watches"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "trending"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by most_trusted",
+          "description": "Networks-specific sort: most_trusted (by verified sellers count)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/watches?sort=most_trusted&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "watches"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "most_trusted"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by popular",
+          "description": "Networks-specific sort: popular (by usage count)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/watches?sort=popular&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "watches"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "popular"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by condition",
+          "description": "Networks-specific filter: condition (excellent, very_good, good, fair)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/watches?condition=excellent&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "watches"],
+              "query": [
+                {
+                  "key": "condition",
+                  "value": "excellent"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search + Networks filters",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/watches?q=Rolex&category=Sport&condition=excellent&sort=most_trusted&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "watches"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Rolex"
+                },
+                {
+                  "key": "category",
+                  "value": "Sport"
+                },
+                {
+                  "key": "condition",
+                  "value": "excellent"
+                },
+                {
+                  "key": "sort",
+                  "value": "most_trusted"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Error test - no auth",
+          "description": "Should return 401 Unauthorized (remove x-test-user header to test)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/networks/watches?limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "networks", "watches"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Marketplace Watches - GET /api/v1/marketplace/watches",
+      "description": "List watches with Marketplace platform pricing metrics (priceRange, inventoryLevel, merchantReputation). Requires authentication.",
+      "item": [
+        {
+          "name": "List all (with pricing metrics)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?limit=10&offset=0",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by price (low to high)",
+          "description": "Marketplace-specific sort: price_low_to_high",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?sort=price_low_to_high&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "price_low_to_high"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by price (high to low)",
+          "description": "Marketplace-specific sort: price_high_to_low",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?sort=price_high_to_low&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "price_high_to_low"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by most available",
+          "description": "Marketplace-specific sort: most_available (by inventory)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?sort=most_available&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "most_available"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sort by highest rated",
+          "description": "Marketplace-specific sort: highest_rated (by merchant reputation)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?sort=highest_rated&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "sort",
+                  "value": "highest_rated"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by price range",
+          "description": "Marketplace-specific filter: min_price and max_price (in cents)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?min_price=50000&max_price=500000&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "min_price",
+                  "value": "50000"
+                },
+                {
+                  "key": "max_price",
+                  "value": "500000"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filter by condition",
+          "description": "Marketplace-specific filter: condition (excellent, very_good, good, fair)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?condition=very_good&limit=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "condition",
+                  "value": "very_good"
+                },
+                {
+                  "key": "limit",
+                  "value": "15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search + price filter + sort",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?q=Omega&min_price=40000&max_price=300000&sort=price_low_to_high&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "q",
+                  "value": "Omega"
+                },
+                {
+                  "key": "min_price",
+                  "value": "40000"
+                },
+                {
+                  "key": "max_price",
+                  "value": "300000"
+                },
+                {
+                  "key": "sort",
+                  "value": "price_low_to_high"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Error test - no auth",
+          "description": "Should return 401 Unauthorized (remove x-test-user header to test)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/marketplace/watches?limit=5",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "v1", "marketplace", "watches"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "5"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

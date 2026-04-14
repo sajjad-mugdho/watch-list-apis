@@ -10,6 +10,7 @@ import userRoutes from "./routes/userRoutes";
 import notificationRoutes from "./routes/notificationRoutes";
 import { refundRequestRoutes } from "./routes/refundRequestRoutes";
 import onboardingRoutes from "./routes/onboardingRoutes";
+import watchesRoutes from "./routes/watchesRoutes";
 
 import { registerMarketplaceEventHandlers } from "./events";
 
@@ -27,6 +28,7 @@ router.use("/orders", orderRoutes);
 router.use("/chat", chatRoutes);
 router.use("/messages", messageRoutes);
 router.use("/conversations", conversationRoutes);
+router.use("/watches", watchesRoutes);
 router.use("/refund-requests", refundRequestRoutes);
 router.use("/notifications", notificationRoutes);
 

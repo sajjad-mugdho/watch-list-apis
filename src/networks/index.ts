@@ -16,6 +16,7 @@ import webhookRoutes from "./routes/webhookRoutes";
 import { usersRoutes } from "./routes/usersRoutes";
 import onboardingRoutes from "./routes/onboardingRoutes";
 import homeFeedRoutes from "./routes/homeFeedRoutes";
+import watchesRoutes from "./routes/watchesRoutes";
 
 import { registerNetworksEventHandlers } from "./events";
 
@@ -41,6 +42,7 @@ router.use("/social", socialRoutes);
 router.use("/orders", orderRoutes);
 router.use("/reservations", reservationRoutes);
 router.use("/notifications", notificationRoutes);
+router.use("/watches", watchesRoutes);
 router.use("/webhooks", webhookRoutes);
 
 export default router;
