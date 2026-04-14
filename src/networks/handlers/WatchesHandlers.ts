@@ -64,7 +64,11 @@ export const networks_watches_list = async (
     // CHECK CACHE
     const cached = watchCacheService.get("networks", cacheParams);
     if (cached) {
-      const { watches: cachedWatches, total: cachedTotal, hasMore: cachedHasMore } = cached.data as any;
+      const {
+        watches: cachedWatches,
+        total: cachedTotal,
+        hasMore: cachedHasMore,
+      } = cached.data as any;
       res.json({
         data: cachedWatches,
         requestId: req.headers["x-request-id"] as string,
@@ -87,7 +91,8 @@ export const networks_watches_list = async (
     if (q) matchStage.$text = { $search: q };
     if (category) matchStage.category = category;
     if (condition) matchStage.condition = condition;
-    if (materials) matchStage.materials = { $regex: escapeRegex(materials), $options: "i" };
+    if (materials)
+      matchStage.materials = { $regex: escapeRegex(materials), $options: "i" };
     if (brands.length > 0) matchStage.brand = { $in: brands };
 
     // Build aggregation pipeline

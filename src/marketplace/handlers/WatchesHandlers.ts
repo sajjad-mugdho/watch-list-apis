@@ -32,10 +32,14 @@ export const marketplace_watches_list = async (
     const category = req.query.category as string;
     const condition = req.query.condition as string;
     const min_price = req.query.min_price
-      ? ((v) => (isNaN(v) ? undefined : v))(parseFloat(req.query.min_price as string))
+      ? ((v) => (isNaN(v) ? undefined : v))(
+          parseFloat(req.query.min_price as string),
+        )
       : undefined;
     const max_price = req.query.max_price
-      ? ((v) => (isNaN(v) ? undefined : v))(parseFloat(req.query.max_price as string))
+      ? ((v) => (isNaN(v) ? undefined : v))(
+          parseFloat(req.query.max_price as string),
+        )
       : undefined;
     const sort = ((req.query.sort as string) || "recent").toLowerCase();
 
@@ -62,7 +66,11 @@ export const marketplace_watches_list = async (
     // CHECK CACHE
     const cached = watchCacheService.get("marketplace", cacheParams);
     if (cached) {
-      const { watches: cachedWatches, total: cachedTotal, hasMore: cachedHasMore } = cached.data as any;
+      const {
+        watches: cachedWatches,
+        total: cachedTotal,
+        hasMore: cachedHasMore,
+      } = cached.data as any;
       res.json({
         data: cachedWatches,
         requestId: req.headers["x-request-id"] as string,
@@ -90,7 +98,7 @@ export const marketplace_watches_list = async (
 
     // Build initial match stage with search and category/condition filters
     const matchStage: Record<string, any> = {};
-    
+
     // Try text search first
     if (q) {
       try {
@@ -109,7 +117,7 @@ export const marketplace_watches_list = async (
         ];
       }
     }
-    
+
     if (category) matchStage.category = category;
     if (condition) matchStage.condition = condition;
 

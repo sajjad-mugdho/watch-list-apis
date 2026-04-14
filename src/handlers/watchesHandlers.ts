@@ -142,7 +142,21 @@ export const watches_list_get = async (
 
         // Get paginated results
         items = (await Watch.find(filter)
-          .select({ brand: 1, model: 1, reference: 1, diameter: 1, color: 1, bezel: 1, materials: 1, bracelet: 1, images: 1, category: 1, condition: 1, createdAt: 1, _id: 1 })
+          .select({
+            brand: 1,
+            model: 1,
+            reference: 1,
+            diameter: 1,
+            color: 1,
+            bezel: 1,
+            materials: 1,
+            bracelet: 1,
+            images: 1,
+            category: 1,
+            condition: 1,
+            createdAt: 1,
+            _id: 1,
+          })
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
