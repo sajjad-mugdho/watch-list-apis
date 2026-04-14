@@ -263,14 +263,17 @@ export class NetworksHomeFeedService {
     }
 
     try {
-      // Step 1: Get accepted connections where current user is the requester
-      // follower_id = requester (the person who initiated contact)
-      // following_id = target (the person being connected to)
-      // We want people WE connected to: follower_id = us, extract following_id
+      // Step 1: Get all accepted connections (bidirectional)
+      // Include both:
+      // - follower_id = us, extract following_id (people we connected to)
+      // - following_id = us, extract follower_id (people who connected to us)
       const acceptedConnections = await Connection.find({
-        follower_id: new Types.ObjectId(dialistUserId),
+        $or: [
+          { follower_id: new Types.ObjectId(dialistUserId) },
+          { following_id: new Types.ObjectId(dialistUserId) },
+        ],
         status: "accepted",
-      }).select("following_id");
+      }).select("follower_id following_id");
 
       if (acceptedConnections.length === 0) {
         // No connections; return empty and cache it
@@ -278,11 +281,16 @@ export class NetworksHomeFeedService {
         return [];
       }
 
-      const followingIds = acceptedConnections.map((c) => c.following_id);
+      // Extract the "other person" from each connection
+      const otherUserIds = acceptedConnections.map((c) =>
+        c.follower_id.toString() === dialistUserId
+          ? c.following_id
+          : c.follower_id,
+      );
 
       // Step 2: Fetch listings from those users
       const connections = await NetworkListing.find({
-        dialist_id: { $in: followingIds },
+        dialist_id: { $in: otherUserIds },
         status: "active",
         is_deleted: { $ne: true },
       })

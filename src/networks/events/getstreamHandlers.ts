@@ -31,6 +31,7 @@ import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { Types } from "mongoose";
 import { networksChatService } from "../services/NetworksChatService";
 import { ChatMessage } from "../models/ChatMessage";
+import { User } from "../../models/User";
 
 // ============================================================================
 // MESSAGE EVENTS
@@ -126,9 +127,12 @@ export async function onNetworkChatMessageNew(event: any): Promise<void> {
 
     // TASK 3: ARCHIVE MESSAGE TO MONGODB
     try {
-      // Extract Clerk ID from GetStream message
-      // In GetStream webhook, message.user.id contains the Clerk user ID
-      const senderClerkId = message.user?.id || senderId;
+      // Resolve actual Clerk ID from the user record
+      // senderId is the GetStream/MongoDB user ID, not the Clerk ID
+      const senderRecord = await User.findById(senderId).select({
+        external_id: 1,
+      });
+      const senderClerkId = senderRecord?.external_id;
 
       // Verify we have all required fields before creating
       if (!senderClerkId) {
@@ -271,9 +275,9 @@ export async function onNetworkChatMessageUpdated(event: any): Promise<void> {
       );
 
       const isLatestMessage = await ChatMessage.findOne(
-        { channel_id: channelId },
+        { channel_id: channelId, deleted_at: { $exists: false } },
         { created_at: 1, getstream_message_id: 1 },
-        { sort: { updated_at: -1, created_at: -1 } },
+        { sort: { created_at: -1 } },
       );
 
       if (
@@ -286,7 +290,7 @@ export async function onNetworkChatMessageUpdated(event: any): Promise<void> {
           {
             $set: {
               last_message_preview: message.text,
-              last_message_at: new Date(message.updated_at),
+              last_message_at: isLatestMessage.created_at,
             },
           },
         );
@@ -355,7 +359,7 @@ export async function onNetworkChatMessageDeleted(event: any): Promise<void> {
       const isLatestMessage = await ChatMessage.findOne(
         { channel_id: channelId, deleted_at: { $exists: false } },
         { created_at: 1, text: 1 },
-        { sort: { updated_at: -1, created_at: -1 } },
+        { sort: { created_at: -1 } },
       );
 
       if (isLatestMessage) {

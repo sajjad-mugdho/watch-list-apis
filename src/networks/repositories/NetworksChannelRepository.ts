@@ -63,9 +63,17 @@ export class NetworksChannelRepository extends BaseRepository<INetworkListingCha
 
   /**
    * Check if user is member of a networks channel
+   * Supports both MongoDB _id and GetStream channel IDs for backward compatibility
    */
   async isMember(channelId: string, userId: string): Promise<boolean> {
-    const channel = await this.findOne({ getstream_channel_id: channelId });
+    const channel = await this.findOne({
+      $or: [
+        { getstream_channel_id: channelId },
+        ...(Types.ObjectId.isValid(channelId)
+          ? [{ _id: new Types.ObjectId(channelId) }]
+          : []),
+      ],
+    });
     if (!channel) return false;
     return (
       channel.buyer_id.toString() === userId ||
