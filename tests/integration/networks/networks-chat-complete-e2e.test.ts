@@ -890,7 +890,9 @@ describe("Networks Chat Complete E2E - GetStream Integration", () => {
         created_at: new Date().toISOString(),
       };
 
-      expect(messagePayload.message.user.id).toBe(TEST_USERS.BUYER.streamUserId);
+      expect(messagePayload.message.user.id).toBe(
+        TEST_USERS.BUYER.streamUserId,
+      );
       // Buyer shouldn't see their own message in unread
     });
 
@@ -1057,7 +1059,10 @@ describe("Networks Chat Complete E2E - GetStream Integration", () => {
         const channel = response.data.channels[0];
         if (channel.last_message_sender_id) {
           // Should be either buyer or seller
-          const validSenders = [TEST_USERS.BUYER.streamUserId, TEST_USERS.SELLER.streamUserId];
+          const validSenders = [
+            TEST_USERS.BUYER.streamUserId,
+            TEST_USERS.SELLER.streamUserId,
+          ];
           // In real scenario, would validate against known senders
           expect(channel.last_message_sender_id).toBeTruthy();
         }
