@@ -2531,6 +2531,175 @@ Use this to test API endpoints without real authentication.
             updated_at: { type: "string", format: "date-time" },
           },
         },
+        NetworksWatch: {
+          type: "object",
+          description: "Watch object with networks engagement metrics",
+          properties: {
+            _id: { type: "string" },
+            brand: { type: "string" },
+            model: { type: "string" },
+            reference: { type: "string" },
+            diameter: { type: "string" },
+            category: {
+              type: "string",
+              enum: [
+                "Luxury",
+                "Sport",
+                "Dress",
+                "Vintage",
+                "Casual",
+                "Dive",
+                "Pilot",
+                "Uncategorized",
+              ],
+            },
+            usageCount: {
+              type: "integer",
+              description: "Number of network listings for this watch",
+            },
+            trustedSellersCount: {
+              type: "integer",
+              description: "Number of verified sellers listing this watch",
+            },
+            watchersCount: {
+              type: "integer",
+              description: "Total number of users watching this watch",
+            },
+          },
+          required: ["_id", "brand", "model"],
+        },
+        MarketplaceWatch: {
+          type: "object",
+          description: "Watch object with marketplace pricing metrics",
+          properties: {
+            _id: { type: "string" },
+            brand: { type: "string" },
+            model: { type: "string" },
+            reference: { type: "string" },
+            diameter: { type: "string" },
+            category: {
+              type: "string",
+              enum: [
+                "Luxury",
+                "Sport",
+                "Dress",
+                "Vintage",
+                "Casual",
+                "Dive",
+                "Pilot",
+                "Uncategorized",
+              ],
+            },
+            priceRange: {
+              type: "object",
+              properties: {
+                min: { type: "number", description: "Minimum price" },
+                max: { type: "number", description: "Maximum price" },
+                avg: { type: "number", description: "Average price" },
+              },
+            },
+            inventoryLevel: {
+              type: "integer",
+              description: "Number of available units",
+            },
+            merchantReputation: {
+              type: "number",
+              description: "Average merchant rating (0-5)",
+            },
+          },
+          required: ["_id", "brand", "model"],
+        },
+        WatchesMetadata: {
+          type: "object",
+          description: "Metadata for watches API responses",
+          properties: {
+            q: { type: "string", description: "Search query used" },
+            count: {
+              type: "integer",
+              description: "Number of items in this response",
+            },
+            total: {
+              type: "integer",
+              description: "Total items matching query",
+            },
+            platform: {
+              type: "string",
+              enum: ["public", "networks", "marketplace"],
+              description: "Which platform this response is from",
+            },
+            pagination: {
+              type: "object",
+              properties: {
+                limit: { type: "integer" },
+                offset: { type: "integer" },
+                hasMore: { type: "boolean" },
+              },
+            },
+            cached: {
+              type: "boolean",
+              description: "Whether this response was served from cache",
+            },
+            cacheAge: {
+              type: "integer",
+              description: "Age of cached response in seconds",
+            },
+            hitCount: {
+              type: "integer",
+              description: "Number of times this cache entry has been hit",
+            },
+          },
+          required: ["count", "total", "platform", "pagination"],
+        },
+        WatchesMetadataWithFilters: {
+          type: "object",
+          description:
+            "Metadata for marketplace watches API responses with price filters",
+          properties: {
+            q: { type: "string", description: "Search query used" },
+            count: {
+              type: "integer",
+              description: "Number of items in this response",
+            },
+            total: {
+              type: "integer",
+              description: "Total items matching query",
+            },
+            platform: {
+              type: "string",
+              enum: ["public", "networks", "marketplace"],
+              description: "Which platform this response is from",
+            },
+            filters: {
+              type: "object",
+              properties: {
+                price: {
+                  type: "object",
+                  properties: {
+                    min: { type: "number" },
+                    max: { type: "number" },
+                  },
+                },
+              },
+            },
+            pagination: {
+              type: "object",
+              properties: {
+                limit: { type: "integer" },
+                offset: { type: "integer" },
+                hasMore: { type: "boolean" },
+              },
+            },
+            cached: {
+              type: "boolean",
+              description: "Whether this response was served from cache",
+            },
+            cacheAge: {
+              type: "integer",
+              description: "Age of cached response in seconds",
+            },
+          },
+          required: ["count", "total", "platform", "pagination"],
+        },
       },
     },
     security: [
@@ -9610,6 +9779,354 @@ Once approved:
       responses: {
         200: { description: "Offers retrieved" },
         401: { description: "Unauthorized" },
+      },
+    },
+  },
+  "/api/v1/watches": {
+    get: {
+      security: [],
+      tags: ["Watches"],
+      summary: "List all watches with search, filtering, and pagination",
+      description:
+        "Public endpoint to browse watches across all platforms. Supports full-text search, category filtering, pagination, and sorting. No authentication required.",
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          description:
+            "Search query (searches brand, model, reference, bracelet, color, materials)",
+          schema: { type: "string" },
+          example: "Rolex",
+        },
+        {
+          name: "category",
+          in: "query",
+          description: "Filter by watch category",
+          schema: {
+            type: "string",
+            enum: [
+              "Luxury",
+              "Sport",
+              "Dress",
+              "Vintage",
+              "Casual",
+              "Dive",
+              "Pilot",
+              "Uncategorized",
+            ],
+          },
+          example: "Luxury",
+        },
+        {
+          name: "sort",
+          in: "query",
+          description: "Sort order",
+          schema: {
+            type: "string",
+            enum: ["recent", "random"],
+            default: "recent",
+          },
+        },
+        {
+          name: "limit",
+          in: "query",
+          description: "Results per page (1-50)",
+          schema: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+        },
+        {
+          name: "offset",
+          in: "query",
+          description: "Pagination offset",
+          schema: { type: "integer", minimum: 0, default: 0 },
+        },
+      ],
+      responses: {
+        200: {
+          description: "List of watches",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/Watch" },
+                  },
+                  _metadata: { $ref: "#/components/schemas/WatchesMetadata" },
+                },
+              },
+              example: {
+                data: [
+                  {
+                    _id: "507f1f77bcf86cd799439011",
+                    brand: "Rolex",
+                    model: "Datejust",
+                    reference: "126334",
+                    diameter: "36mm",
+                    category: "Luxury",
+                    condition: "excellent",
+                  },
+                ],
+                _metadata: {
+                  q: "Rolex",
+                  count: 1,
+                  total: 250,
+                  platform: "public",
+                  pagination: { limit: 20, offset: 0, hasMore: true },
+                  cached: true,
+                  cacheAge: 2,
+                },
+              },
+            },
+          },
+        },
+        400: { description: "Invalid query parameters" },
+      },
+    },
+  },
+  "/api/v1/networks/watches": {
+    get: {
+      tags: ["Watches"],
+      summary: "List watches with networks engagement metrics",
+      description:
+        "Authenticated endpoint that returns watches with engagement metrics (usageCount, trustedSellersCount, watchersCount) specific to Networks platform.",
+      security: [{ mockUser: [] }, { bearerAuth: [] }],
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          description: "Search query (searches brand, model, reference)",
+          schema: { type: "string" },
+          example: "Rolex",
+        },
+        {
+          name: "category",
+          in: "query",
+          description: "Filter by watch category",
+          schema: {
+            type: "string",
+            enum: [
+              "Luxury",
+              "Sport",
+              "Dress",
+              "Vintage",
+              "Casual",
+              "Dive",
+              "Pilot",
+              "Uncategorized",
+            ],
+          },
+        },
+        {
+          name: "condition",
+          in: "query",
+          description: "Filter by watch condition",
+          schema: {
+            type: "string",
+            enum: ["excellent", "very_good", "good", "fair"],
+          },
+        },
+        {
+          name: "brands",
+          in: "query",
+          description: "Filter by brands (comma-separated)",
+          schema: { type: "string" },
+          example: "Rolex,Omega",
+        },
+        {
+          name: "materials",
+          in: "query",
+          description: "Filter by materials",
+          schema: { type: "string" },
+        },
+        {
+          name: "sort",
+          in: "query",
+          description: "Sort order (networks-specific options)",
+          schema: {
+            type: "string",
+            enum: ["recent", "trending", "popular", "most_trusted"],
+            default: "recent",
+          },
+        },
+        {
+          name: "limit",
+          in: "query",
+          description: "Results per page (1-50)",
+          schema: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+        },
+        {
+          name: "offset",
+          in: "query",
+          description: "Pagination offset",
+          schema: { type: "integer", minimum: 0, default: 0 },
+        },
+      ],
+      responses: {
+        200: {
+          description: "List of watches with engagement metrics",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/NetworksWatch" },
+                  },
+                  _metadata: { $ref: "#/components/schemas/WatchesMetadata" },
+                },
+              },
+              example: {
+                data: [
+                  {
+                    _id: "507f1f77bcf86cd799439011",
+                    brand: "Rolex",
+                    model: "Datejust",
+                    usageCount: 45,
+                    trustedSellersCount: 12,
+                    watchersCount: 234,
+                  },
+                ],
+                _metadata: {
+                  platform: "networks",
+                  count: 1,
+                  total: 350,
+                  pagination: { limit: 20, offset: 0, hasMore: true },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Unauthorized - authentication required" },
+        400: { description: "Invalid query parameters" },
+      },
+    },
+  },
+  "/api/v1/marketplace/watches": {
+    get: {
+      tags: ["Watches"],
+      summary: "List watches with marketplace pricing metrics",
+      description:
+        "Authenticated endpoint that returns watches with pricing metrics (priceRange, inventoryLevel, merchantReputation) specific to Marketplace platform.",
+      security: [{ mockUser: [] }, { bearerAuth: [] }],
+      parameters: [
+        {
+          name: "q",
+          in: "query",
+          description: "Search query (searches brand, model, reference)",
+          schema: { type: "string" },
+          example: "Rolex",
+        },
+        {
+          name: "category",
+          in: "query",
+          description: "Filter by watch category",
+          schema: {
+            type: "string",
+            enum: [
+              "Luxury",
+              "Sport",
+              "Dress",
+              "Vintage",
+              "Casual",
+              "Dive",
+              "Pilot",
+              "Uncategorized",
+            ],
+          },
+        },
+        {
+          name: "condition",
+          in: "query",
+          description: "Filter by watch condition",
+          schema: {
+            type: "string",
+            enum: ["excellent", "very_good", "good", "fair"],
+          },
+        },
+        {
+          name: "min_price",
+          in: "query",
+          description: "Minimum price filter (in cents)",
+          schema: { type: "integer", minimum: 0 },
+        },
+        {
+          name: "max_price",
+          in: "query",
+          description: "Maximum price filter (in cents)",
+          schema: { type: "integer", minimum: 0 },
+        },
+        {
+          name: "sort",
+          in: "query",
+          description: "Sort order (marketplace-specific options)",
+          schema: {
+            type: "string",
+            enum: [
+              "recent",
+              "price_low_to_high",
+              "price_high_to_low",
+              "most_available",
+              "highest_rated",
+            ],
+            default: "recent",
+          },
+        },
+        {
+          name: "limit",
+          in: "query",
+          description: "Results per page (1-50)",
+          schema: { type: "integer", minimum: 1, maximum: 50, default: 20 },
+        },
+        {
+          name: "offset",
+          in: "query",
+          description: "Pagination offset",
+          schema: { type: "integer", minimum: 0, default: 0 },
+        },
+      ],
+      responses: {
+        200: {
+          description: "List of watches with pricing metrics",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  data: {
+                    type: "array",
+                    items: { $ref: "#/components/schemas/MarketplaceWatch" },
+                  },
+                  _metadata: {
+                    $ref: "#/components/schemas/WatchesMetadataWithFilters",
+                  },
+                },
+              },
+              example: {
+                data: [
+                  {
+                    _id: "507f1f77bcf86cd799439011",
+                    brand: "Rolex",
+                    model: "Datejust",
+                    priceRange: { min: 8000, max: 25000, avg: 15500 },
+                    inventoryLevel: 23,
+                    merchantReputation: 4.7,
+                  },
+                ],
+                _metadata: {
+                  platform: "marketplace",
+                  count: 1,
+                  total: 200,
+                  filters: { price: { min: 5000, max: 100000 } },
+                  pagination: { limit: 20, offset: 0, hasMore: true },
+                },
+              },
+            },
+          },
+        },
+        401: { description: "Unauthorized - authentication required" },
+        400: { description: "Invalid query parameters" },
       },
     },
   },

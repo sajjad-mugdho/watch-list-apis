@@ -1,6 +1,7 @@
 import { Router, Request, Response } from "express";
 import networksRoutes from "../networks";
 import marketplaceRoutes from "../marketplace";
+import watchesRoutes from "./watchesRoutes";
 
 import { healthCheck, readinessCheck } from "../middleware/operational";
 import {
@@ -36,6 +37,9 @@ router.use("/v1/webhooks/getstream", getstreamWebhookRoutes);
 
 // Marketplace webhooks (no auth - uses Finix signature verification)
 router.use("/v1/marketplace/webhooks", marketplaceWebhookRoutes);
+
+// Watches catalog - public endpoint accessible to both marketplace and networks
+router.use("/v1/watches", watchesRoutes);
 
 // platform specific routes
 router.use("/v1/networks", requirePlatformAuth(), networksRoutes);
