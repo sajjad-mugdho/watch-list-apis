@@ -85,7 +85,7 @@ export class NetworksHomeFeedService {
       // Get user's favorites
       const favorites = await Favorite.find({
         user_id: new Types.ObjectId(dialistUserId),
-        item_type: "listing",
+        item_type: "for_sale",
         platform: "networks",
       }).select("item_id");
 
@@ -190,7 +190,7 @@ export class NetworksHomeFeedService {
    * Cache: 5 minutes global (same for all users)
    */
   async getFeatured(limit: number = 6): Promise<INetworkListing[]> {
-    const cacheKey = this.getFeaturedCacheKey();
+    const cacheKey = this.getFeaturedCacheKey(limit);
 
     // Try cache first
     const cached = await this.getFromCache<INetworkListing[]>(cacheKey);
@@ -309,12 +309,14 @@ export class NetworksHomeFeedService {
    */
   async invalidateUserCache(dialistUserId: string): Promise<void> {
     try {
-      const recommendedKey = this.getRecommendedCacheKey(dialistUserId);
-      const connectionsKey = this.getConnectionsCacheKey(dialistUserId);
-
+      // Invalidate all limits for recommended and connections
       await Promise.all([
-        cache.delete(recommendedKey),
-        cache.delete(connectionsKey),
+        cache.invalidatePattern(
+          `home-feed:recommended:${dialistUserId}:limit:*`,
+        ),
+        cache.invalidatePattern(
+          `home-feed:connections:${dialistUserId}:limit:*`,
+        ),
       ]);
 
       logger.info(`Invalidated home feed cache for user ${dialistUserId}`);
@@ -329,8 +331,8 @@ export class NetworksHomeFeedService {
    */
   async invalidateFeaturedCache(): Promise<void> {
     try {
-      const featuredKey = this.getFeaturedCacheKey();
-      await cache.delete(featuredKey);
+      // Clear all featured cache entries regardless of limit
+      await cache.invalidatePattern("home-feed:featured:limit:*");
       logger.info("Invalidated featured listings cache");
     } catch (error) {
       logger.warn("Error invalidating featured cache:", error);
@@ -379,8 +381,8 @@ export class NetworksHomeFeedService {
     return `home-feed:recommended:${dialistUserId}:limit:${limit}`;
   }
 
-  private getFeaturedCacheKey(): string {
-    return "home-feed:featured";
+  private getFeaturedCacheKey(limit: number = 6): string {
+    return `home-feed:featured:limit:${limit}`;
   }
 
   private getConnectionsCacheKey(

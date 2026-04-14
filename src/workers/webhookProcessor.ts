@@ -294,7 +294,9 @@ async function runNetworksDomainHandler(
   channel_id?: string,
   channel_type?: string,
 ): Promise<void> {
-  const cid = payload.cid || `${channel_type}:${channel_id}`;
+  const cid =
+    payload.cid ??
+    (channel_type && channel_id ? `${channel_type}:${channel_id}` : undefined);
   const isNetworksEvent = cid?.includes("networks");
 
   if (!isNetworksEvent) {
@@ -316,57 +318,60 @@ async function runNetworksDomainHandler(
       onNetworkChatReactionDeleted,
     } = require("../networks/events") as any;
 
+    // Enrich payload with synthesized cid if missing
+    const networkPayload = payload.cid ? payload : { ...payload, cid };
+
     // Route to Networks handlers
     switch (type) {
       case "message.new":
-        await onNetworkChatMessageNew(payload);
+        await onNetworkChatMessageNew(networkPayload);
         break;
       case "message.read":
-        await onNetworkChatMessageRead(payload);
+        await onNetworkChatMessageRead(networkPayload);
         break;
       case "message.updated":
-        await onNetworkChatMessageUpdated(payload);
+        await onNetworkChatMessageUpdated(networkPayload);
         break;
       case "message.deleted":
-        await onNetworkChatMessageDeleted(payload);
+        await onNetworkChatMessageDeleted(networkPayload);
         break;
       case "member.added":
-        await onNetworkChatMemberAdded(payload);
+        await onNetworkChatMemberAdded(networkPayload);
         break;
       case "member.updated":
-        await onNetworkChatMemberUpdated(payload);
+        await onNetworkChatMemberUpdated(networkPayload);
         break;
       case "channel.created":
-        await onNetworkChatChannelCreated(payload);
+        await onNetworkChatChannelCreated(networkPayload);
         break;
       case "channel.updated":
-        await onNetworkChatChannelUpdated(payload);
+        await onNetworkChatChannelUpdated(networkPayload);
         break;
       case "reaction.new":
-        await onNetworkChatReactionNew(payload);
+        await onNetworkChatReactionNew(networkPayload);
         break;
       case "reaction.deleted":
-        await onNetworkChatReactionDeleted(payload);
+        await onNetworkChatReactionDeleted(networkPayload);
         break;
       default:
         // No Networks-specific handler for this event
         break;
     }
 
-    logger.info(`✅ Networks domain handler executed for ${type}`, {
+    logger.info(`Networks domain handler executed for ${type}`, {
       eventId,
       type,
       cid,
     });
   } catch (networksError) {
-    logger.error("Networks domain handler failed - not retrying", {
+    logger.error("Networks domain handler failed - will retry", {
       error: networksError,
       type,
       eventId,
-      cid: payload.cid,
+      cid,
     });
-    // Don't re-throw: global handlers already succeeded
-    // Networks failures should not cause webhook retry
+    // Re-throw to let Bull retry critical persistence failures
+    throw networksError;
   }
 }
 

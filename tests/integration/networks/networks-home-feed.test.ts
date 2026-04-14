@@ -180,13 +180,13 @@ describe("Networks Home Feed API", () => {
       await Favorite.create({
         user_id: userId,
         item_id: testListings[0]._id,
-        item_type: "listing",
+        item_type: "for_sale",
         platform: "networks",
       });
       await Favorite.create({
         user_id: userId,
         item_id: testListings[1]._id,
-        item_type: "listing",
+        item_type: "for_sale",
         platform: "networks",
       });
 

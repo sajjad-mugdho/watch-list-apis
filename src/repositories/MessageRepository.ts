@@ -121,7 +121,7 @@ class MessageRepositoryClass extends BaseRepository<IChatMessage> {
    */
   async createMessage(params: CreateMessageParams): Promise<IChatMessage> {
     return this.create({
-      stream_channel_id: params.streamChannelId,
+      channel_id: params.streamChannelId,
       stream_message_id: params.streamMessageId,
       text: params.text,
       sender_id: new Types.ObjectId(params.senderId),

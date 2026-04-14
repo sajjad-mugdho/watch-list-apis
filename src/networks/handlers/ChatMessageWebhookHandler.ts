@@ -25,8 +25,15 @@ export class ChatMessageWebhookHandler {
         return;
       }
 
-      // Use channel.id (plain ID) instead of channel.cid (type:id format)
-      const channelId = channel.id;
+      // Use channel.id (plain ID), fallback to parsing channel.cid if needed
+      const channelId =
+        channel.id || (channel.cid ? channel.cid.split(":")[1] : undefined);
+      if (!channelId) {
+        logger.warn("Missing or unparseable channel ID from webhook", {
+          channel,
+        });
+        return;
+      }
       const messageText = message.text || "";
       const senderId = message.user?.id;
 

@@ -1,4 +1,4 @@
-import { Router, Request, Response, NextFunction, raw } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import crypto from "crypto";
 import logger from "../../utils/logger";
 import { ChatMessageWebhookHandler } from "../handlers/ChatMessageWebhookHandler";
@@ -65,17 +65,16 @@ function verifyWebhookSignature(
  */
 router.post(
   "/getstream/chat",
-  raw({ type: "application/json" }), // ✅ Capture raw body bytes
   async (req: Request, res: Response, _next: NextFunction): Promise<void> => {
     try {
-      // ✅ Extract raw body and signature header
+      // Extract raw body and signature header
       const signature = req.headers["x-signature"] as string | undefined;
-      const rawBody = req.body as Buffer;
+      const rawBody = (req as any).rawBody as string;
 
-      // ✅ Verify webhook signature against exact raw bytes
+      // Verify webhook signature using the raw body captured by verify callback
       if (
-        !Buffer.isBuffer(rawBody) ||
-        !verifyWebhookSignature(signature, rawBody)
+        !rawBody ||
+        !verifyWebhookSignature(signature, Buffer.from(rawBody, "utf8"))
       ) {
         logger.warn("Invalid webhook signature", {
           ip: req.ip,
@@ -86,8 +85,8 @@ router.post(
         return;
       }
 
-      // ✅ Parse JSON AFTER signature verification
-      const parsed = JSON.parse(rawBody.toString("utf8")) as {
+      // Parse JSON AFTER signature verification
+      const parsed = JSON.parse(rawBody) as {
         type?: string;
         data?: any;
       };

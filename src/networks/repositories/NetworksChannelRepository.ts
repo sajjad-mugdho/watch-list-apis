@@ -65,7 +65,7 @@ export class NetworksChannelRepository extends BaseRepository<INetworkListingCha
    * Check if user is member of a networks channel
    */
   async isMember(channelId: string, userId: string): Promise<boolean> {
-    const channel = await this.findById(channelId);
+    const channel = await this.findOne({ getstream_channel_id: channelId });
     if (!channel) return false;
     return (
       channel.buyer_id.toString() === userId ||

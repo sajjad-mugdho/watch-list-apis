@@ -272,8 +272,8 @@ export async function onNetworkChatMessageUpdated(event: any): Promise<void> {
 
       const isLatestMessage = await ChatMessage.findOne(
         { channel_id: channelId },
-        { created_at: 1 },
-        { sort: { created_at: -1 } },
+        { created_at: 1, getstream_message_id: 1 },
+        { sort: { updated_at: -1, created_at: -1 } },
       );
 
       if (
@@ -354,8 +354,8 @@ export async function onNetworkChatMessageDeleted(event: any): Promise<void> {
 
       const isLatestMessage = await ChatMessage.findOne(
         { channel_id: channelId, deleted_at: { $exists: false } },
-        { created_at: 1 },
-        { sort: { created_at: -1 } },
+        { created_at: 1, text: 1 },
+        { sort: { updated_at: -1, created_at: -1 } },
       );
 
       if (isLatestMessage) {
@@ -375,6 +375,17 @@ export async function onNetworkChatMessageDeleted(event: any): Promise<void> {
           deletedMessageId: message.id,
           newLatestMessage: isLatestMessage._id,
         });
+      } else {
+        // Channel has no remaining messages - clear preview
+        await NetworkListingChannel.updateOne(
+          { getstream_channel_id: channelId },
+          {
+            $set: {
+              last_message_preview: null,
+              last_message_at: null,
+            },
+          },
+        );
       }
 
       logger.info("Message marked as deleted", {
