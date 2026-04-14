@@ -1,6 +1,7 @@
 import request from "supertest";
 import { app } from "../../../src/app";
 import { Watch } from "../../../src/models/Watches";
+import { watchCacheService } from "../../../src/services/WatchCacheService";
 
 /**
  * Comprehensive Watch API Tests
@@ -20,6 +21,8 @@ describe("Watches API Integration Tests", () => {
 
   beforeEach(async () => {
     jest.restoreAllMocks();
+    // Clear cache between tests to prevent interference
+    watchCacheService.clear();
   });
 
   describe("Public Watches Endpoint - GET /api/v1/watches", () => {
@@ -854,15 +857,15 @@ describe("Watches API Integration Tests", () => {
     it("should validate cache age increases over time", async () => {
       await request(app).get("/api/v1/watches").query({ limit: 5 });
 
-      // Wait a bit
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Wait at least 1 second for cache age to increment (measured in whole seconds)
+      await new Promise((resolve) => setTimeout(resolve, 1100));
 
       const cached = await request(app)
         .get("/api/v1/watches")
         .query({ limit: 5 });
 
       expect(cached.body._metadata.cached).toBe(true);
-      expect(cached.body._metadata.cacheAge).toBeGreaterThan(0);
+      expect(cached.body._metadata.cacheAge).toBeGreaterThanOrEqual(1);
     });
   });
 });

@@ -32,10 +32,10 @@ export const marketplace_watches_list = async (
     const category = req.query.category as string;
     const condition = req.query.condition as string;
     const min_price = req.query.min_price
-      ? parseFloat(req.query.min_price as string)
+      ? ((v) => (isNaN(v) ? undefined : v))(parseFloat(req.query.min_price as string))
       : undefined;
     const max_price = req.query.max_price
-      ? parseFloat(req.query.max_price as string)
+      ? ((v) => (isNaN(v) ? undefined : v))(parseFloat(req.query.max_price as string))
       : undefined;
     const sort = ((req.query.sort as string) || "recent").toLowerCase();
 
@@ -62,28 +62,56 @@ export const marketplace_watches_list = async (
     // CHECK CACHE
     const cached = watchCacheService.get("marketplace", cacheParams);
     if (cached) {
+      const { watches: cachedWatches, total: cachedTotal, hasMore: cachedHasMore } = cached.data as any;
       res.json({
-        data: cached.data as any[],
+        data: cachedWatches,
         requestId: req.headers["x-request-id"] as string,
         _metadata: {
           platform: "marketplace",
+          count: cachedWatches.length,
+          total: cachedTotal,
           cached: true,
           cacheAge: cached.age,
           hitCount: cached.hitCount,
-          pagination: { limit, offset: skip, hasMore: false },
+          pagination: { limit, offset: skip, hasMore: cachedHasMore },
+          filters: {
+            q,
+            category,
+            condition,
+            price: { min: min_price, max: max_price },
+          },
         },
       });
       return;
     }
 
-    // Build match stage
+    // Build aggregation pipeline
+    const pipeline: any[] = [];
+
+    // Build initial match stage with search and category/condition filters
     const matchStage: Record<string, any> = {};
-    if (q) matchStage.$text = { $search: q };
+    
+    // Try text search first
+    if (q) {
+      try {
+        matchStage.$text = { $search: q };
+      } catch (textSearchErr) {
+        // Text search not available, use regex fallback
+        logger.warn("Text search unavailable, using regex fallback");
+        const escapedQuery = q.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        matchStage.$or = [
+          { brand: { $regex: escapedQuery, $options: "i" } },
+          { model: { $regex: escapedQuery, $options: "i" } },
+          { reference: { $regex: escapedQuery, $options: "i" } },
+          { bracelet: { $regex: escapedQuery, $options: "i" } },
+          { color: { $regex: escapedQuery, $options: "i" } },
+          { materials: { $regex: escapedQuery, $options: "i" } },
+        ];
+      }
+    }
+    
     if (category) matchStage.category = category;
     if (condition) matchStage.condition = condition;
-
-    // Build aggregation
-    const pipeline: any[] = [];
 
     if (Object.keys(matchStage).length > 0) {
       pipeline.push({ $match: matchStage });
@@ -189,6 +217,28 @@ export const marketplace_watches_list = async (
     }
 
     pipeline.push({ $sort: sortStage });
+
+    // Project all watch fields before pagination
+    pipeline.push({
+      $project: {
+        brand: 1,
+        model: 1,
+        reference: 1,
+        diameter: 1,
+        color: 1,
+        bezel: 1,
+        materials: 1,
+        bracelet: 1,
+        images: 1,
+        category: 1,
+        condition: 1,
+        inventoryLevel: 1,
+        priceRange: 1,
+        merchantReputation: 1,
+        createdAt: 1,
+        _id: 1,
+      },
+    });
 
     // Pagination
     pipeline.push({

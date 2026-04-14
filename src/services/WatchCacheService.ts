@@ -101,9 +101,13 @@ class WatchCacheService {
         (a, b) => a[1].createdAt - b[1].createdAt,
       );
 
+      let freedSize = 0;
+      const targetSize = this.MAX_CACHE_SIZE * 0.8;
       for (const [cacheKey] of sorted) {
+        const entrySize = this.cache.get(cacheKey)?.size ?? 0;
         this.cache.delete(cacheKey);
-        if (currentSize < this.MAX_CACHE_SIZE * 0.8) break;
+        freedSize += entrySize;
+        if (currentSize - freedSize + size <= targetSize) break;
       }
     }
 

@@ -9,25 +9,27 @@ import { validateRequest } from "../../middleware/validation";
 import { z } from "zod";
 
 const networkWatchesSchema = z.object({
-  q: z.string().optional(),
-  category: z
-    .enum([
-      "Luxury",
-      "Sport",
-      "Dress",
-      "Vintage",
-      "Casual",
-      "Dive",
-      "Pilot",
-      "Uncategorized",
-    ])
-    .optional(),
-  condition: z.enum(["excellent", "very_good", "good", "fair"]).optional(),
-  materials: z.string().optional(),
-  brands: z.string().optional(),
-  sort: z.enum(["recent", "trending", "popular", "most_trusted"]).optional(),
-  limit: z.string().optional(),
-  offset: z.string().optional(),
+  query: z.object({
+    q: z.string().optional(),
+    category: z
+      .enum([
+        "Luxury",
+        "Sport",
+        "Dress",
+        "Vintage",
+        "Casual",
+        "Dive",
+        "Pilot",
+        "Uncategorized",
+      ])
+      .optional(),
+    condition: z.enum(["excellent", "very_good", "good", "fair"]).optional(),
+    materials: z.string().optional(),
+    brands: z.string().optional(),
+    sort: z.enum(["recent", "trending", "popular", "most_trusted"]).optional(),
+    limit: z.string().optional(),
+    offset: z.string().optional(),
+  }),
 });
 
 const router = Router();

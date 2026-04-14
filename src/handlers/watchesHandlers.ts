@@ -7,6 +7,13 @@ import logger from "../utils/logger";
 import { DatabaseError } from "../utils/errors";
 import { watchCacheService } from "../services/WatchCacheService";
 
+/**
+ * Escape regex metacharacters in user input to prevent injection/ReDoS attacks
+ */
+function escapeRegexChars(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
 // ----------------------------------------------------------
 // Handler Functions
 // ----------------------------------------------------------
@@ -36,15 +43,19 @@ export const watches_list_get = async (
     const cacheParams = { q: q || undefined, category, sort, limit, skip };
     const cached = watchCacheService.get("public", cacheParams);
     if (cached) {
+      const { items, total, hasMore, q: cachedQ, count } = cached.data as any;
       res.json({
-        data: cached.data as IWatch[],
+        data: items,
         requestId: req.headers["x-request-id"] as string,
         _metadata: {
+          q: cachedQ,
+          count,
+          total,
           platform: "public",
           cached: true,
           cacheAge: cached.age,
           hitCount: cached.hitCount,
-          pagination: { limit, offset: skip, hasMore: false },
+          pagination: { limit, offset: skip, hasMore },
         } as any,
       });
       return;
@@ -54,50 +65,46 @@ export const watches_list_get = async (
     let total = 0;
 
     if (q.length > 0) {
-      // Try Atlas Search first, fall back to regex if it fails
+      // Build match stage with text search
+      const matchStage: Record<string, any> = {};
+      matchStage.$text = { $search: q };
+      if (category) matchStage.category = category;
+
+      // Build aggregation pipeline with text search
+      const pipeline: any[] = [{ $match: matchStage }];
+
+      // Add explicit projection to ensure all fields including images
+      pipeline.push({
+        $project: {
+          brand: 1,
+          model: 1,
+          reference: 1,
+          diameter: 1,
+          color: 1,
+          bezel: 1,
+          materials: 1,
+          bracelet: 1,
+          images: 1,
+          category: 1,
+          condition: 1,
+          createdAt: 1,
+          _id: 1,
+          score: { $meta: "textScore" },
+        },
+      });
+
+      pipeline.push({
+        $facet: {
+          items: [
+            { $sort: { score: { $meta: "textScore" } } },
+            ...(skip ? [{ $skip: skip }] : []),
+            { $limit: limit },
+          ],
+          meta: [{ $count: "total" }],
+        },
+      });
+
       try {
-        const pipeline: any[] = [];
-        pipeline.push({
-          $search: {
-            index: "default",
-            compound: {
-              should: [
-                {
-                  autocomplete: {
-                    query: q,
-                    path: "brand",
-                    fuzzy: { maxEdits: 1 },
-                  },
-                },
-                {
-                  autocomplete: {
-                    query: q,
-                    path: "model",
-                    fuzzy: { maxEdits: 1 },
-                  },
-                },
-                { autocomplete: { query: q, path: "reference" } },
-                { autocomplete: { query: q, path: "bracelet" } },
-                { autocomplete: { query: q, path: "color" } },
-                { autocomplete: { query: q, path: "materials" } },
-              ],
-              minimumShouldMatch: 1,
-            },
-          },
-        });
-
-        // Apply category filter after search
-        if (category) {
-          pipeline.push({ $match: { category } });
-        }
-
-        pipeline.push({
-          $facet: {
-            items: [...(skip ? [{ $skip: skip }] : []), { $limit: limit }],
-            meta: [{ $count: "total" }],
-          },
-        });
-
         const [faceted] = await Watch.aggregate(pipeline).exec();
         items = ((faceted as any)?.items ?? []) as IWatch[];
         total =
@@ -106,12 +113,14 @@ export const watches_list_get = async (
             ? ((faceted as any).meta[0]?.total ?? 0)
             : items.length;
       } catch (searchError) {
-        // Atlas Search not configured, fall back to regex search
-        logger.warn("Atlas Search failed, using regex fallback", {
+        // Text search failed, fall back to regex search
+        logger.warn("Text search failed, using regex fallback", {
           searchError,
         });
 
-        const searchRegex = new RegExp(q, "i");
+        // Escape regex metacharacters to prevent injection attacks
+        const escapedQuery = escapeRegexChars(q);
+        const searchRegex = new RegExp(escapedQuery, "i");
         const filter: Record<string, any> = {
           $or: [
             { brand: searchRegex },
@@ -133,6 +142,7 @@ export const watches_list_get = async (
 
         // Get paginated results
         items = (await Watch.find(filter)
+          .select({ brand: 1, model: 1, reference: 1, diameter: 1, color: 1, bezel: 1, materials: 1, bracelet: 1, images: 1, category: 1, condition: 1, createdAt: 1, _id: 1 })
           .sort({ createdAt: -1 })
           .skip(skip)
           .limit(limit)
@@ -146,6 +156,25 @@ export const watches_list_get = async (
       if (category) {
         pipeline.push({ $match: { category } });
       }
+
+      // Add explicit projection to ensure all fields including images
+      pipeline.push({
+        $project: {
+          brand: 1,
+          model: 1,
+          reference: 1,
+          diameter: 1,
+          color: 1,
+          bezel: 1,
+          materials: 1,
+          bracelet: 1,
+          images: 1,
+          category: 1,
+          condition: 1,
+          createdAt: 1,
+          _id: 1,
+        },
+      });
 
       if (sort === "random") {
         pipeline.push({ $sample: { size: limit } });
@@ -177,7 +206,14 @@ export const watches_list_get = async (
     const hasMore = sort === "random" ? false : skip + limit < total;
 
     // STORE IN CACHE (24 hours)
-    watchCacheService.set("public", cacheParams, items);
+    // STORE IN CACHE (24 hours) - include pagination metadata
+    watchCacheService.set("public", cacheParams, {
+      items,
+      total,
+      hasMore,
+      q,
+      count: items.length,
+    });
 
     const response: ApiResponse<IWatch[]> = {
       data: items,

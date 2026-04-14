@@ -9,33 +9,35 @@ import { validateRequest } from "../../middleware/validation";
 import { z } from "zod";
 
 const marketplaceWatchesSchema = z.object({
-  q: z.string().optional(),
-  category: z
-    .enum([
-      "Luxury",
-      "Sport",
-      "Dress",
-      "Vintage",
-      "Casual",
-      "Dive",
-      "Pilot",
-      "Uncategorized",
-    ])
-    .optional(),
-  condition: z.enum(["excellent", "very_good", "good", "fair"]).optional(),
-  min_price: z.string().optional(),
-  max_price: z.string().optional(),
-  sort: z
-    .enum([
-      "recent",
-      "price_low_to_high",
-      "price_high_to_low",
-      "most_available",
-      "highest_rated",
-    ])
-    .optional(),
-  limit: z.string().optional(),
-  offset: z.string().optional(),
+  query: z.object({
+    q: z.string().optional(),
+    category: z
+      .enum([
+        "Luxury",
+        "Sport",
+        "Dress",
+        "Vintage",
+        "Casual",
+        "Dive",
+        "Pilot",
+        "Uncategorized",
+      ])
+      .optional(),
+    condition: z.enum(["excellent", "very_good", "good", "fair"]).optional(),
+    min_price: z.string().optional(),
+    max_price: z.string().optional(),
+    sort: z
+      .enum([
+        "recent",
+        "price_low_to_high",
+        "price_high_to_low",
+        "most_available",
+        "highest_rated",
+      ])
+      .optional(),
+    limit: z.string().optional(),
+    offset: z.string().optional(),
+  }),
 });
 
 const router = Router();

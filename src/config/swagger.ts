@@ -9784,6 +9784,7 @@ Once approved:
   },
   "/api/v1/watches": {
     get: {
+      security: [],
       tags: ["Watches"],
       summary: "List all watches with search, filtering, and pagination",
       description:
@@ -10048,13 +10049,13 @@ Once approved:
           name: "min_price",
           in: "query",
           description: "Minimum price filter (in cents)",
-          schema: { type: "string" },
+          schema: { type: "integer", minimum: 0 },
         },
         {
           name: "max_price",
           in: "query",
           description: "Maximum price filter (in cents)",
-          schema: { type: "string" },
+          schema: { type: "integer", minimum: 0 },
         },
         {
           name: "sort",

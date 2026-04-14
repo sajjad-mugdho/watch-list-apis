@@ -11,6 +11,9 @@ import logger from "../../utils/logger";
 import { DatabaseError } from "../../utils/errors";
 import { watchCacheService } from "../../services/WatchCacheService";
 
+// Escape special regex characters to prevent ReDoS attacks
+const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
 /**
  * GET /api/v1/networks/watches
  * Networks-specific with engagement metrics
@@ -61,15 +64,19 @@ export const networks_watches_list = async (
     // CHECK CACHE
     const cached = watchCacheService.get("networks", cacheParams);
     if (cached) {
+      const { watches: cachedWatches, total: cachedTotal, hasMore: cachedHasMore } = cached.data as any;
       res.json({
-        data: cached.data as any[],
+        data: cachedWatches,
         requestId: req.headers["x-request-id"] as string,
         _metadata: {
           platform: "networks",
+          count: cachedWatches.length,
+          total: cachedTotal,
           cached: true,
           cacheAge: cached.age,
           hitCount: cached.hitCount,
-          pagination: { limit, offset: skip, hasMore: false },
+          pagination: { limit, offset: skip, hasMore: cachedHasMore },
+          filters: { q, category, condition, materials, brands },
         },
       });
       return;
@@ -80,7 +87,7 @@ export const networks_watches_list = async (
     if (q) matchStage.$text = { $search: q };
     if (category) matchStage.category = category;
     if (condition) matchStage.condition = condition;
-    if (materials) matchStage.materials = { $regex: materials, $options: "i" };
+    if (materials) matchStage.materials = { $regex: escapeRegex(materials), $options: "i" };
     if (brands.length > 0) matchStage.brand = { $in: brands };
 
     // Build aggregation pipeline
@@ -179,9 +186,14 @@ export const networks_watches_list = async (
       Array.isArray(result?.metadata) && result.metadata.length > 0
         ? (result.metadata[0]?.total ?? 0)
         : watches.length;
+    const hasMore = skip + limit < total;
 
-    // STORE IN CACHE (24 hours)
-    watchCacheService.set("networks", cacheParams, watches);
+    // STORE IN CACHE (24 hours) - include pagination metadata
+    watchCacheService.set("networks", cacheParams, {
+      watches,
+      total,
+      hasMore,
+    });
 
     const response: ApiResponse<any[]> = {
       data: watches,
@@ -190,7 +202,7 @@ export const networks_watches_list = async (
         platform: "networks",
         count: watches.length,
         total,
-        pagination: { limit, offset: skip, hasMore: skip + limit < total },
+        pagination: { limit, offset: skip, hasMore },
         filters: { q, category, condition, materials, brands },
       } as any,
     };

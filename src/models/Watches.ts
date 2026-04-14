@@ -28,6 +28,8 @@ export interface IWatch {
   };
   // Watch category for filtering
   category?: WatchCategory;
+  // Watch condition for filtering
+  condition?: "excellent" | "very_good" | "good" | "fair";
 }
 
 export interface IWatchModel extends Model<IWatch> {}
@@ -52,6 +54,10 @@ const watchSchema = new Schema<IWatch>(
       enum: WATCH_CATEGORY_VALUES,
       default: "Uncategorized",
       index: true,
+    },
+    condition: {
+      type: String,
+      enum: ["excellent", "very_good", "good", "fair"],
     },
   },
   {
