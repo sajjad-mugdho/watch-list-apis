@@ -76,9 +76,6 @@ export const networks_watches_list = async (
           platform: "networks",
           count: cachedWatches.length,
           total: cachedTotal,
-          cached: true,
-          cacheAge: cached.age,
-          hitCount: cached.hitCount,
           pagination: { limit, offset: skip, hasMore: cachedHasMore },
           filters: { q, category, condition, materials, brands },
         },
@@ -193,7 +190,7 @@ export const networks_watches_list = async (
         : watches.length;
     const hasMore = skip + limit < total;
 
-    // STORE IN CACHE (24 hours) - include pagination metadata
+    // Cache results for 24 hours
     watchCacheService.set("networks", cacheParams, {
       watches,
       total,

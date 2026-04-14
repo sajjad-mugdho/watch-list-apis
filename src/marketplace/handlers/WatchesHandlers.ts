@@ -78,9 +78,6 @@ export const marketplace_watches_list = async (
           platform: "marketplace",
           count: cachedWatches.length,
           total: cachedTotal,
-          cached: true,
-          cacheAge: cached.age,
-          hitCount: cached.hitCount,
           pagination: { limit, offset: skip, hasMore: cachedHasMore },
           filters: {
             q,
@@ -262,9 +259,14 @@ export const marketplace_watches_list = async (
       Array.isArray(result?.metadata) && result.metadata.length > 0
         ? (result.metadata[0]?.total ?? 0)
         : watches.length;
+    const hasMore = skip + limit < total;
 
-    // STORE IN CACHE (24 hours)
-    watchCacheService.set("marketplace", cacheParams, watches);
+    // Cache results for 24 hours
+    watchCacheService.set("marketplace", cacheParams, {
+      watches,
+      total,
+      hasMore,
+    });
 
     const response: ApiResponse<any[]> = {
       data: watches,
@@ -273,7 +275,7 @@ export const marketplace_watches_list = async (
         platform: "marketplace",
         count: watches.length,
         total,
-        pagination: { limit, offset: skip, hasMore: skip + limit < total },
+        pagination: { limit, offset: skip, hasMore },
         filters: {
           q,
           category,

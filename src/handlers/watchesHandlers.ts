@@ -51,10 +51,6 @@ export const watches_list_get = async (
           q: cachedQ,
           count,
           total,
-          platform: "public",
-          cached: true,
-          cacheAge: cached.age,
-          hitCount: cached.hitCount,
           pagination: { limit, offset: skip, hasMore },
         } as any,
       });
@@ -219,8 +215,7 @@ export const watches_list_get = async (
 
     const hasMore = sort === "random" ? false : skip + limit < total;
 
-    // STORE IN CACHE (24 hours)
-    // STORE IN CACHE (24 hours) - include pagination metadata
+    // Cache results for 24 hours
     watchCacheService.set("public", cacheParams, {
       items,
       total,
@@ -237,7 +232,7 @@ export const watches_list_get = async (
         count: items.length,
         total,
         pagination: { limit, offset: skip, hasMore },
-      } as any, // Use any to allow custom metadata shape
+      } as any,
     };
 
     res.json(response);
