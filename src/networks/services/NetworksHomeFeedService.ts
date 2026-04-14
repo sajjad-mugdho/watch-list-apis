@@ -73,7 +73,7 @@ export class NetworksHomeFeedService {
     dialistUserId: string,
     limit: number = 6,
   ): Promise<INetworkListing[]> {
-    const cacheKey = this.getRecommendedCacheKey(dialistUserId);
+    const cacheKey = this.getRecommendedCacheKey(dialistUserId, limit);
 
     // Try cache first
     const cached = await this.getFromCache<INetworkListing[]>(cacheKey);
@@ -82,7 +82,7 @@ export class NetworksHomeFeedService {
     }
 
     try {
-      // Step 1: Get user's favorites
+      // Get user's favorites
       const favorites = await Favorite.find({
         user_id: new Types.ObjectId(dialistUserId),
         item_type: "for_sale",
@@ -190,7 +190,7 @@ export class NetworksHomeFeedService {
    * Cache: 5 minutes global (same for all users)
    */
   async getFeatured(limit: number = 6): Promise<INetworkListing[]> {
-    const cacheKey = this.getFeaturedCacheKey();
+    const cacheKey = this.getFeaturedCacheKey(limit);
 
     // Try cache first
     const cached = await this.getFromCache<INetworkListing[]>(cacheKey);
@@ -254,7 +254,7 @@ export class NetworksHomeFeedService {
     dialistUserId: string,
     limit: number = 6,
   ): Promise<INetworkListing[]> {
-    const cacheKey = this.getConnectionsCacheKey(dialistUserId);
+    const cacheKey = this.getConnectionsCacheKey(dialistUserId, limit);
 
     // Try cache first
     const cached = await this.getFromCache<INetworkListing[]>(cacheKey);
@@ -263,11 +263,17 @@ export class NetworksHomeFeedService {
     }
 
     try {
-      // Step 1: Get accepted connections
+      // Step 1: Get all accepted connections (bidirectional)
+      // Include both:
+      // - follower_id = us, extract following_id (people we connected to)
+      // - following_id = us, extract follower_id (people who connected to us)
       const acceptedConnections = await Connection.find({
-        following_id: new Types.ObjectId(dialistUserId),
+        $or: [
+          { follower_id: new Types.ObjectId(dialistUserId) },
+          { following_id: new Types.ObjectId(dialistUserId) },
+        ],
         status: "accepted",
-      }).select("follower_id");
+      }).select("follower_id following_id");
 
       if (acceptedConnections.length === 0) {
         // No connections; return empty and cache it
@@ -275,11 +281,16 @@ export class NetworksHomeFeedService {
         return [];
       }
 
-      const followerIds = acceptedConnections.map((c) => c.follower_id);
+      // Extract the "other person" from each connection
+      const otherUserIds = acceptedConnections.map((c) =>
+        c.follower_id.toString() === dialistUserId
+          ? c.following_id
+          : c.follower_id,
+      );
 
       // Step 2: Fetch listings from those users
       const connections = await NetworkListing.find({
-        dialist_id: { $in: followerIds },
+        dialist_id: { $in: otherUserIds },
         status: "active",
         is_deleted: { $ne: true },
       })
@@ -306,12 +317,14 @@ export class NetworksHomeFeedService {
    */
   async invalidateUserCache(dialistUserId: string): Promise<void> {
     try {
-      const recommendedKey = this.getRecommendedCacheKey(dialistUserId);
-      const connectionsKey = this.getConnectionsCacheKey(dialistUserId);
-
+      // Invalidate all limits for recommended and connections
       await Promise.all([
-        cache.delete(recommendedKey),
-        cache.delete(connectionsKey),
+        cache.invalidatePattern(
+          `home-feed:recommended:${dialistUserId}:limit:*`,
+        ),
+        cache.invalidatePattern(
+          `home-feed:connections:${dialistUserId}:limit:*`,
+        ),
       ]);
 
       logger.info(`Invalidated home feed cache for user ${dialistUserId}`);
@@ -326,8 +339,8 @@ export class NetworksHomeFeedService {
    */
   async invalidateFeaturedCache(): Promise<void> {
     try {
-      const featuredKey = this.getFeaturedCacheKey();
-      await cache.delete(featuredKey);
+      // Clear all featured cache entries regardless of limit
+      await cache.invalidatePattern("home-feed:featured:limit:*");
       logger.info("Invalidated featured listings cache");
     } catch (error) {
       logger.warn("Error invalidating featured cache:", error);
@@ -369,16 +382,22 @@ export class NetworksHomeFeedService {
   /**
    * Cache key generators
    */
-  private getRecommendedCacheKey(dialistUserId: string): string {
-    return `home-feed:recommended:${dialistUserId}`;
+  private getRecommendedCacheKey(
+    dialistUserId: string,
+    limit: number = 6,
+  ): string {
+    return `home-feed:recommended:${dialistUserId}:limit:${limit}`;
   }
 
-  private getFeaturedCacheKey(): string {
-    return "home-feed:featured";
+  private getFeaturedCacheKey(limit: number = 6): string {
+    return `home-feed:featured:limit:${limit}`;
   }
 
-  private getConnectionsCacheKey(dialistUserId: string): string {
-    return `home-feed:connections:${dialistUserId}`;
+  private getConnectionsCacheKey(
+    dialistUserId: string,
+    limit: number = 6,
+  ): string {
+    return `home-feed:connections:${dialistUserId}:limit:${limit}`;
   }
 }
 

@@ -37,8 +37,15 @@ export const attachUser = async (
       "+external_id",
     );
 
-    // Auto-create user if not found (useful for E2E tests with Bearer tokens)
+    // ✅ Auto-create user ONLY in test/development environments. In production, return 404.
     if (!user) {
+      const canAutoCreateUser = process.env.NODE_ENV === "test" || process.env.NODE_ENV === "development";
+      
+      if (!canAutoCreateUser) {
+        res.status(404).json({ error: { message: "User not found" } });
+        return;
+      }
+      
       try {
         user = new User({
           external_id: auth.userId,

@@ -31,6 +31,7 @@ import { NetworkListingChannel } from "../models/NetworkListingChannel";
 import { Types } from "mongoose";
 import { networksChatService } from "../services/NetworksChatService";
 import { ChatMessage } from "../models/ChatMessage";
+import { User } from "../../models/User";
 
 // ============================================================================
 // MESSAGE EVENTS
@@ -57,6 +58,11 @@ export async function onNetworkChatMessageNew(event: any): Promise<void> {
         message,
         user,
       });
+      return;
+    }
+
+    if (!cid.includes(":")) {
+      logger.warn("Malformed cid - missing channel type separator", { cid });
       return;
     }
 
@@ -121,10 +127,29 @@ export async function onNetworkChatMessageNew(event: any): Promise<void> {
 
     // TASK 3: ARCHIVE MESSAGE TO MONGODB
     try {
-      await ChatMessage.create({
+      // Resolve actual Clerk ID from the user record
+      // senderId is the GetStream/MongoDB user ID, not the Clerk ID
+      const senderRecord = await User.findById(senderId).select({
+        external_id: 1,
+      });
+      const senderClerkId = senderRecord?.external_id;
+
+      // Verify we have all required fields before creating
+      if (!senderClerkId) {
+        logger.warn("Missing sender clerk ID for message archive", {
+          messageId: message.id,
+          senderId,
+          channelId,
+        });
+        // Don't archive if we can't get clerk ID - fail validation intentionally
+        throw new Error("Missing required field: sender_clerk_id");
+      }
+
+      const archived = await ChatMessage.create({
         channel_id: channelId,
         getstream_message_id: message.id,
         sender_id: new Types.ObjectId(senderId),
+        sender_clerk_id: senderClerkId,
         text: message.text || "",
         html: message.html,
         attachments: message.attachments || [],
@@ -136,11 +161,20 @@ export async function onNetworkChatMessageNew(event: any): Promise<void> {
         pinned: message.pinned || false,
         created_at: new Date(message.created_at),
         updated_at: new Date(message.updated_at),
+        status: "delivered", // Message came from GetStream, so it's delivered
+      });
+
+      logger.info("Message archived successfully", {
+        messageId: message.id,
+        channelId,
+        senderId,
+        dbId: archived._id,
       });
     } catch (archiveError) {
       // Don't fail the webhook if archiving fails
       logger.warn("Failed to archive message to MongoDB", {
         messageId: message.id,
+        channelId,
         error: archiveError,
       });
     }
@@ -220,6 +254,11 @@ export async function onNetworkChatMessageUpdated(event: any): Promise<void> {
       return;
     }
 
+    if (!cid.includes(":")) {
+      logger.warn("Malformed cid in message.updated", { cid });
+      return;
+    }
+
     const channelId = cid.split(":")[1];
 
     // Update message in MongoDB
@@ -234,6 +273,33 @@ export async function onNetworkChatMessageUpdated(event: any): Promise<void> {
           },
         },
       );
+
+      const isLatestMessage = await ChatMessage.findOne(
+        { channel_id: channelId, deleted_at: { $exists: false } },
+        { created_at: 1, getstream_message_id: 1 },
+        { sort: { created_at: -1 } },
+      );
+
+      if (
+        isLatestMessage &&
+        isLatestMessage.getstream_message_id === message.id
+      ) {
+        // This was the latest message, update the channel preview
+        await NetworkListingChannel.updateOne(
+          { getstream_channel_id: channelId },
+          {
+            $set: {
+              last_message_preview: message.text,
+              last_message_at: isLatestMessage.created_at,
+            },
+          },
+        );
+
+        logger.info("Channel preview updated after message edit", {
+          channelId,
+          messageId: message.id,
+        });
+      }
 
       logger.info("Message updated in archive", {
         channelId,
@@ -271,6 +337,13 @@ export async function onNetworkChatMessageDeleted(event: any): Promise<void> {
       return;
     }
 
+    if (!cid.includes(":")) {
+      logger.warn("Malformed cid in message.deleted", { cid });
+      return;
+    }
+
+    const channelId = cid.split(":")[1];
+
     // Soft delete in MongoDB
     try {
       await ChatMessage.updateOne(
@@ -282,6 +355,42 @@ export async function onNetworkChatMessageDeleted(event: any): Promise<void> {
           },
         },
       );
+
+      const isLatestMessage = await ChatMessage.findOne(
+        { channel_id: channelId, deleted_at: { $exists: false } },
+        { created_at: 1, text: 1 },
+        { sort: { created_at: -1 } },
+      );
+
+      if (isLatestMessage) {
+        // Update to the new latest message
+        await NetworkListingChannel.updateOne(
+          { getstream_channel_id: channelId },
+          {
+            $set: {
+              last_message_preview: isLatestMessage.text,
+              last_message_at: isLatestMessage.created_at,
+            },
+          },
+        );
+
+        logger.info("Channel preview updated after message deletion", {
+          channelId,
+          deletedMessageId: message.id,
+          newLatestMessage: isLatestMessage._id,
+        });
+      } else {
+        // Channel has no remaining messages - clear preview
+        await NetworkListingChannel.updateOne(
+          { getstream_channel_id: channelId },
+          {
+            $set: {
+              last_message_preview: null,
+              last_message_at: null,
+            },
+          },
+        );
+      }
 
       logger.info("Message marked as deleted", {
         messageId: message.id,

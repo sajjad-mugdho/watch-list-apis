@@ -16,13 +16,13 @@ export const generateToken = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
+    const clerkId = (req as any).user?.userId;
+    if (!clerkId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
     }
 
-    const user = await getOrCreateUser(auth.userId);
+    const user = await getOrCreateUser(clerkId);
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });
       return;
@@ -61,13 +61,13 @@ export const getUserChannels = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
+    const clerkId = (req as any).user?.userId;
+    if (!clerkId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
     }
 
-    const user = await getOrCreateUser(auth.userId);
+    const user = await getOrCreateUser(clerkId);
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });
       return;
@@ -116,13 +116,13 @@ export const getUnreadCounts = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
+    const clerkId = (req as any).user?.userId;
+    if (!clerkId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
     }
 
-    const user = await getOrCreateUser(auth.userId);
+    const user = await getOrCreateUser(clerkId);
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });
       return;
@@ -144,13 +144,13 @@ export const getOrCreateChannel = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
+    const clerkId = (req as any).user?.userId;
+    if (!clerkId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
     }
 
-    const user = await getOrCreateUser(auth.userId);
+    const user = await getOrCreateUser(clerkId);
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });
       return;
@@ -254,13 +254,13 @@ export const markChannelAsRead = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const auth = (req as any).auth;
-    if (!auth?.userId) {
+    const clerkId = (req as any).user?.userId;
+    if (!clerkId) {
       res.status(401).json({ error: { message: "Unauthorized" } });
       return;
     }
 
-    const user = await getOrCreateUser(auth.userId);
+    const user = await getOrCreateUser(clerkId);
     if (!user) {
       res.status(404).json({ error: { message: "User not found" } });
       return;

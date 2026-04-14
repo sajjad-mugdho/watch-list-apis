@@ -53,7 +53,7 @@ export interface IChatMessage {
   is_deleted?: boolean; // Deleted flag
   custom?: Record<string, any>; // Custom fields from GetStream
   custom_data?: Record<string, any>; // Additional custom metadata
-  status?: "pending_delivery" | "delivered" | "failed"; // Delivery status
+  status?: "pending_delivery" | "delivered" | "failed" | "sent" | "deleted"; // Delivery status
   original_text?: string; // Original text before edits
   edited_at?: Date; // When message was last edited
   type?: string; // Message type classifier
@@ -203,7 +203,7 @@ const ChatMessageSchema = new Schema<IChatMessage, IChatMessageModel>(
     },
     status: {
       type: String,
-      enum: ["pending_delivery", "delivered", "failed"],
+      enum: ["pending_delivery", "delivered", "failed", "sent", "deleted"],
       default: "pending_delivery",
       description: "Message delivery status",
     },

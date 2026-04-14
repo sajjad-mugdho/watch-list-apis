@@ -25,7 +25,15 @@ export class ChatMessageWebhookHandler {
         return;
       }
 
-      const channelId = channel.cid;
+      // Use channel.id (plain ID), fallback to parsing channel.cid if needed
+      const channelId =
+        channel.id || (channel.cid ? channel.cid.split(":")[1] : undefined);
+      if (!channelId) {
+        logger.warn("Missing or unparseable channel ID from webhook", {
+          channel,
+        });
+        return;
+      }
       const messageText = message.text || "";
       const senderId = message.user?.id;
 
@@ -34,7 +42,6 @@ export class ChatMessageWebhookHandler {
         return;
       }
 
-      // Update unread count and last message metadata
       const updated = await this.channelRepo.updateLastMessage(
         channelId,
         messageText,

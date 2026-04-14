@@ -121,7 +121,7 @@ class MessageRepositoryClass extends BaseRepository<IChatMessage> {
    */
   async createMessage(params: CreateMessageParams): Promise<IChatMessage> {
     return this.create({
-      stream_channel_id: params.streamChannelId,
+      channel_id: params.streamChannelId,
       stream_message_id: params.streamMessageId,
       text: params.text,
       sender_id: new Types.ObjectId(params.senderId),
@@ -169,7 +169,7 @@ class MessageRepositoryClass extends BaseRepository<IChatMessage> {
     const userObjectId = new Types.ObjectId(userId);
     return this.updateMany(
       {
-        stream_channel_id: channelId,
+        channel_id: channelId,
         sender_id: { $ne: userObjectId },
         "read_by.user_id": { $ne: userObjectId },
       },
@@ -217,10 +217,10 @@ class MessageRepositoryClass extends BaseRepository<IChatMessage> {
     total: number;
     byType: { type: string; count: number }[];
   }> {
-    const total = await this.count({ stream_channel_id: channelId });
+    const total = await this.count({ channel_id: channelId });
 
     const byType = await ChatMessage.aggregate([
-      { $match: { stream_channel_id: channelId } },
+      { $match: { channel_id: channelId } },
       { $group: { _id: "$type", count: { $sum: 1 } } },
       { $project: { type: "$_id", count: 1, _id: 0 } },
     ]);
@@ -234,7 +234,7 @@ class MessageRepositoryClass extends BaseRepository<IChatMessage> {
   async getUnreadCount(channelId: string, userId: string): Promise<number> {
     const userObjectId = new Types.ObjectId(userId);
     return this.count({
-      stream_channel_id: channelId,
+      channel_id: channelId,
       sender_id: { $ne: userObjectId },
       "read_by.user_id": { $ne: userObjectId },
     });
